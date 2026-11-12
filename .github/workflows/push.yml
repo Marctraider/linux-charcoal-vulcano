@@ -1,5 +1,7 @@
 name: Build latest SteamOS Charcoal kernel
 
+# CI validation for the userspace cleanup pull request.
+
 on:
   push:
     branches:
