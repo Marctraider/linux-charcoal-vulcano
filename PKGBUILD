@@ -262,7 +262,6 @@ _package() {
     python
     util-linux
     systemd
-    btrfs-progs
   )
   optdepends=(
     'wireless-regdb: to set the correct wireless channels of your country'
