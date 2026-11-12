@@ -1,3 +1,4 @@
+# Temporary validation branch run; this comment has no workflow effect.
 name: Build latest SteamOS Charcoal kernel
 
 on:
