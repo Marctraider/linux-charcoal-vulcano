@@ -3,6 +3,7 @@ set -Eeuo pipefail
 
 readonly REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 readonly INSTALLER="$REPO_ROOT/install-charcoal.sh"
+readonly STATUS="$REPO_ROOT/charcoal-status"
 
 tmp="$(mktemp -d)"
 trap 'rm -rf "$tmp"' EXIT
@@ -13,6 +14,11 @@ fail() {
 }
 
 bash -n "$INSTALLER" || fail "installer shell syntax is invalid"
+bash -n "$STATUS" || fail "status utility shell syntax is invalid"
+grep -Fq '"$startdir/charcoal-status" "$pkgdir/usr/bin/charcoal-status"' "$REPO_ROOT/PKGBUILD" \
+  || fail "PKGBUILD does not install the status utility"
+grep -Fq 'charcoal-status' "$INSTALLER" \
+  || fail "installer does not run post-install status checks"
 
 # Source functions without running main().
 # shellcheck source=/dev/null
