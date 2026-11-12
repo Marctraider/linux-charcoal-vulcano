@@ -1,0 +1,229 @@
+#!/usr/bin/env bash
+# Report whether Charcoal kernel features are installed, configured, and active.
+set -uo pipefail
+
+PASS=0
+WARN=0
+FAIL=0
+
+pass() { printf '  [PASS] %s\n' "$*"; PASS=$((PASS + 1)); }
+warn() { printf '  [WARN] %s\n' "$*"; WARN=$((WARN + 1)); }
+fail() { printf '  [FAIL] %s\n' "$*"; FAIL=$((FAIL + 1)); }
+section() { printf '\n%s\n' "$*"; }
+
+RUNNING_KERNEL=$(uname -r)
+CONFIG_FILE=""
+
+# Prefer the installed Charcoal package's saved .config. This lets the
+# installer inspect the new kernel before the machine has rebooted into it.
+shopt -s nullglob
+for module_dir in /usr/lib/modules/*; do
+  [[ -f "$module_dir/pkgbase" && -f "$module_dir/build/.config" ]] || continue
+  pkgbase=$(<"$module_dir/pkgbase")
+  if [[ "$pkgbase" == "linux-neptune-72" || "$pkgbase" == "linux-charcoal-72" ]]; then
+    CONFIG_FILE="$module_dir/build/.config"
+    break
+  fi
+done
+if [[ -z "$CONFIG_FILE" && -r "/boot/config-$RUNNING_KERNEL" ]]; then
+  CONFIG_FILE="/boot/config-$RUNNING_KERNEL"
+fi
+if [[ -z "$CONFIG_FILE" && -r /proc/config.gz ]] && command -v zcat >/dev/null 2>&1; then
+  CONFIG_FILE=$(mktemp)
+  zcat /proc/config.gz > "$CONFIG_FILE" 2>/dev/null || CONFIG_FILE=""
+  trap '[[ -n "${CONFIG_FILE:-}" && -f "$CONFIG_FILE" ]] && rm -f "$CONFIG_FILE"' EXIT
+fi
+
+config_enabled() {
+  local symbol=$1
+  [[ -n "$CONFIG_FILE" ]] && grep -qxE "$symbol=(y|m)" "$CONFIG_FILE"
+}
+config_value() {
+  local symbol=$1 value=$2
+  [[ -n "$CONFIG_FILE" ]] && grep -qxF "$symbol=$value" "$CONFIG_FILE"
+}
+check_config() {
+  local symbol=$1 description=$2
+  if [[ -z "$CONFIG_FILE" ]]; then
+    warn "$description: kernel .config unavailable; cannot verify build option"
+  elif config_enabled "$symbol"; then
+    pass "$description: enabled in kernel config"
+  else
+    fail "$description: $symbol is not enabled in the installed kernel config"
+  fi
+}
+
+printf 'Charcoal kernel status\n'
+printf 'Running kernel: %s\n' "$RUNNING_KERNEL"
+if pacman -Q linux-charcoal-72 >/dev/null 2>&1; then
+  pass "Charcoal kernel package installed ($(pacman -Q linux-charcoal-72 | awk '{print $2}'))"
+else
+  fail "linux-charcoal-72 package is not installed"
+fi
+if pacman -Q linux-charcoal-72-headers >/dev/null 2>&1; then
+  pass "Charcoal kernel headers installed"
+else
+  warn "Charcoal headers package not found (DKMS/external module builds may need it)"
+fi
+
+if [[ -d "/usr/lib/modules/$RUNNING_KERNEL" ]]; then
+  if [[ -f "/usr/lib/modules/$RUNNING_KERNEL/pkgbase" ]] && grep -q 'linux-neptune-72\|linux-charcoal-72' "/usr/lib/modules/$RUNNING_KERNEL/pkgbase"; then
+    pass "Currently running a Charcoal kernel"
+  else
+    warn "Running kernel does not identify itself as Charcoal"
+  fi
+else
+  warn "Running kernel module directory is missing"
+fi
+
+section "Kernel features (installed kernel configuration)"
+check_config CONFIG_CPU_IDLE_GOV_NAP "NAP cpuidle governor"
+check_config CONFIG_SCHED_BORE "BORE scheduler"
+check_config CONFIG_SCHED_POC_SELECTOR "POC CPU selector"
+check_config CONFIG_LRU_CAST "LRU CAST page reclaim"
+check_config CONFIG_ZRAM "ZRAM support"
+check_config CONFIG_ZRAM_MULTI_COMP "ZRAM multi-compression / recompression"
+check_config CONFIG_X86_AMD_PSTATE "AMD P-State"
+check_config CONFIG_CC_OPTIMIZE_FOR_PERFORMANCE_O3 "O3 optimization"
+check_config CONFIG_LTO_CLANG_FULL "Full Clang LTO"
+check_config CONFIG_POLLY_CLANG "Clang Polly"
+if [[ -n "$CONFIG_FILE" ]]; then
+  if config_value CONFIG_X86_AMD_PSTATE_DEFAULT_MODE 3; then
+    pass "AMD P-State default mode: active (EPP)"
+  else
+    warn "AMD P-State default mode is not configured as active (EPP)"
+  fi
+  if config_value CONFIG_JOYSTICK_XPAD n || grep -qxF '# CONFIG_JOYSTICK_XPAD is not set' "$CONFIG_FILE"; then
+    warn "Built-in xpad controller driver is disabled in this kernel config"
+  else
+    pass "Built-in xpad controller driver is not explicitly disabled"
+  fi
+fi
+
+section "NAP runtime"
+if [[ -x /usr/lib/nap/configure-services ]]; then
+  pass "NAP userspace configure-services helper is installed"
+else
+  warn "NAP userspace helper not found at /usr/lib/nap/configure-services"
+fi
+governor_file=/sys/devices/system/cpu/cpuidle/current_governor
+available_file=/sys/devices/system/cpu/cpuidle/available_governors
+if [[ -r "$governor_file" ]]; then
+  governor=$(<"$governor_file")
+  if [[ "$governor" == "nap" ]]; then
+    pass "NAP is the active cpuidle governor"
+  elif [[ -r "$available_file" ]] && grep -qw nap "$available_file"; then
+    warn "NAP governor is available but not selected (current: $governor)"
+  else
+    warn "Current cpuidle governor is $governor; NAP is not reported as available"
+  fi
+else
+  warn "cpuidle current_governor sysfs interface is unavailable"
+fi
+
+section "ADIOS I/O scheduler"
+adios_selected=0
+adios_available=0
+scheduler_devices=0
+for scheduler_file in /sys/block/*/queue/scheduler; do
+  [[ -r "$scheduler_file" ]] || continue
+  scheduler_devices=$((scheduler_devices + 1))
+  schedulers=$(<"$scheduler_file")
+  if grep -qw adios <<< "$schedulers"; then
+    adios_available=$((adios_available + 1))
+    if grep -q '\[adios\]' <<< "$schedulers"; then
+      adios_selected=$((adios_selected + 1))
+    fi
+  fi
+done
+if (( adios_selected > 0 )); then
+  pass "ADIOS selected on $adios_selected block device(s) ($adios_available expose it)"
+elif (( adios_available > 0 )); then
+  warn "ADIOS available on $adios_available block device(s), but not selected"
+elif (( scheduler_devices > 0 )); then
+  fail "ADIOS is not available on any detected block device"
+else
+  warn "No block-device scheduler interfaces found"
+fi
+
+section "ZRAM-IR"
+if [[ -r /proc/sys/vm/zram_recomp_immediate ]]; then
+  immediate=$(</proc/sys/vm/zram_recomp_immediate)
+  if [[ "$immediate" == "1" ]]; then
+    pass "zram_recomp_immediate=1"
+  else
+    fail "zram_recomp_immediate is $immediate (expected 1)"
+  fi
+else
+  warn "zram_recomp_immediate sysctl is unavailable"
+fi
+if [[ -f /usr/lib/udev/rules.d/60-charcoal-zram-ir.rules && -x /usr/lib/charcoal/configure-zram-ir ]]; then
+  pass "ZRAM-IR udev rule and configuration helper are installed"
+else
+  fail "ZRAM-IR udev rule or configuration helper is missing"
+fi
+if [[ -f /usr/lib/systemd/system/systemd-zram-setup@.service.d/90-charcoal-zram-ir.conf ]]; then
+  pass "ZRAM-IR systemd setup drop-in is installed"
+else
+  warn "ZRAM-IR systemd setup drop-in is missing"
+fi
+zram_count=0
+zram_ready=0
+for zram_dir in /sys/block/zram[0-9]*; do
+  [[ -d "$zram_dir" ]] || continue
+  zram_count=$((zram_count + 1))
+  comp=""
+  recomp=""
+  [[ -r "$zram_dir/comp_algorithm" ]] && comp=$(<"$zram_dir/comp_algorithm")
+  [[ -r "$zram_dir/recomp_algorithm" ]] && recomp=$(<"$zram_dir/recomp_algorithm")
+  if grep -q '\[lz4\]' <<< "$comp" && grep -Eq '\[algo=zstd\]|\[zstd\]|algo=zstd' <<< "$recomp"; then
+    zram_ready=$((zram_ready + 1))
+    pass "$(basename "$zram_dir") uses LZ4 primary compression and ZSTD recompression"
+  else
+    warn "$(basename "$zram_dir") compressor setup does not show LZ4 + ZSTD (primary: ${comp:-unknown}; recompress: ${recomp:-unavailable})"
+  fi
+done
+if (( zram_count == 0 )); then
+  warn "No active zram device found; ZRAM runtime settings will be checked after zram is created"
+elif (( zram_ready == zram_count )); then
+  pass "ZRAM-IR compressor configuration verified on all $zram_count device(s)"
+fi
+
+section "AMD P-State EPP"
+pstate_status=/sys/devices/system/cpu/amd_pstate/status
+if [[ -r "$pstate_status" ]]; then
+  pstate=$(<"$pstate_status")
+  if [[ "$pstate" == "active" ]]; then
+    pass "AMD P-State driver reports active mode"
+  else
+    warn "AMD P-State status is $pstate (expected active)"
+  fi
+else
+  warn "AMD P-State status sysfs interface unavailable (hardware/driver dependent)"
+fi
+epp_count=0
+for epp_file in /sys/devices/system/cpu/cpu[0-9]*/cpufreq/energy_performance_preference; do
+  [[ -r "$epp_file" ]] || continue
+  epp_count=$((epp_count + 1))
+done
+if (( epp_count > 0 )); then
+  pass "EPP preference interface exposed for $epp_count CPU(s)"
+else
+  warn "No per-CPU EPP preference interfaces found"
+fi
+if grep -qw 'amd_pstate.epp_boost=1' /proc/cmdline 2>/dev/null; then
+  pass "amd_pstate.epp_boost=1 is present on the running kernel command line"
+else
+  warn "amd_pstate.epp_boost=1 not visible in /proc/cmdline (verify bootloader/built-in command line)"
+fi
+
+section "Summary"
+printf '  PASS: %d   WARN: %d   FAIL: %d\n' "$PASS" "$WARN" "$FAIL"
+if (( FAIL > 0 )); then
+  printf 'Some checks failed. Review the items above.\n'
+  exit 1
+elif (( WARN > 0 )); then
+  printf 'Some checks need attention or a reboot/runtime environment to verify.\n'
+else
+  printf 'All detected checks passed.\n'
+fi
