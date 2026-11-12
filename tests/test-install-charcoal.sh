@@ -75,7 +75,8 @@ grep -Fq 'RELEASE_TAG_PREFIX="charcoal-"' "$INSTALLER" \
 grep -Fq 'release.get("prerelease") is not False' "$INSTALLER" \
   || fail "installer must reject GitHub prereleases"
 
-grep -Fq 'run_privileged /usr/lib/gaming-swap/configure' "$INSTALLER" \
-  || fail "installer does not check swap migration after pacman"
+if grep -Fq 'gaming-swap' "$INSTALLER"; then
+  fail "installer still invokes removed gaming swap migration"
+fi
 
 printf 'install-charcoal SteamOS 7.2 stock-removal tests passed\n'
