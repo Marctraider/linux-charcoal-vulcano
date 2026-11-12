@@ -65,6 +65,7 @@ source=(
   config          # Upstream Arch Linux kernel configuration file, DO NOT EDIT!!!
   config-neptune  # Jupiter: the neptune kernel fragment file (overrides 'config' above)
   config-charcoal # Charcoal: The Charcoal kernel fragment file
+  charcoal.install
   65-adios.rules
   60-charcoal-zram-ir.rules
   configure-zram-ir
@@ -106,6 +107,7 @@ sha256sums=(
   'ecd8c76eb203493e67ba4052e7bc1fa46f51c91566f102172e7a18d7de2dd5eb'
   'c9482d23e18ab37911847918eadfbc022c606f8eddab07acd43ef4d4f339037f'
   'c681bfb19ef1ae30a984d1bfcc1cb900f8f3c8809cadcd2fc0038cef64c44cd5'
+  '1f355cd144b8bb9829e0df5f310104ddfc72862c8809d425c4ca552a2cd350b8'
   '52cbbf41450806d766260bc4f1ea055f6f9fdd55d37ad831840b16d505beb0cc'
   '35fc7647671b1ab412804143a0585dde8d9880097c06feb520f90680780ac5e5'
   '3e200a7ad9661f59be2dfd442fd993fd130da8a6f5df7d8b4ec40d86351b1dcd'
@@ -254,6 +256,7 @@ build() {
 }
 
 _package() {
+  install=charcoal.install
   pkgdesc="The $pkgdesc kernel and modules"
   depends=(
     coreutils
