@@ -300,6 +300,9 @@ _package() {
   ZSTD_CLEVEL=19 _make_llvm INSTALL_MOD_PATH="$pkgdir/usr" INSTALL_MOD_STRIP=1 \
     DEPMOD=/doesnt/exist modules_install  # Suppress depmod
 
+  # Install the post-install/runtime verification utility.
+  install -D -m 0755 "$startdir/charcoal-status" "$pkgdir/usr/bin/charcoal-status"
+
   # Install device-specific udev rules for ADIOS and ZRAM-IR
   install -D -m 0644 -t "$pkgdir/etc/udev/rules.d" ../65-adios.rules
   install -D -m 0644 ../60-charcoal-zram-ir.rules \
