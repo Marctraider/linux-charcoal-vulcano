@@ -32,8 +32,8 @@ class CastPolicyTests(unittest.TestCase):
         paths = ['patches/0001-7.2-rc1-lru_cast-v0.2.5.patch',
                  'patches/0001-7.3-rc7-lru_cast-v0.2.5r2.patch']
         tree = {'tree': [{'path': path, 'type': 'blob'} for path in paths]}
-        patch = b'diff --git a/test b/test\n--- a/test\n+++ b/test\n@@ -1 +1 @@\n-old\n+new\n'
-        with mock.patch.object(resolver, 'repository_tree', return_value=('a'*40, tree)), \
+        patch = b'diff --git a/test b/test\\n--- a/test\\n+++ b/test\\n@@ -1 +1 @@\\n-old\\n+new\\n'
+        with mock.patch.object(resolver, 'repository_tree', return_value=('a'*40, tree)), \\
              mock.patch.object(resolver, 'request_bytes', return_value=patch):
             record = resolver.resolve_github_component(self.component(), '7.2.7', None, ROOT)
         self.assertEqual(record['project_version'], '0.2.5r2')
@@ -49,7 +49,8 @@ class CastPolicyTests(unittest.TestCase):
         self.assertNotIn('LRU_MARIE', config)
         self.assertIn("'CONFIG_LRU_CAST=y'", pkgbuild)
         self.assertIn('port-lru-cast-latest.py', pkgbuild)
-        self.assertNotIn('swappiness', (ROOT / '99-charcoal-sysctl.conf').read_text())
+        self.assertFalse((ROOT / '99-charcoal-sysctl.conf').exists())
+        self.assertNotIn('swappiness', pkgbuild)
 
 
 if __name__ == '__main__':
