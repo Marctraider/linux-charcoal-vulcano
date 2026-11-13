@@ -1,6 +1,5 @@
 # Charcoal SteamOS Kernel
 
-[Português brasileiro](README.pt-BR.md)
 
 
 ## Maintainer notes
