@@ -26,6 +26,7 @@ section() { printf '\n%s\n' "$*"; }
 
 RUNNING_KERNEL=$(uname -r)
 CONFIG_FILE=""
+BUILD_DIR=""
 
 # Prefer the installed Charcoal package's saved .config. This lets the
 # installer inspect the new kernel before the machine has rebooted into it.
@@ -35,11 +36,15 @@ for module_dir in /usr/lib/modules/*; do
   pkgbase=$(<"$module_dir/pkgbase")
   if [[ "$pkgbase" == "linux-neptune-72" || "$pkgbase" == "linux-charcoal-72" ]]; then
     CONFIG_FILE="$module_dir/build/.config"
+    BUILD_DIR="$module_dir/build"
     break
   fi
 done
 if [[ -z "$CONFIG_FILE" && -r "/boot/config-$RUNNING_KERNEL" ]]; then
   CONFIG_FILE="/boot/config-$RUNNING_KERNEL"
+fi
+if [[ -z "$BUILD_DIR" && -d "/usr/lib/modules/$RUNNING_KERNEL/build" ]]; then
+  BUILD_DIR="/usr/lib/modules/$RUNNING_KERNEL/build"
 fi
 if [[ -z "$CONFIG_FILE" && -r /proc/config.gz ]] && command -v zcat >/dev/null 2>&1; then
   CONFIG_FILE=$(mktemp)
@@ -87,6 +92,42 @@ if [[ -d "/usr/lib/modules/$RUNNING_KERNEL" ]]; then
   fi
 else
   warn "Running kernel module directory is missing"
+fi
+
+section "Kernel security and build target"
+if [[ -z "$CONFIG_FILE" ]]; then
+  warn "CPU mitigations: kernel .config unavailable; cannot verify CONFIG_CPU_MITIGATIONS"
+elif config_value CONFIG_CPU_MITIGATIONS n || grep -qxF '# CONFIG_CPU_MITIGATIONS is not set' "$CONFIG_FILE"; then
+  pass "CPU mitigations are disabled (CONFIG_CPU_MITIGATIONS=n)"
+elif config_enabled CONFIG_CPU_MITIGATIONS; then
+  fail "CPU mitigations are enabled; expected CONFIG_CPU_MITIGATIONS=n"
+else
+  warn "CONFIG_CPU_MITIGATIONS is not explicitly set; cannot confirm the expected disabled state"
+fi
+
+printf '  Kernel architecture reported by uname: %s\\n' "$(uname -m)"
+if [[ -n "$CONFIG_FILE" ]]; then
+  if config_value CONFIG_GENERIC_CPU n || grep -qxF '# CONFIG_GENERIC_CPU is not set' "$CONFIG_FILE"; then
+    pass "Generic CPU tuning is disabled (kernel uses a non-generic CPU target)"
+  elif config_enabled CONFIG_GENERIC_CPU; then
+    warn "Generic CPU tuning is enabled; no specific CPU target is selected"
+  else
+    warn "CONFIG_GENERIC_CPU is not present; exact CPU tuning target cannot be inferred"
+  fi
+fi
+printf '  Note: the exact -march/-mtune compiler flags are not encoded in the kernel .config.\\n'
+
+compiler=""
+if [[ -n "$BUILD_DIR" && -r "$BUILD_DIR/include/generated/compile.h" ]]; then
+  compiler=$(sed -n 's/^#define LINUX_COMPILER "\(.*\)"/\\1/p' "$BUILD_DIR/include/generated/compile.h" | head -n1)
+fi
+if [[ -n "$compiler" ]]; then
+  pass "Kernel build compiler: $compiler"
+elif [[ -r /proc/version ]] && grep -Eqi 'clang|gcc|GCC' /proc/version; then
+  compiler=$(sed -E 's/.*(clang version [^,)]*|gcc version [^,)]*|GCC version [^,)]*).*/\\1/I' /proc/version)
+  warn "Compiler identified from running kernel: $compiler (build metadata header unavailable)"
+else
+  warn "Compiler version is unavailable; no embedded kernel build metadata found"
 fi
 
 section "Kernel features (installed kernel configuration)"
