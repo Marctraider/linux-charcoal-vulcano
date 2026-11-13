@@ -16,13 +16,15 @@ O instalador consulta [releases/latest](https://github.com/zarpon/linux-charcoal
 
 Antes de alterar pacotes, verifica o SHA-256 do ZIP, extrai com segurança exatamente o par kernel/headers da mesma série, confere seus hashes e consulta metadados com pacman. `pacman -Qp` verifica metadados, sem simular integralmente a transação ou o espaço disponível.
 
-Identifica pacotes anteriores `linux-charcoal*` e o kernel original/headers conflitantes da série selecionada. A remoção do kernel original exige confirmação explícita; pacotes não relacionados ficam fora da lista. Após confirmar a transação, libera escrita e modo de desenvolvimento, remove os pacotes aprovados com `pacman -Rdd`, instala o par verificado, reaplica o perfil persistente de swap e atualiza o GRUB. Restaura o modo somente leitura ao sair e nunca reinicia automaticamente.
+Identifica pacotes anteriores `linux-charcoal*` e o kernel original/headers conflitantes da série selecionada. A remoção do kernel original exige confirmação explícita; pacotes não relacionados ficam fora da lista. Após confirmar a transação, libera escrita e modo de desenvolvimento, remove os pacotes aprovados com `pacman -Rdd`, instala o par verificado e atualiza o GRUB. Restaura o modo somente leitura ao sair e nunca reinicia automaticamente.
 
 Prepara cópias exatas do cache `/var/cache/pacman/pkg` para rollback. Se a instalação falhar e todos os pacotes removidos estavam no cache, tenta restaurá-los. Sem o cache completo, não há garantia de rollback automático: corrija a instalação do kernel antes de reiniciar. Mantenha um método de recuperação do SteamOS disponível.
 
 As opções existentes continuam compatíveis: `CHARCOAL_72_REMOVE_STOCK=1` autoriza explicitamente a remoção do original e `CHARCOAL_72_ASSUME_YES=1` aceita as duas confirmações. Os nomes antigos são preservados entre séries.
 
 Após o sucesso, reinicie manualmente e confira `uname -r` e `pacman -Q | grep '^linux-charcoal'`. O kernel deve conter o sufixo Charcoal instalado. Use com o SteamOS stable atual, não com uma imagem antiga sem suporte.
+
+O instalador também executa `charcoal-status` após a instalação, quando o comando está disponível. Após reiniciar, execute `sudo charcoal-status` novamente para conferir o estado em execução. `[PASS]` aparece em verde, `[WARN]` em amarelo e `[FAIL]` em vermelho no terminal interativo. Avisos indicam verificações que dependem de reinicialização, hardware ou disponibilidade em execução; qualquer falha retorna código de saída 1.
 
 ## Acompanhamento automático do stable
 
@@ -38,7 +40,7 @@ Assim, a mudança do stable para Linux 7.3 ou superior é descoberta automaticam
 
 Descobrir um kernel novo não pula a compatibilidade dos patches. Todas as famílias continuam obrigatórias. O resolvedor escolhe primeiro a versão mais recente de cada projeto e prefere sua variante nativa da série detectada; portes/adaptadores mantêm hashes e origem. Os portes existentes passam por verificação contra a nova fonte antes da compilação. Se os bytes upstream ou APIs mudarem de forma incompatível, o build falha para correção, sem retirar patches, escolher uma versão antiga do projeto ou publicar um kernel incompleto. Consulte [PATCH-SOURCES.md](PATCH-SOURCES.md).
 
-A pilha preserva BORE/coexistência sched_ext, POC Selector, ADIOS/elevator padrão, LRU CAST, NAP, ZRAM-IR, AMD P-State EPP boost, otimizações CPU/O3, Clear/Zen, compatibilidade DKMS/Clang/Polly, firmware/wireless, Ryzen SMU, drivers de controles e patches locais Van Gogh/IOMMU. A ordem de aplicação é mantida. `6.16.12-bore-6.8.0-final.patch` permanece como referência de compatibilidade; o BORE atual é selecionado dinamicamente. Os arquivos 6.18 substituídos dão lugar às implementações 7.2 mantidas.
+A pilha preserva BORE/coexistência sched_ext, POC Selector, ADIOS/elevator padrão, LRU CAST, NAP, ZRAM-IR, AMD P-State EPP boost, otimizações CPU/O3, Clear/Zen, compatibilidade DKMS/Clang/Polly, firmware/wireless e patches locais Van Gogh/IOMMU. A ordem de aplicação é mantida. `6.16.12-bore-6.8.0-final.patch` permanece como referência de compatibilidade; o BORE atual é selecionado dinamicamente. Os arquivos 6.18 substituídos dão lugar às implementações 7.2 mantidas.
 
 Funcionalidades já presentes na fonte Valve continuam contabilizadas pelo resolvedor, sem reaplicação duplicada. Patches antigos fsync opcode-31, C23/libbpf, Bluetooth SSP e Qualcomm ath11k upstream já ausentes da `kernel-7.2` não são reintroduzidos. O `patch-lock.json` validado registra versões, origens, hashes e funcionalidades atendidas pelo upstream.
 
@@ -57,7 +59,6 @@ Preparação local com Python 3, Bash e Git:
 ```bash
 python3 automation/prepare-pkgbuild-7.2.py --write PKGBUILD
 python3 automation/prepare-steamos-stable.py --fetch-config
-python3 automation/resolve-controller-drivers.py --write
 python3 automation/resolve-latest-patches-7.2-policy.py --overrides logs/patch-source-overrides-stable.json --write
 python3 automation/validate-patch-lock.py --manifest logs/patch-sources-7.2.json --overrides logs/patch-source-overrides-stable.json
 ```
@@ -69,7 +70,7 @@ Alguns nomes de helpers mantêm `7.2` por compatibilidade; a entrada stable forn
 O ZSTD por software da Crypto API usa por padrão o **nível 1** (ZSTD_DEF_LEVEL=1), utilizado pelo zswap com backend genérico. O código existente calcula automaticamente parâmetros e memória de trabalho; o limite da janela e o descompressor permanecem iguais. O build confere a fonte preparada e publica zstd-crypto-level.txt e zstd-crypto-source.sha256. Outros consumidores desse codec genérico também recebem o novo padrão. O modo fast próprio do ZRAM-IR e os backends de hardware Intel QAT mantêm o comportamento existente.
 
 
-O3 e o perfil de jogos/memória Charcoal continuam ativos. A instalação desabilita persistentemente ZRAM/serviços, habilita ZSTD zswap com pool de **35% da RAM**, shrinker ativo e swapfile em `/home` com **100% da RAM**. O suporte ZRAM-IR permanece disponível no kernel. Consulte [SWAP.md](SWAP.md).
+Os recursos de desempenho no kernel continuam ativos, mas o pacote não impõe valores sysctl voltados a jogos, variáveis de ambiente, migração de swapfile ou drivers/workarounds de controles de terceiros. O Steam Input não é afetado. As regras udev do ZRAM-IR e ADIOS permanecem instaladas, assim como os hooks de ciclo de vida do NAP.
 
 Permanecem `vm.vfs_cache_pressure=100`, `vm.dirty_background_ratio=2` e `vm.dirty_ratio=5`, preservando os padrões do LRU CAST. `CONFIG_ZEN_INTERACTIVE` controla os ajustes existentes de RCU assíncrono evdev e seleção schedutil P-State, sem importar outros padrões Zen de memória/scheduler.
 

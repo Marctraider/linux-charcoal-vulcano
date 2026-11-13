@@ -3,6 +3,7 @@ set -Eeuo pipefail
 
 readonly REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 readonly INSTALLER="$REPO_ROOT/install-charcoal.sh"
+readonly STATUS="$REPO_ROOT/charcoal-status"
 
 tmp="$(mktemp -d)"
 trap 'rm -rf "$tmp"' EXIT
@@ -13,6 +14,11 @@ fail() {
 }
 
 bash -n "$INSTALLER" || fail "installer shell syntax is invalid"
+bash -n "$STATUS" || fail "status utility shell syntax is invalid"
+grep -Fq '"$startdir/charcoal-status" "$pkgdir/usr/bin/charcoal-status"' "$REPO_ROOT/PKGBUILD" \
+  || fail "PKGBUILD does not install the status utility"
+grep -Fq 'charcoal-status' "$INSTALLER" \
+  || fail "installer does not run post-install status checks"
 
 # Source functions without running main().
 # shellcheck source=/dev/null
@@ -75,7 +81,8 @@ grep -Fq 'RELEASE_TAG_PREFIX="charcoal-"' "$INSTALLER" \
 grep -Fq 'release.get("prerelease") is not False' "$INSTALLER" \
   || fail "installer must reject GitHub prereleases"
 
-grep -Fq 'run_privileged /usr/lib/gaming-swap/configure' "$INSTALLER" \
-  || fail "installer does not check swap migration after pacman"
+if grep -Fq 'gaming-swap' "$INSTALLER"; then
+  fail "installer still invokes removed gaming swap migration"
+fi
 
 printf 'install-charcoal SteamOS 7.2 stock-removal tests passed\n'

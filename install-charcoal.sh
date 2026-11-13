@@ -376,13 +376,19 @@ main() {
     die "SteamOS stable installation failed after kernel removal; do not reboot until a working kernel is installed"
   fi
 
-  info "Ensuring persistent zswap and /home swapfile migration completed..."
-  run_privileged /usr/lib/gaming-swap/configure
 
   info "Updating the bootloader configuration..."
   _update_grub
-  info "Charcoal SteamOS stable ${release_tag} installed successfully. Reboot, then verify with: uname -r"
-  info "ZRAM is disabled persistently; ZSTD zswap uses a swapfile on /home sized to 100% of MemTotal. Reboot to verify the settings."
+  info "Charcoal SteamOS stable ${release_tag} installed successfully."
+  if command -v charcoal-status >/dev/null 2>&1; then
+    info "Running post-install verification (runtime checks may require a reboot)..."
+    if ! charcoal-status; then
+      info "Some checks need attention; review the report above. Re-run charcoal-status after reboot."
+    fi
+  else
+    info "Status utility not found; after reboot, verify the installation with: uname -r"
+  fi
+  info "Reboot when ready, then run: charcoal-status"
 }
 
 if [[ "${BASH_SOURCE[0]}" == "$0" ]]; then

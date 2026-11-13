@@ -1,6 +1,5 @@
 post_install() {
   /usr/lib/nap/configure-services install || return
-  /usr/lib/gaming-swap/configure
 }
 
 post_upgrade() {

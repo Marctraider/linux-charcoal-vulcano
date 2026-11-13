@@ -60,28 +60,18 @@ _make_llvm() {
     "$@"
 }
 _srcname=archlinux-linux-charcoal
-# Refreshed before every CI build; for local builds run:
-# python3 automation/resolve-controller-drivers.py --write
-_xpadneo_version=0.10.5
 source=(
   "$_srcname::git+https://github.com/evlaV/linux-integration.git#tag=$_tag"
   config          # Upstream Arch Linux kernel configuration file, DO NOT EDIT!!!
   config-neptune  # Jupiter: the neptune kernel fragment file (overrides 'config' above)
   config-charcoal # Charcoal: The Charcoal kernel fragment file
-  charcoal.conf
-  99-charcoal-sysctl.conf
-  99-charcoal-memory.conf
-  99-charcoal-gaming.conf
+  charcoal.install
   65-adios.rules
   60-charcoal-zram-ir.rules
   configure-zram-ir
-  configure-gaming-swap
-  gaming-zswap.service
-  gaming-swap.install
   nap-tools.tar.gz
   90-charcoal-zram.conf
   90-charcoal-zram-ir.conf
-  99-charcoal.sh
   vangogh_allow_higher_cpu_freq.patch
   vangogh_higher_max_power_limit.patch
   latest-lru_cast.patch
@@ -90,8 +80,6 @@ source=(
   latest-amd-pstate-epp-boost-02-cache-order.patch
   latest-amd-pstate-epp-boost-03-core.patch
   latest-amd-pstate-epp-boost-04-docs.patch
-  ryzen_smu.diff
-  xpad-noone.diff
   latest-clear.patch
   latest-o3.patch
   latest-libbpf-uninitialized.patch
@@ -110,10 +98,6 @@ source=(
   latest-adios-default.patch
   latest-zen-01.patch
   latest-zen-02.patch
-  "git+https://github.com/amkillam/ryzen_smu.git#commit=9f9569f889935f7c7294cc32c1467e5a4081701a"
-  "git+https://github.com/dlundqvist/xone.git#commit=f2aa9fe01103d7600553b505b298ff0bd47ff280"
-  "git+https://github.com/forkymcforkface/xpad-noone.git#commit=a52e32cf182435d608e66bef9a6c89ebac891999"
-  "git+https://github.com/atar-axis/xpadneo.git#commit=e8f103a77f777c2c54536dd947969cf228699c13"
   latest-nap.patch
   iommu-perfopt-consolidado-v3.patch
   zstd-crypto-default-level-1.patch
@@ -123,20 +107,13 @@ sha256sums=(
   'ecd8c76eb203493e67ba4052e7bc1fa46f51c91566f102172e7a18d7de2dd5eb'
   'c9482d23e18ab37911847918eadfbc022c606f8eddab07acd43ef4d4f339037f'
   'c681bfb19ef1ae30a984d1bfcc1cb900f8f3c8809cadcd2fc0038cef64c44cd5'
-  'b831de1b98a2f77f636f4780e37ebfcb3a6829f94f5423eb04c4b26e64ac43b8'
-  '6145462665bcc2a95e3413aa3a0ad1e940754673daf1d161a8b8e9097341f8a4'
-  'ae521b7acee1c4fcd46cc7fb2d514782a3b74b475115ca4f5c59c804f3f0c3f6'
-  '6e71f4ef06f4e40053ac530d0000669bcf65db6e3992ccee54f0c61f8ba04ec6'
+  '1f355cd144b8bb9829e0df5f310104ddfc72862c8809d425c4ca552a2cd350b8'
   '52cbbf41450806d766260bc4f1ea055f6f9fdd55d37ad831840b16d505beb0cc'
   '35fc7647671b1ab412804143a0585dde8d9880097c06feb520f90680780ac5e5'
   '3e200a7ad9661f59be2dfd442fd993fd130da8a6f5df7d8b4ec40d86351b1dcd'
-  'c3783d5ed19a734eb6198fad95194e6527ee52e49ede9e188eb107ec763a1148'
-  '4ac7cdcd2efdcd5fda021eefa670166832bbb493ea7b33f6e66eca1a67cb4e31'
-  '8e4738f3aaa22832b3e45dca7b226460702e88bcdcd026ea5d5062e5aa0444de'
   '58c97868ab414a9600e59a5c170dc44803b49fe07a10f7a4497076ae7ca6ffac'
   'b59543c9aac43412e8b90b050380f482214ab33c4703d621ff0ea91ea39c6761'
   '07068c432fd7e80689f44a28346f1909de9ee77aa3e72dfaa6a4ea89d9921afd'
-  '1f7df01db0bcd7c18230878003466ac3f651f8f21e74323b7e8178871d824f74'
   '1a6f9d691612c4a729032273199d17756dd6666d85019655bd95ea24eff59cac'
   '1c49146dc5878bfab32b331d11cb66d493670bbe590ff07c2050305911c281c3'
   '383b8cea61ef133ec2dfeb9fd1b4f1f8e55b2649cd41e1aee9d71fd8aaaaf4ea'
@@ -145,8 +122,6 @@ sha256sums=(
   '9b5caecdd70729103f04f6ec5b3e1aa8a05d91bbf79b97ad050c10c8dbb5fbe1'
   '991cd0df7c2fabcef05e2009eb833b6087a6a3f5d1b11fc9d1f027192e131162'
   '6ff36ba97524ce21a8b8a9e127f37c8fe1016f6a2b10ca439d2705539630d096'
-  '51ad35f817863e2222e74a093b5d10be77089d4a6e8749b2f44839f380ec0c7f'
-  'ff3bbe78d6f072d57f567878e870956242ee78ccddd258b1ec2e4729621138fe'
   '2c9843a51e8dd4b41f7620dcc4bf3677c7867d922073202c095324fb1443cfa5'
   '492aafbd940b18b817e4b7957805b9874f488cc1463fee588dd8dacd18c86677'
   'f573edc1cb722c34b18a62db5d04c7488d6250807e694a691382b487c48d4445'
@@ -165,10 +140,6 @@ sha256sums=(
   '5ef2f14326a5fab8980d1ebb6734ece576f930c173b4980eb026513aa3b1b9d0'
   'bc647f73ec860a0fe7d074c2377588816a616dc2a651b30d7b9cd168863a17c6'
   '5059762e54c8dbe4262d48eafb8d486a54244eec71da5d7b61fc0f5f1c5c2ea7'
-  'SKIP'
-  'SKIP'
-  'SKIP'
-  'SKIP'
   '4d4ac50ba014de33638a2efe9c6adc507b888c6d090aa29ea17b2a4686de4e07'
   '52ee747b6888f6e59df2cc6a4b6d6ccbc104c932bc8cb11b1ff0035cde47425a'
   '8c35a18407440f543518e383a96f8098438c3cbe4ea034241fb9a7fe8f7be129'
@@ -272,11 +243,6 @@ prepare() {
 
   _make_llvm -s kernelrelease > version
 
-  # Charcoal patches for DKMS modules
-  cd ../ryzen_smu
-  patch -Np1 < ../ryzen_smu.diff
-  cd ../xpad-noone
-  patch -Np1 < ../xpad-noone.diff
 
   echo "Prepared $pkgbase version $(<../$_srcname/version)"
 }
@@ -287,15 +253,10 @@ build() {
   _make_llvm -C tools/bpf/bpftool vmlinux.h feature-clang-bpf-co-re=1
 #  make htmldocs # Jupiter: Don't build the docs
 
-  # Charcoal: Build bundles DKMS modules
-  _make_llvm M=../ryzen_smu modules
-  _make_llvm M=../xone modules
-  _make_llvm M=../xpad-noone modules
-  _make_llvm M=../xpadneo/hid-xpadneo/src VERSION=$_xpadneo_version modules
 }
 
 _package() {
-  install=gaming-swap.install
+  install=charcoal.install
   pkgdesc="The $pkgdesc kernel and modules"
   depends=(
     coreutils
@@ -304,7 +265,6 @@ _package() {
     python
     util-linux
     systemd
-    btrfs-progs
   )
   optdepends=(
     'wireless-regdb: to set the correct wireless channels of your country'
@@ -314,19 +274,11 @@ _package() {
     KSMBD-MODULE
     VIRTUALBOX-GUEST-MODULES
     WIREGUARD-MODULE
-    ryzen_smu
-    xone
-    xpad-noone
-    xpadneo
     $_nepbase
   )
   replaces=(
     virtualbox-guest-modules-arch
     wireguard-arch
-    ryzen_smu
-    xone
-    xpad-noone
-    xpadneo
     $_nepbase
   )
   conflicts=(
@@ -348,18 +300,10 @@ _package() {
   ZSTD_CLEVEL=19 _make_llvm INSTALL_MOD_PATH="$pkgdir/usr" INSTALL_MOD_STRIP=1 \
     DEPMOD=/doesnt/exist modules_install  # Suppress depmod
 
-  # Charcoal: Install modprobe file (currently workaround for xpadneo)
-  install -D -m 0644 -t "$pkgdir/etc/modprobe.d" ../charcoal.conf
-  # Charcoal: Install environment file (currently workaround for xpadneo)
-  install -D -m 0644 -t "$pkgdir/etc/profile.d" ../99-charcoal.sh
-  # Charcoal: persistent runtime defaults for SteamOS sessions and kernel memory.
-  install -D -m 0644 ../99-charcoal-sysctl.conf \
-    "$pkgdir/usr/lib/sysctl.d/99-charcoal.conf"
-  install -D -m 0644 ../99-charcoal-memory.conf \
-    "$pkgdir/usr/lib/tmpfiles.d/99-charcoal-memory.conf"
-  install -D -m 0644 ../99-charcoal-gaming.conf \
-    "$pkgdir/usr/lib/environment.d/99-charcoal-gaming.conf"
-  # Charcoal: Install udev rules
+  # Install the post-install/runtime verification utility.
+  install -D -m 0755 "$startdir/charcoal-status" "$pkgdir/usr/bin/charcoal-status"
+
+  # Install device-specific udev rules for ADIOS and ZRAM-IR
   install -D -m 0644 -t "$pkgdir/etc/udev/rules.d" ../65-adios.rules
   install -D -m 0644 ../60-charcoal-zram-ir.rules \
     "$pkgdir/usr/lib/udev/rules.d/60-charcoal-zram-ir.rules"
@@ -370,26 +314,10 @@ _package() {
   install -D -m 0644 ../90-charcoal-zram-ir.conf \
     "$pkgdir/usr/lib/systemd/system/systemd-zram-setup@.service.d/90-charcoal-zram-ir.conf"
 
-  # Configure host swap after installation, never in the build environment.
-  install -D -m 0755 ../configure-gaming-swap \
-    "$pkgdir/usr/lib/gaming-swap/configure"
-  install -D -m 0644 ../gaming-zswap.service \
-    "$pkgdir/usr/lib/systemd/system/gaming-zswap.service"
-
   # Preserve NAP learning and build the offline viewer from this kernel's model.
   python3 "$srcdir/nap-tools-latest/install-tools.py" \
     --source-dir "$srcdir/nap-tools-latest" --require-resolved \
     --destdir "$pkgdir" --kernel-dir "$PWD/drivers/cpuidle/governors/nap"
-
-  # Charcoal: Install bundles DKMS modules
-  ZSTD_CLEVEL=19 _make_llvm M=../ryzen_smu INSTALL_MOD_PATH="$pkgdir/usr" INSTALL_MOD_STRIP=1 DEPMOD=/doesnt/exist modules_install
-  ZSTD_CLEVEL=19 _make_llvm M=../xone INSTALL_MOD_PATH="$pkgdir/usr" INSTALL_MOD_STRIP=1 DEPMOD=/doesnt/exist modules_install
-  ZSTD_CLEVEL=19 _make_llvm M=../xpad-noone INSTALL_MOD_PATH="$pkgdir/usr" INSTALL_MOD_STRIP=1 DEPMOD=/doesnt/exist modules_install
-  ZSTD_CLEVEL=19 _make_llvm M=../xpadneo/hid-xpadneo/src INSTALL_MOD_PATH="$pkgdir/usr" INSTALL_MOD_STRIP=1 DEPMOD=/doesnt/exist modules_install
-  cd ../xpadneo/hid-xpadneo
-  install -D -m 0644 -t "$pkgdir/etc/modprobe.d" etc-modprobe.d/xpadneo.conf
-  install -D -m 0644 -t "$pkgdir/etc/udev/rules.d" etc-udev-rules.d/60-xpadneo.rules
-  install -D -m 0644 -t "$pkgdir/etc/udev/rules.d" etc-udev-rules.d/70-xpadneo-disable-hidraw.rules
 
   # remove build link
   rm "$modulesdir"/build
