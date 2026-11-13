@@ -32,7 +32,7 @@ A fork também avançou em relação à base de kernel antiga do projeto origina
 
 ## Instalação da release desta fork
 
-Use SteamOS Stable e execute no Modo Desktop. Mantenha um método de recuperação disponível. Nenhuma alteração de IOMMU ou BIOS é necessária antes de instalar o kernel.
+Use SteamOS Stable e execute no Modo Desktop. Mantenha um método de recuperação disponível. O BIOS do Steam Deck mantém o IOMMU desabilitado por padrão, e o instalador não altera essa configuração. Nenhuma alteração de IOMMU ou BIOS é necessária antes de instalar o kernel.
 
 **Importante:** o instalador baixa pacotes pré-compilados. Ele não compila o kernel no Steam Deck. É necessário existir uma release estável publicada neste repositório. Se a página de [Releases desta fork](https://github.com/Marctraider/linux-charcoal-vulcano/releases) ainda não tiver uma release estável, aguarde a primeira execução de publicação bem-sucedida.
 
