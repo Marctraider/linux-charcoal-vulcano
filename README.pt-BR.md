@@ -2,6 +2,12 @@
 
 [English](README.md)
 
+
+## Notas do mantenedor
+
+- **Diagnóstico opcional:** o script separado `charcoal-status` verifica se os recursos do kernel e as funções relacionadas em execução parecem estar funcionando. É uma ferramenta de diagnóstico, não um requisito para instalar ou usar o kernel.
+- **IOMMU / PerfOpt:** o PerfOpt pode ser usado com o IOMMU habilitado. Para testar essa configuração, remova `iommu=off` de `/etc/default/grub-steamos`; dependendo da configuração do sistema, você também pode optar por `iommu=pt`. O PerfOpt existe como opção para quem deseja o reforço de segurança adicional de manter o IOMMU habilitado, preservando um desempenho da iGPU comparável ao da configuração `iommu=off`. Ele não oferece vantagem de desempenho em relação a simplesmente manter `iommu=off`. Essa escolha é opcional e não é um pré-requisito para instalar o kernel. Avalie os impactos de segurança e compatibilidade de dispositivos antes de alterar as configurações do IOMMU.
+
 O Charcoal é um kernel personalizado para SteamOS, mantido neste repositório. O objetivo desta fork é preservar os recursos de desempenho, scheduler, gerenciamento de memória e hardware no próprio kernel, removendo ajustes de userspace voltados a jogos e o pacote de drivers/workarounds de controles de terceiros que não são necessários para esses recursos.
 
 **Este repositório é a origem do instalador e das releases.** O instalador deve buscar pacotes de `Marctraider/linux-charcoal-vulcano`, não do repositório original `zarpon/linux-charcoal-vulcano`.
@@ -26,7 +32,7 @@ A fork também avançou em relação à base de kernel antiga do projeto origina
 
 ## Instalação da release desta fork
 
-Use SteamOS Stable e execute no Modo Desktop. Mantenha um método de recuperação disponível. No Steam Deck, siga as instruções de configuração IOMMU/BIOS do projeto antes de instalar se pretende usar essas alterações.
+Use SteamOS Stable e execute no Modo Desktop. Mantenha um método de recuperação disponível. Nenhuma alteração de IOMMU ou BIOS é necessária antes de instalar o kernel.
 
 **Importante:** o instalador baixa pacotes pré-compilados. Ele não compila o kernel no Steam Deck. É necessário existir uma release estável publicada neste repositório. Se a página de [Releases desta fork](https://github.com/Marctraider/linux-charcoal-vulcano/releases) ainda não tiver uma release estável, aguarde a primeira execução de publicação bem-sucedida.
 
@@ -50,7 +56,7 @@ O instalador consulta a [última release desta fork](https://github.com/Marctrai
 
 O instalador nunca reinicia automaticamente. Não reinicie se a instalação falhar e o rollback não estiver disponível. Leia os prompts antes de confirmar.
 
-Após instalar com sucesso, reinicie manualmente e execute:
+Após instalar com sucesso, reinicie manualmente. Opcionalmente, execute o script de diagnóstico separado `charcoal-status` para verificar a configuração compilada e a ativação em execução:
 
 ```bash
 uname -r
@@ -83,7 +89,7 @@ O Steam Input é um recurso userspace do Steam e não é removido. O suporte efe
 
 - O3, LTO e Polly não garantem mais FPS ou menor latência; os resultados dependem do hardware e da carga.
 - Os patches Van Gogh elevam limites configurados de frequência/potência, mas não garantem que o hardware mantenha esses valores.
-- O caminho IOMMU PerfOpt pode pular ATS/PRI/PASID/SVA em GPUs integradas AMD elegíveis e usar um caminho DMA identity otimizado. Isso reduz o isolamento DMA daquele dispositivo. Entenda essa consequência de segurança antes de usar.
+- O PerfOpt é opcional. Ele pode ser usado com o IOMMU habilitado (após remover `iommu=off` de `/etc/default/grub-steamos`, e opcionalmente usar `iommu=pt`). Seu objetivo é oferecer uma configuração com IOMMU habilitado para quem deseja o reforço de segurança adicional, buscando manter o desempenho da iGPU comparável ao de `iommu=off`; ele não melhora o desempenho em relação a `iommu=off`. O caminho PerfOpt pode pular ATS/PRI/PASID/SVA em GPUs integradas AMD elegíveis e usar um caminho DMA identity otimizado, o que reduz o isolamento DMA daquele dispositivo. Avalie os impactos de segurança e compatibilidade antes de habilitá-lo.
 - CI e validações de pacote não substituem testes reais de boot, suspensão/retomada, Wi-Fi, áudio, controles e jogos no Steam Deck.
 
 ## Como o build acompanha o SteamOS stable
