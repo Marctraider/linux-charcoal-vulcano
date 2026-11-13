@@ -1,60 +1,112 @@
-# Charcoal SteamOS Kernel — canal estável
+# Charcoal SteamOS Kernel
 
 [English](README.md)
 
-A `master` compila o kernel Charcoal para o **SteamOS stable atual**. O SteamOS 3.9 estável usa atualmente Linux 7.2; são versões diferentes. A pilha completa mantida na `kernel-7.2` substitui o fluxo antigo de kernel 6.18 na `master`.
+O Charcoal é um kernel personalizado para SteamOS, mantido neste repositório. O objetivo desta fork é preservar os recursos de desempenho, scheduler, gerenciamento de memória e hardware no próprio kernel, removendo ajustes de userspace voltados a jogos e o pacote de drivers/workarounds de controles de terceiros que não são necessários para esses recursos.
 
-## Instalação da Latest
+**Este repositório é a origem do instalador e das releases.** O instalador deve buscar pacotes de `Marctraider/linux-charcoal-vulcano`, não do repositório original `zarpon/linux-charcoal-vulcano`.
 
-Atualize o SteamOS stable e execute no Modo Desktop. No Steam Deck, habilite IOMMU na BIOS e reinicie antes.
+## Intenção desta fork em relação ao projeto original de Zarpon
+
+Este repositório começou como uma fork de [linux-charcoal-vulcano de Zarpon](https://github.com/zarpon/linux-charcoal-vulcano). Mantém a ideia geral de um kernel SteamOS focado em desempenho, mas separa de forma mais clara os recursos do kernel dos ajustes opcionais do sistema e da sessão de jogos.
+
+| Área | Intenção desta fork |
+|---|---|
+| Scheduler e reclaim | Manter BORE, POC Selector, ADIOS, LRU CAST e NAP. |
+| Memória e compressão | Manter ZSWAP e ZRAM-IR no kernel, incluindo a integração udev/runtime necessária para ZRAM-IR e ADIOS. |
+| Gerenciamento de energia AMD | Manter AMD P-State EPP em modo active e os ajustes de EPP boost. |
+| Steam Deck / Van Gogh | Manter os patches de frequência/limite de potência Van Gogh e as alterações IOMMU selecionadas. |
+| Compilador e CPU | Manter alvo Zen 2, Clang/LLVM, O3, Full Clang LTO e Polly. |
+| Ajustes de userspace para jogos | Remover perfis sysctl personalizados, variáveis de ambiente forçadas e migração/configuração de swapfile. |
+| Drivers de controles | Remover o pacote xone, xpadneo e xpad-noone e seus workarounds. O Steam Input não é removido. |
+
+Em resumo: **os recursos do kernel permanecem; políticas opcionais de sessão de jogos e workarounds de controles não são impostos pelo pacote.** Isso não garante mais FPS ou menor latência em todos os jogos.
+
+A fork também avançou em relação à base de kernel antiga do projeto original. O pipeline mantido aqui resolve a imagem SteamOS stable atual e a fonte/configuração Valve correspondente, em vez de simplesmente compilar o snapshot antigo.
+
+## Instalação da release desta fork
+
+Use SteamOS Stable e execute no Modo Desktop. Mantenha um método de recuperação disponível. No Steam Deck, siga as instruções de configuração IOMMU/BIOS do projeto antes de instalar se pretende usar essas alterações.
+
+**Importante:** o instalador baixa pacotes pré-compilados. Ele não compila o kernel no Steam Deck. É necessário existir uma release estável publicada neste repositório. Se a página de [Releases desta fork](https://github.com/Marctraider/linux-charcoal-vulcano/releases) ainda não tiver uma release estável, aguarde a primeira execução de publicação bem-sucedida.
+
+Quando houver uma release estável, execute:
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/zarpon/linux-charcoal-vulcano/master/install-charcoal.sh -o install-charcoal.sh && bash install-charcoal.sh
+curl -fsSL https://raw.githubusercontent.com/Marctraider/linux-charcoal-vulcano/master/install-charcoal.sh -o install-charcoal.sh && bash install-charcoal.sh
 ```
 
-O instalador consulta [releases/latest](https://github.com/zarpon/linux-charcoal-vulcano/releases/latest), rejeitando rascunhos, prereleases e tags Preview. Aceita uma tag estável `charcoal-<versão do pacote>-r<execução>`, exatamente um ZIP `linux-charcoal-<série>-*.zip` e `RELEASE-ZIP-SHA256SUM`. Os pacotes acompanham a série detectada: atualmente `linux-charcoal-72` e `linux-charcoal-72-headers`, com sufixo correspondente nas futuras séries.
+O instalador consulta a [última release desta fork](https://github.com/Marctraider/linux-charcoal-vulcano/releases/latest), não as releases de Zarpon.
 
-Antes de alterar pacotes, verifica o SHA-256 do ZIP, extrai com segurança exatamente o par kernel/headers da mesma série, confere seus hashes e consulta metadados com pacman. `pacman -Qp` verifica metadados, sem simular integralmente a transação ou o espaço disponível.
+### O que o instalador faz
 
-Identifica pacotes anteriores `linux-charcoal*` e o kernel original/headers conflitantes da série selecionada. A remoção do kernel original exige confirmação explícita; pacotes não relacionados ficam fora da lista. Após confirmar a transação, libera escrita e modo de desenvolvimento, remove os pacotes aprovados com `pacman -Rdd`, instala o par verificado e atualiza o GRUB. Restaura o modo somente leitura ao sair e nunca reinicia automaticamente.
+1. Consulta a última release estável, sem rascunhos ou prereleases, deste repositório.
+2. Baixa o ZIP e o checksum SHA-256 da release por HTTPS.
+3. Verifica o ZIP, extrai com segurança o kernel e os headers correspondentes e confere os hashes individuais.
+4. Consulta os metadados dos pacotes antes de iniciar a transação.
+5. Identifica kernels Charcoal anteriores e o kernel SteamOS original conflitante da mesma série. A remoção do kernel original exige confirmação.
+6. Pede confirmação antes de alterar pacotes, habilita modo de escrita/desenvolvedor, instala kernel e headers verificados e atualiza o bootloader.
+7. Tenta rollback usando cópias exatas no cache do pacman se a instalação falhar e todos os pacotes removidos estiverem disponíveis no cache.
 
-Prepara cópias exatas do cache `/var/cache/pacman/pkg` para rollback. Se a instalação falhar e todos os pacotes removidos estavam no cache, tenta restaurá-los. Sem o cache completo, não há garantia de rollback automático: corrija a instalação do kernel antes de reiniciar. Mantenha um método de recuperação do SteamOS disponível.
+O instalador nunca reinicia automaticamente. Não reinicie se a instalação falhar e o rollback não estiver disponível. Leia os prompts antes de confirmar.
 
-As opções existentes continuam compatíveis: `CHARCOAL_72_REMOVE_STOCK=1` autoriza explicitamente a remoção do original e `CHARCOAL_72_ASSUME_YES=1` aceita as duas confirmações. Os nomes antigos são preservados entre séries.
+Após instalar com sucesso, reinicie manualmente e execute:
 
-Após o sucesso, reinicie manualmente e confira `uname -r` e `pacman -Q | grep '^linux-charcoal'`. O kernel deve conter o sufixo Charcoal instalado. Use com o SteamOS stable atual, não com uma imagem antiga sem suporte.
+```bash
+uname -r
+pacman -Q | grep '^linux-charcoal'
+sudo charcoal-status
+```
 
-O instalador também executa `charcoal-status` após a instalação, quando o comando está disponível. Após reiniciar, execute `sudo charcoal-status` novamente para conferir o estado em execução. `[PASS]` aparece em verde, `[WARN]` em amarelo e `[FAIL]` em vermelho no terminal interativo. Avisos indicam verificações que dependem de reinicialização, hardware ou disponibilidade em execução; qualquer falha retorna código de saída 1.
+O kernel em execução deve identificar a série Charcoal instalada. O `charcoal-status` diferencia configuração compilada de ativação em execução. `[PASS]` indica sucesso, `[WARN]` indica algo que exige contexto (por exemplo, reinicialização ou hardware) e `[FAIL]` indica falha em uma verificação obrigatória.
 
-## Acompanhamento automático do stable
+Variáveis opcionais:
 
-A referência é o [manifesto oficial de atualização stable](https://steamdeck-atomupd.steamos.cloud/meta/holo/steamos/amd64/steamdeck/stable.json) da Valve, não o maior número encontrado em um índice de fontes. `automation/prepare-steamos-stable.py`:
+- `CHARCOAL_72_REMOVE_STOCK=1`: autoriza previamente a remoção do kernel original conflitante.
+- `CHARCOAL_72_ASSUME_YES=1`: aceita as duas confirmações.
 
-1. Seleciona uma imagem explicitamente marcada `stable`, com versão do SteamOS e build ID.
-2. Busca o `.manifest.pacman` daquela imagem exata no servidor oficial.
-3. Identifica o pacote e a versão exatos de `linux-neptune-<série>` entregues na imagem.
-4. Deriva o repositório pela versão principal/secundária do SteamOS: 3.9 usa `jupiter-3.9`; 3.10 passa automaticamente para `jupiter-3.10`.
-5. Exige o arquivo-fonte exato, resolve a tag Valve, busca sua configuração Arch/Valve e atualiza nomes dos pacotes e série-alvo dos patches.
+Use essas opções somente se compreender as alterações autorizadas.
 
-Assim, a mudança do stable para Linux 7.3 ou superior é descoberta automaticamente, inclusive quando muda o repositório do SteamOS. Imagens preview/main e kernels RC/beta são rejeitados. Metadados ausentes ou ambíguos fazem o build falhar, sem fallback silencioso para main ou uma fonte antiga. Imagem, URLs do manifesto e da fonte, tag e série ficam em `steamos-stable-source.json`.
+## Recursos do kernel mantidos
 
-Descobrir um kernel novo não pula a compatibilidade dos patches. Todas as famílias continuam obrigatórias. O resolvedor escolhe primeiro a versão mais recente de cada projeto e prefere sua variante nativa da série detectada; portes/adaptadores mantêm hashes e origem. Os portes existentes passam por verificação contra a nova fonte antes da compilação. Se os bytes upstream ou APIs mudarem de forma incompatível, o build falha para correção, sem retirar patches, escolher uma versão antiga do projeto ou publicar um kernel incompleto. Consulte [PATCH-SOURCES.md](PATCH-SOURCES.md).
+A configuração e os patches mantêm as versões selecionadas de BORE/sched_ext, POC Selector, ADIOS, LRU CAST, NAP, ZRAM-IR, ZSWAP, AMD P-State EPP boost, alvo Zen 2, Clang/LLVM, O3, Full Clang LTO, Polly e os patches Van Gogh/IOMMU selecionados.
 
-A pilha preserva BORE/coexistência sched_ext, POC Selector, ADIOS/elevator padrão, LRU CAST, NAP, ZRAM-IR, AMD P-State EPP boost, otimizações CPU/O3, Clear/Zen, compatibilidade DKMS/Clang/Polly, firmware/wireless e patches locais Van Gogh/IOMMU. A ordem de aplicação é mantida. `6.16.12-bore-6.8.0-final.patch` permanece como referência de compatibilidade; o BORE atual é selecionado dinamicamente. Os arquivos 6.18 substituídos dão lugar às implementações 7.2 mantidas.
+As regras udev de ADIOS e ZRAM-IR e os hooks de ciclo de vida do NAP permanecem. O ZSWAP do kernel é diferente da configuração de swap userspace voltada a jogos que foi removida.
 
-Funcionalidades já presentes na fonte Valve continuam contabilizadas pelo resolvedor, sem reaplicação duplicada. Patches antigos fsync opcode-31, C23/libbpf, Bluetooth SSP e Qualcomm ath11k upstream já ausentes da `kernel-7.2` não são reintroduzidos. O `patch-lock.json` validado registra versões, origens, hashes e funcionalidades atendidas pelo upstream.
+### O que foi removido intencionalmente
 
-## Compilação e publicação
+Foram removidos perfis sysctl personalizados para jogos, variáveis de ambiente, scripts de migração/configuração de swapfile, unidades systemd relacionadas e o pacote de drivers/workarounds xone, xpadneo e xpad-noone.
 
-[push.yml](.github/workflows/push.yml) compila e publica em pushes da `master`. Pull requests e builds de `validation/**` não publicam. O disparo manual aceita `publish_release=false` para gerar somente artefatos. A execução diária ocorre às **03:05 UTC / 00:05 de Brasília**, disparando somente a `master`.
+O Steam Input é um recurso userspace do Steam e não é removido. O suporte efetivo a controles ainda depende da configuração do kernel, do dispositivo e do userspace do SteamOS.
 
-Releases estáveis usam `draft = false`, `prerelease = false`, `latest = true`. Criação e atualização marcam Latest explicitamente. Resolução das fontes, validação da política/lock, checksums, preparação dos patches, configuração, compilação e empacotamento precisam passar antes. Depois o workflow relê flags, assets e `/releases/latest`; falha de publicação ou leitura faz a execução falhar. Releases históricas são preservadas.
+## Observações de desempenho e segurança
 
-Os assets incluem kernel/headers, ZIP, checksums, lock de patches e metadados da fonte estável. As notas vêm do lock validado daquele build. O ZIP também contém lock, metadados e auditoria de checksums.
+- O3, LTO e Polly não garantem mais FPS ou menor latência; os resultados dependem do hardware e da carga.
+- Os patches Van Gogh elevam limites configurados de frequência/potência, mas não garantem que o hardware mantenha esses valores.
+- O caminho IOMMU PerfOpt pode pular ATS/PRI/PASID/SVA em GPUs integradas AMD elegíveis e usar um caminho DMA identity otimizado. Isso reduz o isolamento DMA daquele dispositivo. Entenda essa consequência de segurança antes de usar.
+- CI e validações de pacote não substituem testes reais de boot, suspensão/retomada, Wi-Fi, áudio, controles e jogos no Steam Deck.
 
-A `kernel-7.2` permanece apenas para builds manuais de desenvolvimento. [build-kernel-7.2.yml](.github/workflows/build-kernel-7.2.yml) não tem gatilho push/schedule nem publicação de releases; disponibiliza artefatos. Não recebe mais o disparo diário.
+## Como o build acompanha o SteamOS stable
 
-Preparação local com Python 3, Bash e Git:
+A fonte de verdade é o [metadata oficial de atualização stable da Valve](https://steamdeck-atomupd.steamos.cloud/meta/holo/steamos/amd64/steamdeck/stable.json). O resolvedor seleciona uma imagem marcada explicitamente como stable, baixa o manifesto de pacotes correspondente, identifica o pacote `linux-neptune-<série>` exato e resolve a fonte/tag/configuração Valve correspondente.
+
+Imagens preview/main e kernels RC/beta são rejeitados. Metadados ausentes ou ambíguos fazem o build falhar, sem fallback silencioso. A imagem, manifesto, URL da fonte, tag e série ficam registrados em `steamos-stable-source.json`.
+
+A compatibilidade dos patches é verificada contra essa fonte. Famílias obrigatórias não são removidas ou rebaixadas silenciosamente quando APIs mudam. O `patch-lock.json` registra versões, origens, hashes e recursos já fornecidos pelo upstream Valve.
+
+## Build e publicação
+
+A branch `master` é a branch destinada às releases estáveis.
+
+- Pushes em `master` executam o build e o workflow de publicação.
+- Pull requests e builds `validation/**` validam alterações, mas não publicam releases.
+- O workflow diário acompanha a fonte SteamOS stable e compila a `master`.
+- A release só é publicada após validação de fontes/patches, configuração, compilação, empacotamento e checksums.
+- As releases incluem kernel, headers correspondentes, ZIP, checksums, patch-lock e metadados da fonte estável.
+
+A workflow `kernel-7.2` permanece para builds manuais de desenvolvimento e artefatos; não é o caminho de release estável.
+
+Para desenvolvimento local, o fluxo de preparação usa Python 3, Bash e Git:
 
 ```bash
 python3 automation/prepare-pkgbuild-7.2.py --write PKGBUILD
@@ -63,17 +115,16 @@ python3 automation/resolve-latest-patches-7.2-policy.py --overrides logs/patch-s
 python3 automation/validate-patch-lock.py --manifest logs/patch-sources-7.2.json --overrides logs/patch-source-overrides-stable.json
 ```
 
-Alguns nomes de helpers mantêm `7.2` por compatibilidade; a entrada stable fornece a série detectada dinamicamente. O Dockerfile fornece Arch Linux/LLVM. O workflow finaliza checksums dos bytes resolvidos, verifica fontes, prepara patches e compila com makepkg. Testes estáticos não substituem boot no hardware de destino.
+O Dockerfile fornece o ambiente Arch Linux/LLVM. Validação CI não garante funcionamento em todas as revisões de hardware.
 
-## Recursos de execução preservados
+## Detalhes da configuração
 
-O ZSTD por software da Crypto API usa por padrão o **nível 1** (ZSTD_DEF_LEVEL=1), utilizado pelo zswap com backend genérico. O código existente calcula automaticamente parâmetros e memória de trabalho; o limite da janela e o descompressor permanecem iguais. O build confere a fonte preparada e publica zstd-crypto-level.txt e zstd-crypto-source.sha256. Outros consumidores desse codec genérico também recebem o novo padrão. O modo fast próprio do ZRAM-IR e os backends de hardware Intel QAT mantêm o comportamento existente.
+O padrão ZSTD genérico da Crypto API é nível 1, inclusive para zswap genérico. Isso é separado do modo fast próprio do ZRAM-IR e dos backends Intel QAT.
 
+As alterações mantidas de `CONFIG_ZEN_INTERACTIVE` limitam-se ao comportamento existente de RCU assíncrono evdev e seleção schedutil P-State; esta fork não importa um conjunto amplo de padrões Zen não relacionados.
 
-Os recursos de desempenho no kernel continuam ativos, mas o pacote não impõe valores sysctl voltados a jogos, variáveis de ambiente, migração de swapfile ou drivers/workarounds de controles de terceiros. O Steam Input não é afetado. As regras udev do ZRAM-IR e ADIOS permanecem instaladas, assim como os hooks de ciclo de vida do NAP.
+O aprendizado do NAP persiste entre reinicializações, com salvamentos periódicos. O pacote inclui `napctl` e o visualizador offline `/usr/share/nap/napviz.html`, gerado a partir do modelo do kernel compilado. Consulte [NAP-TOOLS.md](NAP-TOOLS.md).
 
-Permanecem `vm.vfs_cache_pressure=100`, `vm.dirty_background_ratio=2` e `vm.dirty_ratio=5`, preservando os padrões do LRU CAST. `CONFIG_ZEN_INTERACTIVE` controla os ajustes existentes de RCU assíncrono evdev e seleção schedutil P-State, sem importar outros padrões Zen de memória/scheduler.
+## Escopo
 
-IOMMU PerfOpt usa automaticamente o caminho DMA identity otimizado em GPUs integradas AMD elegíveis. Enquanto ativo, pula ATS, PRI, PASID e SVA/GCR3 naquele dispositivo, reduzindo contenção DMA. O resultado depende de hardware/carga; não há ganho percentual garantido nem opção de desativação em execução `amdgpu.iommu_perfopt`.
-
-Cada build busca as ferramentas NAP mais recentes e registra commit/hashes. O aprendizado persiste entre reinicializações, com salvamento a cada 30 minutos. Inclui `napctl` e `/usr/share/nap/napviz.html`, gerado a partir do modelo do kernel compilado. Consulte [NAP-TOOLS.md](NAP-TOOLS.md).
+Este é um projeto de kernel experimental para entusiastas do SteamOS, não um kernel oficial da Valve nem uma distribuição Linux de uso geral. Mantenha um método de recuperação, leia os prompts do instalador e preserve uma opção de boot conhecida e funcional sempre que possível.
