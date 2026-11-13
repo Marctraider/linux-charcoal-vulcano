@@ -1,5 +1,21 @@
 # Charcoal SteamOS Kernel
 
+## Sample Cyberpunk 2077 benchmark
+
+Two sample benchmark runs comparing the default 3.9.5 kernel with this tuned kernel. FPS values are average, minimum and maximum FPS.
+
+| Kernel | Run | Average FPS | Minimum FPS | Maximum FPS |
+|---|---:|---:|---:|---:|
+| Default 3.9.5 kernel | 1 | 59.03 | 43.53 | 85.91 |
+| Default 3.9.5 kernel | 2 | 58.67 | 43.17 | 85.72 |
+| This tuned kernel | 1 | 62.94 | 44.73 | 89.92 |
+| This tuned kernel | 2 | 62.96 | 44.85 | 89.09 |
+
+**Test notes:**
+- The game was tested with graphics settings chosen to place maximum strain on the CPU, as this was expected to have the greatest effect on the comparison.
+- The test device uses a modded OLED BIOS with the maximum CPU clock set to 4.2 GHz.
+- It is not established whether the 4.2 GHz patch was the main contributor to the observed difference. These are two sample runs, not a controlled or statistically conclusive benchmark.
+
 
 
 ## Maintainer notes
