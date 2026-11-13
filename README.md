@@ -24,6 +24,8 @@ Existing unattended options are preserved: `CHARCOAL_72_REMOVE_STOCK=1` explicit
 
 After success, reboot manually and check `uname -r` and `pacman -Q | grep '^linux-charcoal'`. The running kernel should contain the installed Charcoal series suffix. Use this installer with the current SteamOS stable release, not an older unsupported OS image.
 
+The installer also runs `charcoal-status` after installation when the command is available. Run `sudo charcoal-status` again after reboot for the full runtime report. `[PASS]` is green, `[WARN]` is yellow and `[FAIL]` is red in an interactive terminal. Warnings identify checks that depend on reboot, hardware or runtime availability; any failed check returns exit status 1.
+
 ## Automatic stable tracking
 
 The source of truth is Valve's [stable update metadata](https://steamdeck-atomupd.steamos.cloud/meta/holo/steamos/amd64/steamdeck/stable.json), not the largest kernel number in a source index. `automation/prepare-steamos-stable.py`:
@@ -68,7 +70,7 @@ Some helper filenames retain `7.2` for compatibility; the stable entry point sup
 The software Crypto API ZSTD default is **level 1** (ZSTD_DEF_LEVEL=1), used by generic ZSTD zswap. The existing code derives compression parameters and workspace sizes automatically; its window limit and decompressor are unchanged. The build checks the prepared source and publishes zstd-crypto-level.txt and zstd-crypto-source.sha256. This default also applies to other users of the generic Crypto API codec. ZRAM-IR's separate fast setting and hardware-specific Intel QAT backends retain their existing behavior.
 
 
-Kernel-side performance features remain enabled, but the package no longer imposes sysctl, environment, swapfile or controller-driver configuration. ZRAM-IR and ADIOS udev rules remain installed.
+Kernel-side performance features remain enabled, but the package no longer imposes gaming-oriented sysctl values, environment variables, swapfile migration or third-party controller drivers/workarounds. Steam Input is unaffected. ZRAM-IR and ADIOS udev rules remain installed, and NAP package lifecycle hooks are preserved.
 
 Runtime values remain `vm.vfs_cache_pressure=100`, `vm.dirty_background_ratio=2` and `vm.dirty_ratio=5`, preserving LRU CAST defaults. `CONFIG_ZEN_INTERACTIVE` controls the existing evdev asynchronous RCU and P-State schedutil-selection changes, without importing additional Zen memory/scheduler defaults.
 
