@@ -8,7 +8,20 @@ FAIL=0
 
 # Use terminal colors when interactive; honor NO_COLOR for accessibility/logging.
 if [[ -t 1 && -z "${NO_COLOR:-}" ]]; then
-  GREEN=
+  GREEN=$'\033[32m'
+  YELLOW=$'\033[33m'
+  RED=$'\033[31m'
+  RESET=$'\033[0m'
+else
+  GREEN=""
+  YELLOW=""
+  RED=""
+  RESET=""
+fi
+
+pass() { printf '  %s[PASS]%s %s\n' "$GREEN" "$RESET" "$*"; PASS=$((PASS + 1)); }
+warn() { printf '  %s[WARN]%s %s\n' "$YELLOW" "$RESET" "$*"; WARN=$((WARN + 1)); }
+fail() { printf '  %s[FAIL]%s %s\n' "$RED" "$RESET" "$*"; FAIL=$((FAIL + 1)); }
 section() { printf '\n%s\n' "$*"; }
 
 RUNNING_KERNEL=$(uname -r)
