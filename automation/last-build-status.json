@@ -1,14 +1,14 @@
 {
-  "conclusion": "failure",
-  "created_at": "2026-11-13T06:18:00Z",
+  "conclusion": "success",
+  "created_at": "2026-11-13T05:27:59Z",
   "event": "push",
   "head_branch": "master",
-  "head_sha": "94582a73ca08b2e439714ff73b53a6a572c34c8c",
-  "html_url": "https://github.com/Marctraider/linux-charcoal-vulcano/actions/runs/43377732210",
+  "head_sha": "81ce1fa92480be0e6d556e20daa8c98f495d584a",
+  "html_url": "https://github.com/Marctraider/linux-charcoal-vulcano/actions/runs/43372198479",
   "run_attempt": 1,
-  "run_id": 43377732210,
-  "run_number": 21,
+  "run_id": 43372198479,
+  "run_number": 13,
   "status": "completed",
-  "updated_at": "2026-11-13T06:22:40Z",
+  "updated_at": "2026-11-13T07:30:45Z",
   "workflow": "Build latest SteamOS Charcoal kernel"
 }
