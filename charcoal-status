@@ -105,7 +105,7 @@ else
   warn "CONFIG_CPU_MITIGATIONS is not explicitly set; cannot confirm the expected disabled state"
 fi
 
-printf '  Kernel architecture reported by uname: %s\\n' "$(uname -m)"
+printf '  Kernel architecture reported by uname: %s\n' "$(uname -m)"
 if [[ -n "$CONFIG_FILE" ]]; then
   if config_value CONFIG_GENERIC_CPU n || grep -qxF '# CONFIG_GENERIC_CPU is not set' "$CONFIG_FILE"; then
     pass "Generic CPU tuning is disabled (kernel uses a non-generic CPU target)"
@@ -115,16 +115,16 @@ if [[ -n "$CONFIG_FILE" ]]; then
     warn "CONFIG_GENERIC_CPU is not present; exact CPU tuning target cannot be inferred"
   fi
 fi
-printf '  Note: the exact -march/-mtune compiler flags are not encoded in the kernel .config.\\n'
+printf '  Note: the exact -march/-mtune compiler flags are not encoded in the kernel .config.\n'
 
 compiler=""
 if [[ -n "$BUILD_DIR" && -r "$BUILD_DIR/include/generated/compile.h" ]]; then
-  compiler=$(sed -n 's/^#define LINUX_COMPILER "\(.*\)"/\\1/p' "$BUILD_DIR/include/generated/compile.h" | head -n1)
+  compiler=$(sed -n 's/^#define LINUX_COMPILER "\(.*\)"/\1/p' "$BUILD_DIR/include/generated/compile.h" | head -n1)
 fi
 if [[ -n "$compiler" ]]; then
   pass "Kernel build compiler: $compiler"
 elif [[ -r /proc/version ]] && grep -Eqi 'clang|gcc|GCC' /proc/version; then
-  compiler=$(sed -E 's/.*(clang version [^,)]*|gcc version [^,)]*|GCC version [^,)]*).*/\\1/I' /proc/version)
+  compiler=$(sed -E 's/.*(clang version [^,)]*|gcc version [^,)]*|GCC version [^,)]*).*/\1/I' /proc/version)
   warn "Compiler identified from running kernel: $compiler (build metadata header unavailable)"
 else
   warn "Compiler version is unavailable; no embedded kernel build metadata found"
