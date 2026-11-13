@@ -3,7 +3,7 @@
 
 set -Eeuo pipefail
 
-readonly REPOSITORY="zarpon/linux-charcoal-vulcano"
+readonly REPOSITORY="Marctraider/linux-charcoal-vulcano"
 readonly RELEASES_API="https://api.github.com/repos/${REPOSITORY}/releases/latest"
 readonly RELEASE_DOWNLOAD_PREFIX="https://github.com/${REPOSITORY}/releases/download/"
 readonly RELEASE_TAG_PREFIX="charcoal-"
