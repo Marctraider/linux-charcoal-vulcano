@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Install the latest stable Charcoal kernel for SteamOS with Linux 7.2.
+# Install the latest Charcoal kernel release for SteamOS with Linux 7.3.
 
 set -Eeuo pipefail
 
@@ -8,7 +8,7 @@ readonly RELEASES_API="https://api.github.com/repos/${REPOSITORY}/releases/lates
 readonly RELEASE_DOWNLOAD_PREFIX="https://github.com/${REPOSITORY}/releases/download/"
 readonly RELEASE_TAG_PREFIX="charcoal-"
 readonly RELEASE_ZIP_PREFIX="linux-charcoal-"
-readonly USER_AGENT="charcoal-stable-installer"
+readonly USER_AGENT="charcoal-73-installer"
 
 WORKDIR=""
 MADE_ROOT_WRITABLE=0
@@ -87,7 +87,7 @@ releases_json, repository, download_prefix, tag_prefix, zip_prefix = sys.argv[1:
 with open(releases_json, encoding="utf-8") as handle:
     releases = json.load(handle)
 if not isinstance(releases, dict):
-    raise SystemExit("GitHub did not return the Latest stable release")
+    raise SystemExit("GitHub did not return the Latest 7.3 release")
 releases = [releases]
 
 def text(value, label):
@@ -112,21 +112,21 @@ for release in releases:
     if release.get("draft") is not False or release.get("prerelease") is not False:
         continue
     if isinstance(tag, str) and re.fullmatch(re.escape(tag_prefix) + r"[0-9]+\.[0-9]+\.[0-9]+\.valve[0-9.]+\.cc[0-9]+-r[0-9]+", tag):
-        if tuple(map(int, tag[len(tag_prefix):].split('.')[:2])) < (7, 2):
+        if tuple(map(int, tag[len(tag_prefix):].split('.')[:2])) != (7, 3):
             continue
         selected = release
         break
 if selected is None:
-    raise SystemExit("No published Charcoal SteamOS stable release was found")
+    raise SystemExit("No published Charcoal SteamOS 7.3 release was found")
 
 tag = text(selected.get("tag_name"), "release tag")
 assets = selected.get("assets")
 if not isinstance(assets, list):
-    raise SystemExit("GitHub stable release has no assets")
+    raise SystemExit("GitHub 7.3 release has no assets")
 archives = [a for a in assets if isinstance(a, dict) and str(a.get("name", "")).startswith(zip_prefix) and str(a.get("name", "")).endswith(".zip")]
 checksums = [a for a in assets if isinstance(a, dict) and a.get("name") == "RELEASE-ZIP-SHA256SUM"]
 if len(archives) != 1 or len(checksums) != 1:
-    raise SystemExit("stable release assets are incomplete or ambiguous")
+    raise SystemExit("7.3 release assets are incomplete or ambiguous")
 archive_name = text(archives[0].get("name"), "archive name")
 if PurePosixPath(archive_name).name != archive_name:
     raise SystemExit("Invalid release ZIP filename")
@@ -217,7 +217,7 @@ select_installed_charcoal() {
 }
 
 select_stock_kernel() {
-  local installed_file=$1 pkgbase=${2:-linux-charcoal-72} name
+  local installed_file=$1 pkgbase=${2:-linux-charcoal-73} name
   local stock="linux-neptune-${pkgbase#linux-charcoal-}"
   while IFS= read -r name; do
     case "$name" in
@@ -229,16 +229,16 @@ select_stock_kernel() {
 confirm_stock_removal() {
   local -n stock_ref=$1
   (( ${#stock_ref[@]} > 0 )) || return 0
-  info "The stock SteamOS stable kernel conflicts with the selected Charcoal kernel:"
+  info "The stock SteamOS 7.3 kernel conflicts with the selected Charcoal kernel:"
   printf '  - %s\n' "${stock_ref[@]}"
   info "It must be removed before Charcoal can be installed."
 
-  if [[ "${CHARCOAL_72_REMOVE_STOCK:-0}" == "1" || "${CHARCOAL_72_ASSUME_YES:-0}" == "1" ]]; then
+  if [[ "${CHARCOAL_73_REMOVE_STOCK:-0}" == "1" || "${CHARCOAL_73_ASSUME_YES:-0}" == "1" ]]; then
     return 0
   fi
-  [[ -t 0 ]] || die "Stock kernel removal needs confirmation; rerun in a terminal or set CHARCOAL_72_REMOVE_STOCK=1"
+  [[ -t 0 ]] || die "Stock kernel removal needs confirmation; rerun in a terminal or set CHARCOAL_73_REMOVE_STOCK=1"
   local answer
-  read -r -p "Remove the SteamOS stable stock kernel and continue? [s/N] " answer
+  read -r -p "Remove the SteamOS 7.3 stock kernel and continue? [s/N] " answer
   case "$answer" in
     s|S|y|Y|yes|YES|sim|SIM) return 0 ;;
     *) die "Installation cancelled; the stock kernel was not changed" ;;
@@ -249,16 +249,16 @@ confirm_transaction() {
   local release_tag=$1
   shift
   local -a previous=("$@")
-  info "Verified stable release: ${release_tag}"
+  info "Verified 7.3 release: ${release_tag}"
   if (( ${#previous[@]} )); then
     info "The following old kernel packages will be removed:"
     printf '  - %s\n' "${previous[@]}"
   fi
   info "The new kernel and headers are already downloaded and SHA-256 verified. The installer never reboots automatically."
-  [[ "${CHARCOAL_72_ASSUME_YES:-0}" == "1" ]] && return 0
+  [[ "${CHARCOAL_73_ASSUME_YES:-0}" == "1" ]] && return 0
   [[ -t 0 ]] || die "Interactive confirmation is required; rerun in a terminal"
   local answer
-  read -r -p "Continue with the Charcoal SteamOS stable installation? [s/N] " answer
+  read -r -p "Continue with the Charcoal SteamOS 7.3 installation? [s/N] " answer
   case "$answer" in
     s|S|y|Y|yes|YES|sim|SIM) ;;
     *) die "Installation cancelled before any package was changed" ;;
@@ -306,20 +306,20 @@ attempt_rollback() {
 main() {
   for cmd in curl python3 mktemp pacman awk find sort steamos-readonly steamos-devmode; do require_command "$cmd"; done
   (( EUID == 0 )) || require_command sudo
-  WORKDIR="$(mktemp -d "${TMPDIR:-/tmp}/charcoal-72-installer.XXXXXX")"
+  WORKDIR="$(mktemp -d "${TMPDIR:-/tmp}/charcoal-73-installer.XXXXXX")"
   trap cleanup EXIT
 
-  info "Fetching published Charcoal SteamOS stable releases..."
+  info "Fetching published Charcoal SteamOS 7.3 releases..."
   curl --fail --silent --show-error --location --proto '=https' --proto-redir '=https' \
     --retry 3 --connect-timeout 15 --header 'Accept: application/vnd.github+json' \
     --header 'X-GitHub-Api-Version: 2022-11-28' --user-agent "$USER_AGENT" \
     --output "$WORKDIR/releases.json" "$RELEASES_API"
 
   local metadata
-  metadata="$(parse_release_metadata "$WORKDIR/releases.json")" || die "Could not identify a valid SteamOS stable release"
+  metadata="$(parse_release_metadata "$WORKDIR/releases.json")" || die "Could not identify a valid SteamOS 7.3 release"
   local -a fields
   mapfile -t fields <<< "$metadata"
-  (( ${#fields[@]} == 5 )) || die "Incomplete GitHub stable release metadata"
+  (( ${#fields[@]} == 5 )) || die "Incomplete GitHub 7.3 release metadata"
 
   local release_tag=${fields[0]} archive_name=${fields[1]} archive_url=${fields[2]}
   local checksum_name=${fields[3]} checksum_url=${fields[4]}
@@ -330,7 +330,7 @@ main() {
   download_file "$checksum_url" "$checksum_path"
   info "Verifying release ZIP SHA-256..."
   verify_release_archive "$archive_path" "$checksum_path" "$archive_name"
-  info "Extracting and verifying SteamOS stable packages..."
+  info "Extracting and verifying SteamOS 7.3 packages..."
   extract_and_verify_packages "$archive_path" "$package_dir"
 
   local -a packages
@@ -368,27 +368,19 @@ main() {
     run_privileged pacman -Rdd --noconfirm "${remove_packages[@]}"
   fi
 
-  info "Installing verified Charcoal SteamOS stable ${release_tag}..."
+  info "Installing verified Charcoal SteamOS 7.3 ${release_tag}..."
   if ! run_privileged pacman -U --noconfirm "${packages[@]}"; then
     if attempt_rollback; then
-      die "SteamOS stable installation failed; previous kernel packages were restored"
+      die "SteamOS 7.3 installation failed; previous kernel packages were restored"
     fi
-    die "SteamOS stable installation failed after kernel removal; do not reboot until a working kernel is installed"
+    die "SteamOS 7.3 installation failed after kernel removal; do not reboot until a working kernel is installed"
   fi
 
 
   info "Updating the bootloader configuration..."
   _update_grub
-  info "Charcoal SteamOS stable ${release_tag} installed successfully."
-  if command -v charcoal-status >/dev/null 2>&1; then
-    info "Running post-install verification (runtime checks may require a reboot)..."
-    if ! charcoal-status; then
-      info "Some checks need attention; review the report above. Re-run charcoal-status after reboot."
-    fi
-  else
-    info "Status utility not found; after reboot, verify the installation with: uname -r"
-  fi
-  info "Reboot when ready, then run: charcoal-status"
+  info "Charcoal SteamOS 7.3 ${release_tag} installed successfully."
+  info "Verify after reboot with: uname -r and pacman -Q linux-charcoal-73"
 }
 
 if [[ "${BASH_SOURCE[0]}" == "$0" ]]; then
