@@ -40,28 +40,44 @@ jobs:
           sha256sum valve-source.tar.gz > valve-source.sha256
           du -h valve-source.tar.gz | tee valve-source-size.txt
 
-      - name: Extract Valve packaging metadata and configs
+      - name: Extract compact Valve packaging metadata and configs
         run: |
           set -Eeuo pipefail
-          mkdir valve-source
-          tar -xzf valve-source.tar.gz -C valve-source --wildcards '*/PKGBUILD' '*/config*' 2>/dev/null || true
-          find valve-source -maxdepth 4 -type f -printf '%p\n' | sort > extracted-files.txt
-          find valve-source -name PKGBUILD -print -quit | grep -q .
           python3 - <<'PY'
+          import json, subprocess
           from pathlib import Path
-          import json
-          roots = list(Path('valve-source').glob('*/PKGBUILD'))
-          if not roots:
-              roots = list(Path('valve-source').rglob('PKGBUILD'))
-          assert roots, 'Valve PKGBUILD was not found in source archive'
-          root = roots[0].parent
-          record = {
-              'pkgbuild': str(roots[0]),
-              'files': sorted(str(p.relative_to(root)) for p in root.rglob('*') if p.is_file()),
-          }
-          Path('valve-source-metadata.json').write_text(json.dumps(record, indent=2) + '\n')
-          print(roots[0].read_text(errors='replace')[:30000])
+
+          archive = 'valve-source.tar.gz'
+          names = subprocess.check_output(['tar', '-tzf', archive], text=True).splitlines()
+          Path('archive-file-list.txt').write_text('\\n'.join(names) + '\\n')
+          pkgbuilds = [n for n in names if n.endswith('/PKGBUILD') or n == 'PKGBUILD']
+          configs = [n for n in names if n.rsplit('/', 1)[-1] in {
+              'config', 'config-neptune', 'config.x86_64', 'config-neptune.x86_64'
+          }]
+          # Keep the metadata artifact small; do not upload/extract Valve's multi-GB git repository.
+          selected = []
+          for name in pkgbuilds[:5] + configs[:20]:
+              out = subprocess.check_output(['tar', '-xOzf', archive, name])
+              target = Path('valve-metadata') / name.replace('/', '__')
+              target.parent.mkdir(parents=True, exist_ok=True)
+              target.write_bytes(out)
+              selected.append({'archive_path': name, 'saved_as': str(target), 'bytes': len(out)})
+          assert pkgbuilds, 'No PKGBUILD found in Valve source archive'
+          Path('valve-source-metadata.json').write_text(json.dumps({
+              'pkgbuild_paths': pkgbuilds[:20],
+              'config_paths': configs[:50],
+              'extracted_files': selected,
+              'archive_member_count': len(names),
+          }, indent=2) + '\\n')
+          print(json.dumps({
+              'archive_member_count': len(names),
+              'pkgbuild_paths': pkgbuilds[:20],
+              'config_paths': configs[:50],
+              'extracted_files': selected,
+          }, indent=2))
           PY
+          sha256sum valve-source.tar.gz > valve-source.sha256
+          du -h valve-source.tar.gz | tee valve-source-size.txt
 
       - name: Upload Valve source inspection
         uses: actions/upload-artifact@v4
