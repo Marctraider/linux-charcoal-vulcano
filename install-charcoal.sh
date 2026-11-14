@@ -106,7 +106,7 @@ def checked_asset(asset, expected, tag):
 candidates = []
 tag_pattern = re.compile(
     re.escape(tag_prefix)
-    + r"([0-9]+)\\.([0-9]+)\\.([0-9]+)\\.valve([0-9]+)\\.cc([0-9]+)-r([0-9]+)"
+    + r"([0-9]+)\.([0-9]+)\.([0-9]+)\.valve([0-9]+)\.cc([0-9]+)-r([0-9]+)"
 )
 for release in releases:
     if not isinstance(release, dict):
