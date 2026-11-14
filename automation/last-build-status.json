@@ -8,7 +8,7 @@
   "run_attempt": 1,
   "run_id": 43590069613,
   "run_number": 28,
-  "status": "queued",
-  "updated_at": "2026-11-14T11:26:59Z",
+  "status": "in_progress",
+  "updated_at": "2026-11-14T11:27:02Z",
   "workflow": "Build latest SteamOS Charcoal kernel"
 }
