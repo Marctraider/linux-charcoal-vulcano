@@ -1,19 +1,7 @@
 name: Build SteamOS 3.10 Charcoal Linux 7.3
 
+# Kernel builds are manual-only; installer/packaging edits must never launch a long build.
 on:
-  push:
-    branches:
-      - validation/steamos-3.10-linux-7.3
-    paths:
-      - 'PKGBUILD'
-      - 'Dockerfile'
-      - '.dockerignore'
-      - 'config'
-      - 'config-charcoal'
-      - 'config-neptune'
-      - '*.patch'
-      - 'automation/**'
-      - 'docker/**'
   workflow_dispatch:
 
 permissions:
