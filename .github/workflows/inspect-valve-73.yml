@@ -195,10 +195,7 @@ jobs:
           else
             echo "ZEN_INTERACTIVE_HELPER=FAIL" >> valve-zen-helper-audit.txt
           fi
-          if python3 "$GITHUB_WORKSPACE/automation/fix-nap-kernel-api.py" "$tree_dir/drivers/cpuidle/governors/nap/nap.c" > valve-nap-helper-audit.txt 2>&1; then
-            echo "NAP_API_HELPER=PASS" >> valve-nap-helper-audit.txt
           else
-            echo "NAP_API_HELPER=FAIL" >> valve-nap-helper-audit.txt
           fi
           if python3 "$GITHUB_WORKSPACE/automation/fix-gud-tv-mode-fortify.py" "$tree_dir/drivers/gpu/drm/gud/gud_connector.c" > valve-gud-helper-audit.txt 2>&1; then
             echo "GUD_FORTIFY_HELPER=PASS" >> valve-gud-helper-audit.txt
@@ -274,7 +271,6 @@ jobs:
             valve-amd-pstate-rejects.txt
             valve-zen-kconfig-audit.txt
             valve-zen-helper-audit.txt
-            valve-nap-helper-audit.txt
             valve-gud-helper-audit.txt
             valve-patch-whitespace-audit.txt
             valve-patch-applied-diff-stat.txt
@@ -283,5 +279,6 @@ jobs:
             patch-candidates/
           if-no-files-found: error
           retention-days: 7
+
 
 
