@@ -76,7 +76,6 @@ CONFIG_POLLY_CLANG=y
 CONFIG_CPU_IDLE_GOV_LADDER=n
 CONFIG_CPU_IDLE_GOV_MENU=n
 CONFIG_CPU_IDLE_GOV_TEO=n
-CONFIG_CPU_IDLE_GOV_NAP=y
 CONFIG_SCHED_POC_SELECTOR=y
 CONFIG_SCHED_BORE=y
 
@@ -646,3 +645,4 @@ CONFIG_NET_NCSI=n
 CONFIG_VORTEX=n
 # Go one step further: Completely remove PCMCIA support. ISA is disabled already, so this makes the above list of 7.1 removals really small
 CONFIG_PCMCIA=n
+
