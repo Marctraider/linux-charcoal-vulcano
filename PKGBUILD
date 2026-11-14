@@ -222,7 +222,7 @@ import re
 from pathlib import Path
 
 source = Path("crypto/zstd.c").read_text(encoding="utf-8")
-match = re.search(r"(?m)^\\s*#\\s*define\\s+ZSTD_DEF_LEVEL\\s+(\\d+)\\b", source)
+match = re.search(r"(?m)^\s*#\s*define\s+ZSTD_DEF_LEVEL\s+(\d+)\b", source)
 if not match or match.group(1) != "1":
     actual = match.group(1) if match else "not found"
     raise SystemExit(f"ERROR: expected ZSTD_DEF_LEVEL=1 in crypto/zstd.c, found {actual}")
