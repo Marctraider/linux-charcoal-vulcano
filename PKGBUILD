@@ -196,7 +196,7 @@ prepare() {
 import subprocess
 from pathlib import Path
 
-changed = subprocess.check_output(["git", "diff", "--name-only", "-z"]).split(b"\\0")
+changed = subprocess.check_output(["git", "diff", "--name-only", "-z"]).split(b"\0")
 for raw in changed:
     if not raw:
         continue
