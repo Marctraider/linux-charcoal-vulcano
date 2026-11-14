@@ -205,7 +205,7 @@ for raw in changed:
         content = path.read_text(encoding="utf-8")
     except (UnicodeDecodeError, OSError):
         continue
-    lines = [line.rstrip(" \\t") for line in content.splitlines()]
+    lines = [line.rstrip(" \t") for line in content.splitlines()]
     while lines and not lines[-1]:
         lines.pop()
     path.write_text("\n".join(lines) + "\n", encoding="utf-8")
