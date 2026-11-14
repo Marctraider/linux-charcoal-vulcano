@@ -61,8 +61,11 @@ grep -Fq 'stock kernel will be removed before Charcoal is installed to free syst
   || fail "installer does not remove the matching stock kernel to free space"
 grep -Fq 'local stock="linux-neptune-${pkgbase#linux-charcoal-}"' "$INSTALLER" \
   || fail "installer is not limited to the matching stock kernel series"
-grep -Fq 'remove_packages=("${previous_charcoal[@]}" "${stock_packages[@]}")' "$INSTALLER" \
-  || fail "only previous Charcoal packages and the matching 7.3 stock packages may be removed"
+grep -Fq 'remove_packages=("${stock_packages[@]}")' "$INSTALLER" \
+  || fail "only the matching SteamOS 7.3 stock packages may be removed"
+if grep -Fq 'previous_charcoal' "$INSTALLER"; then
+  fail "installer must not remove existing Charcoal packages"
+fi
 grep -Fq 'run_privileged pacman -Rdd --noconfirm "${remove_packages[@]}"' "$INSTALLER" \
   || fail "installer does not remove only approved kernel packages"
 grep -Fq 'run_privileged pacman -U --noconfirm "${packages[@]}"' "$INSTALLER" \
