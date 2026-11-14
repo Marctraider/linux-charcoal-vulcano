@@ -217,10 +217,11 @@ select_installed_charcoal() {
 }
 
 select_stock_kernel() {
-  local installed_file=$1 name
+  local installed_file=$1 pkgbase=${2:-linux-charcoal-72} name
+  local stock="linux-neptune-${pkgbase#linux-charcoal-}"
   while IFS= read -r name; do
     case "$name" in
-      linux-neptune|linux-neptune-*) printf '%s\n' "$name" ;;
+      "$stock"|"$stock-headers") printf '%s\n' "$name" ;;
     esac
   done < "$installed_file"
 }
@@ -349,7 +350,7 @@ main() {
   list_installed_packages > "$installed_file"
   local -a previous_charcoal stock_packages remove_packages
   mapfile -t previous_charcoal < <(select_installed_charcoal "$installed_file")
-  mapfile -t stock_packages < <(select_stock_kernel "$installed_file")
+  mapfile -t stock_packages < <(select_stock_kernel "$installed_file" "$pkgbase")
 
   confirm_stock_removal stock_packages
   remove_packages=("${previous_charcoal[@]}" "${stock_packages[@]}")
