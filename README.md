@@ -23,7 +23,7 @@ The intended kernel-side features retained in this port are:
 - Kernel ZSWAP.
 - AMD P-State EPP defaults and the per-core EPP boost port, subject to clean application and compilation validation.
 - Zen 2 targeting, Clang/LLVM, O3, full Clang LTO and Polly.
-- Van Gogh 4.2 GHz frequency and power-limit changes, subject to source and hardware validation.
+- Van Gogh 4.2 GHz frequency patch, subject to source and hardware validation. The separate Van Gogh power-limit patch is omitted because its source anchors changed in Valve 7.3 and a safe port was not established.
 
 The selected upstream patch candidates are pinned to immutable revisions and checked against the Valve source. A patch applying cleanly is only an initial compatibility check; it is not proof that the kernel compiles or works correctly.
 
@@ -35,7 +35,6 @@ The selected upstream patch candidates are pinned to immutable revisions and che
 - **No custom controller or Steam Deck HID config overrides.** Controller and Steam Deck device options are inherited from Valve's SteamOS configuration; Charcoal does not force these drivers on or off.
 - **No Ryzen SMU DKMS bundle.** Van Gogh kernel frequency/power changes are separate kernel-source patches; no third-party SMU module is installed.
 - Gaming sysctl profiles, forced gaming environment variables, swapfile migration and gaming swap services/hooks are not part of this kernel package.
-- The IOMMU/PerfOpt patch and its kernel configuration changes are excluded.
 
 Steam Input and Valve's in-tree Steam Deck/controller support remain inherited from the stock SteamOS configuration. The 7.3 installer is series-specific: it removes previous Charcoal kernel packages and, only after explicit confirmation, the matching linux-neptune-73 stock kernel and headers. It does not target linux-neptune-72.
 
