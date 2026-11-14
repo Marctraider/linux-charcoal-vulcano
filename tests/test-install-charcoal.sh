@@ -41,11 +41,14 @@ mapfile -t stock < <(select_stock_kernel "$tmp/installed")
 mapfile -t old_charcoal < <(select_installed_charcoal "$tmp/installed")
 [[ ${#old_charcoal[@]} -eq 2 ]] || fail "previous Charcoal packages were not detected"
 
-# Explicit opt-in is required before removing the matching stock 7.3 kernel.
+# Stock SteamOS 7.3 remains installed by default, including non-interactive runs.
+CHARCOAL_73_REMOVE_STOCK=0 CHARCOAL_73_ASSUME_YES=1 confirm_stock_removal stock
+[[ ${#stock[@]} -eq 0 ]] || fail "stock kernel was not preserved by default"
+
+# Removal is possible only through explicit opt-in.
+stock=(linux-neptune-73 linux-neptune-73-headers)
 CHARCOAL_73_REMOVE_STOCK=1 confirm_stock_removal stock
-if ( CHARCOAL_73_REMOVE_STOCK=0 CHARCOAL_73_ASSUME_YES=0 confirm_stock_removal stock >/dev/null 2>&1 ); then
-  fail "installer allowed non-interactive stock removal without authorization"
-fi
+[[ ${#stock[@]} -eq 2 ]] || fail "explicit stock-kernel opt-in was ignored"
 
 empty_stock=()
 confirm_stock_removal empty_stock
@@ -56,12 +59,12 @@ fi
 grep -Fq 'pacman -Qp "$pkg" | awk '\''{print $1}'\''' "$INSTALLER" \
   || fail "installer does not use SteamOS-compatible package metadata query"
 
-grep -Fq 'Remove the SteamOS 7.3 stock kernel and continue? [s/N]' "$INSTALLER" \
-  || fail "interactive 7.3 stock-kernel removal prompt is missing"
+grep -Fq 'Remove the stock SteamOS 7.3 kernel? This removes your fallback. [y/N]' "$INSTALLER" \
+  || fail "explicit stock-kernel removal prompt is missing"
 grep -Fq 'local stock="linux-neptune-${pkgbase#linux-charcoal-}"' "$INSTALLER" \
   || fail "installer is not limited to the matching stock kernel series"
 grep -Fq 'remove_packages=("${previous_charcoal[@]}" "${stock_packages[@]}")' "$INSTALLER" \
-  || fail "approved stock packages are not included in the removal transaction"
+  || fail "only previous Charcoal packages and explicitly approved stock packages may be removed"
 grep -Fq 'run_privileged pacman -Rdd --noconfirm "${remove_packages[@]}"' "$INSTALLER" \
   || fail "installer does not remove only approved kernel packages"
 grep -Fq 'run_privileged pacman -U --noconfirm "${packages[@]}"' "$INSTALLER" \
