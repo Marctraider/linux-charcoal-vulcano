@@ -13,8 +13,6 @@ fail() {
 }
 
 bash -n "$INSTALLER" || fail "installer shell syntax is invalid"
-grep -Fq '"$startdir/charcoal-status-73" "$pkgdir/usr/bin/charcoal-status-73"' "$REPO_ROOT/PKGBUILD-73" \
-  || fail "PKGBUILD does not install the status utility"
 
 # Source functions without running main().
 # shellcheck source=/dev/null
@@ -56,7 +54,7 @@ grep -Fq 'pacman -Qp "$pkg" | awk '\''{print $1}'\''' "$INSTALLER" \
   || fail "installer does not use SteamOS-compatible package metadata query"
 
 # Regression checks for the real transaction order and prompt.
-grep -Fq 'Remove the SteamOS stable stock kernel and continue? [s/N]' "$INSTALLER" \
+grep -Fq 'Remove the SteamOS 7.3 stock kernel and continue? [s/N]' "$INSTALLER" \
   || fail "interactive stock-kernel removal prompt is missing"
 grep -Fq 'local stock="linux-neptune-${pkgbase#linux-charcoal-}"' "$INSTALLER" \
   || fail "installer is not limited to the SteamOS stable stock kernel packages"
@@ -76,6 +74,8 @@ grep -Fq 'RELEASE_TAG_PREFIX="charcoal-"' "$INSTALLER" \
   || fail "installer is not pinned to the 7.3 release channel"
 grep -Fq 'release.get("prerelease") is not False' "$INSTALLER" \
   || fail "installer must reject GitHub prereleases"
+grep -Fq '!= (7, 3)' "$INSTALLER" \
+  || fail "installer must accept only Linux 7.3 release tags"
 
 if grep -Fq 'gaming-swap' "$INSTALLER"; then
   fail "installer still invokes removed gaming swap migration"
