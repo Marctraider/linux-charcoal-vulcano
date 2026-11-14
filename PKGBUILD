@@ -189,7 +189,28 @@ prepare() {
   python3 "$startdir/automation/configure-zen-interactive.py" "$PWD"
   python3 "$startdir/automation/fix-gud-tv-mode-fortify.py" \
     drivers/gpu/drm/gud/gud_connector.c
-  git diff --check -- drivers/cpufreq/Kconfig.x86 \
+
+  # Normalize whitespace introduced by pinned patches before the full diff check.
+  # Only files changed from Valve's base commit are touched.
+  python3 - <<'PY'
+import subprocess
+from pathlib import Path
+
+changed = subprocess.check_output(["git", "diff", "--name-only", "-z"]).split(b"\\0")
+for raw in changed:
+    if not raw:
+        continue
+    path = Path(raw.decode())
+    try:
+        content = path.read_text(encoding="utf-8")
+    except (UnicodeDecodeError, OSError):
+        continue
+    lines = [line.rstrip(" \\t") for line in content.splitlines()]
+    while lines and not lines[-1]:
+        lines.pop()
+    path.write_text("\\n".join(lines) + "\\n", encoding="utf-8")
+PY
+  git diff --check
 
   # Verify the ZSTD Crypto API default remains at level 1.
   grep -Eq '^#define[[:space:]]+ZSTD_DEF_LEVEL[[:space:]]+1([[:space:]]|$)' crypto/zstd.c
