@@ -341,8 +341,8 @@ main() {
   local pkg pkgname pkgbase=""
   for pkg in "${packages[@]}"; do
     pkgname="$(pacman -Qp "$pkg" | awk '{print $1}')" || die "pacman could not read package metadata: $pkg"
-    [[ "$pkgname" =~ ^linux-charcoal-[0-9]+(-headers)?$ ]] \
-      || die "Unexpected package in release: $pkgname"
+    [[ "$pkgname" =~ ^linux-charcoal-73(-headers)?$ ]] \
+      || die "Expected a Linux 7.3 Charcoal package, got: $pkgname"
     pkgbase=${pkgname%-headers}
   done
 
