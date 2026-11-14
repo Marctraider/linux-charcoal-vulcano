@@ -58,7 +58,7 @@ case "$1" in
         'usr/lib/modules/7.3.1-neptune-73/vmlinuz'
     fi
     ;;
-  -xOf) printf '%s\n' "\${MOCK_PKGBASE:-linux-neptune-73}" ;;
+  -xOf) printf '%s\n' "${MOCK_PKGBASE:-linux-neptune-73}" ;;
   *) exit 2 ;;
 esac
 EOF
