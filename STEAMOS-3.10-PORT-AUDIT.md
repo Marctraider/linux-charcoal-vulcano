@@ -46,3 +46,16 @@ The 7.2 branch contains source-specific adapters for POC Selector, ADIOS, LRU CA
 - Preserve the user's known-good stock SteamOS kernel as the recovery path.
 
 This document records the audit and plan only. It does not claim that any patch has been ported or that a 7.3 kernel has been built.
+
+## Verified Valve source identity
+
+The official source archive was downloaded and its embedded bare Git repository inspected in GitHub Actions run [43593241890](https://github.com/Marctraider/linux-charcoal-vulcano/actions/runs/43593241890).
+
+- Embedded repository: `archlinux-linux-neptune`
+- Exact tag: `7.3.1-valve2` (annotated tag)
+- Resolved commit: `0ed55b10a784a0a0b518ecd20551659fde1d59c9`
+- Commit subject: `linux-integration 7.3.1-valve2`
+- Commit author/committer date: 2026-11-13 16:08:37 -0800
+- Git pack: 14,163,020 objects; 3,633,624 KiB packed
+
+The PKGBUILD independently confirms `_tag=7.3.1-valve2` and uses the Valve `linux-integration` repository. The next validation run checks out this resolved commit and audits source paths/config fragments. No retained Charcoal patch has yet been applied to this tree.
