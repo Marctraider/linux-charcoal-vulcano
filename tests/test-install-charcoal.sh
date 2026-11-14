@@ -86,4 +86,4 @@ if grep -Fq 'gaming-swap' "$INSTALLER"; then
   fail "installer still invokes removed gaming swap migration"
 fi
 
-printf 'install-charcoal SteamOS 7.3 stock-removal tests passed\n'
+printf 'install-charcoal SteamOS 7.3 stock-only removal tests passed\n'
