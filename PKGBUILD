@@ -111,7 +111,7 @@ _validate_kernel_config() {
   local expected
   for expected in \
     'CONFIG_CPU_MITIGATIONS=y' \
-    'CONFIG_GENERIC_CPU=n' \
+    '# CONFIG_GENERIC_CPU is not set' \
     'CONFIG_MZEN2=y' \
     'CONFIG_X86_AMD_PSTATE=y' \
     'CONFIG_X86_AMD_PSTATE_DEFAULT_MODE=3' \
