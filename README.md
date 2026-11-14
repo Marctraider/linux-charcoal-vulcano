@@ -16,12 +16,9 @@ Two sample benchmark runs comparing the default 3.9.5 kernel with this tuned ker
 - The test device uses a modded OLED BIOS with the maximum CPU clock set to 4.2 GHz.
 - It is not established whether the 4.2 GHz patch was the main contributor to the observed difference. These are two sample runs, not a controlled or statistically conclusive benchmark.
 
-
-
 ## Maintainer notes
 
 - **Optional diagnostics:** the separate `charcoal-status` script checks whether the kernel features and related runtime functions appear to be working. It is a diagnostic aid, not a requirement for installing or using the kernel.
-- **IOMMU / PerfOpt:** PerfOpt can be used with IOMMU enabled. To try that configuration, remove `iommu=off` from `/etc/default/grub-steamos`; depending on the system configuration, you may also choose `iommu=pt`. PerfOpt is intended as an option for users who want the additional hardening that comes with keeping IOMMU enabled while retaining iGPU performance comparable to the `iommu=off` configuration. It does not provide a performance advantage over simply keeping `iommu=off`. This is an optional configuration choice, not a prerequisite for installing the kernel. Review the security and device-compatibility trade-offs before changing IOMMU settings.
 
 Charcoal is a custom SteamOS kernel maintained in this repository. The purpose of this fork is to keep the kernel-side performance, scheduling, memory-management and Steam Deck hardware work while removing the gaming-oriented userspace configuration and bundled third-party controller-driver stack that are not required for those kernel features.
 
@@ -36,7 +33,6 @@ This repository began as a fork of [Zarpon's linux-charcoal-vulcano](https://git
 | Kernel scheduler and reclaim features | Keep the selected kernel patches and configuration, including BORE, POC Selector, ADIOS, LRU CAST and NAP. |
 | Memory and compression | Keep kernel ZSWAP and ZRAM-IR support/configuration. Keep the ADIOS and ZRAM-IR udev/runtime integration required by those features. |
 | AMD power management | Keep AMD P-State EPP active-mode defaults and EPP boost changes. |
-| Steam Deck / Van Gogh | Keep the Van Gogh CPU frequency and power-limit patches, plus the selected IOMMU work. |
 | Compiler and CPU tuning | Keep the Zen 2 target, Clang/LLVM build, O3, full Clang LTO and Polly configuration. |
 | Gaming-oriented userspace tuning | Remove custom gaming sysctl profiles, forced environment variables and swapfile migration/setup. Let SteamOS and the user manage these policies. |
 | Controller driver bundle | Remove the bundled xone, xpadneo and xpad-noone driver/workaround package. This does not remove Steam Input. |
@@ -47,8 +43,6 @@ The distinction is deliberate: **kernel capabilities stay in the kernel; optiona
 The fork has also moved beyond the original repository's earlier kernel-source baseline. Its maintained build pipeline resolves the current SteamOS stable image and the matching Valve kernel source/configuration rather than simply building the old source snapshot. See [stable source tracking](#how-the-build-tracks-steamos-stable).
 
 ## Install the latest fork release
-
-Use SteamOS Stable and run the commands in Desktop Mode. Keep a recovery method available. The Steam Deck BIOS leaves IOMMU disabled by default, and the installer does not change this setting. No IOMMU or BIOS changes are required before installing the kernel.
 
 **Important:** the installer below downloads a prebuilt release. It does not compile the kernel on the Steam Deck. A published release must exist in this fork before the command can install anything. If [this repository's Releases page](https://github.com/Marctraider/linux-charcoal-vulcano/releases) has no stable release yet, wait for the first successful publishing workflow.
 
@@ -102,7 +96,6 @@ The current configuration and patch stack retain the selected versions of:
 - Kernel ZSWAP, including the configured ZSTD backend.
 - AMD P-State EPP active-mode defaults and EPP boost changes.
 - Zen 2 CPU targeting, Clang/LLVM, O3, full Clang LTO and Polly build configuration.
-- Steam Deck Van Gogh frequency/power-limit patches and the selected IOMMU changes.
 
 The package retains the ADIOS and ZRAM-IR udev rules and the NAP package lifecycle hooks required by these features. Kernel ZSWAP is distinct from the removed gaming swap userspace setup.
 
@@ -116,7 +109,6 @@ Steam Input is a Steam userspace feature and is not removed by this cleanup. The
 
 - O3, LTO and Polly are build choices, not guarantees of higher frame rates or lower latency. Results vary by workload and device.
 - The Van Gogh patches raise configured CPU frequency/power limits; they do not guarantee that the hardware will sustain those values.
-- PerfOpt is optional. It can be used with IOMMU enabled (after removing `iommu=off` from `/etc/default/grub-steamos`, and optionally using `iommu=pt`). Its purpose is to offer an IOMMU-enabled configuration for users who want the additional hardening, while aiming to retain iGPU performance comparable to `iommu=off`; it does not improve performance over `iommu=off`. The PerfOpt path can skip ATS/PRI/PASID/SVA setup for eligible AMD integrated GPUs while using an optimized identity DMA path, which reduces DMA isolation for that device. Understand the security and device-compatibility trade-offs before enabling it.
 - Static CI and package validation do not replace boot, suspend/resume, Wi-Fi, audio, controller and game testing on a Steam Deck.
 
 ## How the build tracks SteamOS stable
