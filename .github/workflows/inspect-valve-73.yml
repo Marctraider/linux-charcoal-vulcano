@@ -188,11 +188,6 @@ jobs:
             echo "Van Gogh power-limit function context (after the 4.2 GHz patch):"
             sed -n '2315,2375p' "$tree_dir/drivers/gpu/drm/amd/pm/swsmu/smu11/vangogh_ppt.c"
           } > valve-vangogh-power-source.txt
-            valve-amd-pstate-header.txt
-            valve-amd-pstate-source.txt
-            valve-amd-pstate-doc-source.txt
-            valve-amd-pstate-reject-audit.txt
-            valve-amd-pstate-rejects.txt
           {
             echo "AMD/Intel P-State Kconfig blocks before Zen helper:"
             grep -n -A28 "config X86_INTEL_PSTATE" "$tree_dir/drivers/cpufreq/Kconfig.x86" || true
@@ -275,6 +270,11 @@ jobs:
             valve-patch-candidate-hashes.txt
             valve-sched-ext-audit.txt
             valve-vangogh-power-source.txt
+            valve-amd-pstate-header.txt
+            valve-amd-pstate-source.txt
+            valve-amd-pstate-doc-source.txt
+            valve-amd-pstate-reject-audit.txt
+            valve-amd-pstate-rejects.txt
             valve-zen-kconfig-audit.txt
             valve-zen-helper-audit.txt
             valve-nap-helper-audit.txt
@@ -286,4 +286,5 @@ jobs:
             patch-candidates/
           if-no-files-found: error
           retention-days: 7
+
 
