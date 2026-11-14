@@ -38,6 +38,10 @@ The selected upstream patch candidates are pinned to immutable revisions and che
 
 Steam Input and Valve's in-tree Steam Deck/controller support remain inherited from the stock SteamOS configuration. The 7.3 installer is series-specific: it removes previous Charcoal kernel packages and, only after explicit confirmation, the matching linux-neptune-73 stock kernel and headers. It does not target linux-neptune-72.
 
+### CPU vulnerability mitigations
+
+Linux 7.3 follows the former Charcoal 7.2 performance configuration: the build overlay explicitly passes `CONFIG_CPU_MITIGATIONS=n` to the kernel configuration, and the build checks that this setting survives `olddefconfig`. CPU vulnerability mitigations are therefore **disabled by default in this kernel build**. This can reduce mitigation overhead and may help in CPU-constrained workloads, but it reduces protection against classes of CPU side-channel vulnerabilities. Use this kernel only if you understand and accept that security trade-off. This is a compile-time kernel configuration choice, not merely a runtime boot argument; adding `mitigations=off` does not provide an additional change to this already-disabled configuration.
+
 ## Installation
 
 A 7.3 release has not been published yet. The installer refuses to install a 7.2 release; it accepts only a Charcoal 7.3 release from this fork.
