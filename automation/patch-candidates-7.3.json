@@ -4,14 +4,14 @@
     "tag": "7.3.1-valve2",
     "commit": "0ed55b10a784a0a0b518ecd20551659fde1d59c9"
   },
-  "policy": "Pinned upstream refs and exact blob IDs; diagnostic direct-apply audit only. No patch is considered ported until sequential application and feature-specific tests pass.",
+  "policy": "Pinned newest upstream 7.3-compatible patch candidates at exact repository commits and Git blob IDs, consistent with the 7.2 resolver's latest-release-first policy. Diagnostic direct-apply audit only; no patch is considered ported until sequential application and feature-specific tests pass.",
   "patches": [
     {
       "name": "bore",
       "repository": "firelzrd/bore-scheduler",
       "commit": "8e1b3d4081e4667513bed5888534295f79d89add",
-      "path": "patches/stable/0001-linux7.3-rc2-bore-7.0.0.patch",
-      "blob": "2514a802a78ccbe3fe0efaa7e075c9ee2fd45bc3"
+      "path": "patches/testing/0001-linux7.3-rc2-bore-7.0.1.patch",
+      "blob": "004a7a3662c2cb1bafacd907e30648d829aa60b3"
     },
     {
       "name": "bore_sched_ext_coexistence",
@@ -24,8 +24,8 @@
       "name": "poc_selector",
       "repository": "firelzrd/poc-selector",
       "commit": "0ab5651a40669c2d1d48a7d425859b1480e52403",
-      "path": "patches/stable/0001-7.3-rc1-poc-selector-v3.0.0.patch",
-      "blob": "55f8f576cce4f7943e1dd5c50d3026eac58945f8"
+      "path": "patches/testing/0001-7.3-rc1-poc-selector-v3.0.1.patch",
+      "blob": "c0cda8a68d7001297a147b1e885ecf097cfcb65a"
     },
     {
       "name": "adios",
