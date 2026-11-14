@@ -99,7 +99,6 @@ source=(
   latest-zen-01.patch
   latest-zen-02.patch
   latest-nap.patch
-  iommu-perfopt-consolidado-v3.patch
   zstd-crypto-default-level-1.patch
 )
 sha256sums=(
@@ -141,7 +140,6 @@ sha256sums=(
   'bc647f73ec860a0fe7d074c2377588816a616dc2a651b30d7b9cd168863a17c6'
   '5059762e54c8dbe4262d48eafb8d486a54244eec71da5d7b61fc0f5f1c5c2ea7'
   '4d4ac50ba014de33638a2efe9c6adc507b888c6d090aa29ea17b2a4686de4e07'
-  '52ee747b6888f6e59df2cc6a4b6d6ccbc104c932bc8cb11b1ff0035cde47425a'
   '8c35a18407440f543518e383a96f8098438c3cbe4ea034241fb9a7fe8f7be129'
 )
 export KBUILD_BUILD_HOST=archlinux
@@ -446,4 +444,5 @@ for _p in "${pkgname[@]}"; do
 done
 
 # vim:set ts=8 sts=2 sw=2 et:
+
 
