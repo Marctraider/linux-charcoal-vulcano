@@ -186,8 +186,6 @@ prepare() {
     esac
   done
 
-  python3 "$startdir/automation/port-vangogh-power-7.3.py" \
-    drivers/gpu/drm/amd/pm/swsmu/smu11/vangogh_ppt.c
   python3 "$startdir/automation/configure-zen-interactive.py" "$PWD"
   python3 "$startdir/automation/fix-gud-tv-mode-fortify.py" \
     drivers/gpu/drm/gud/gud_connector.c
