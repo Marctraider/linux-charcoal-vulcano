@@ -276,11 +276,6 @@ _package() {
   install -D -m 0644 ../90-charcoal-zram-ir.conf \
     "$pkgdir/usr/lib/systemd/system/systemd-zram-setup@.service.d/90-charcoal-zram-ir.conf"
 
-  # Preserve NAP learning and build the offline viewer from this kernel's model.
-  python3 "$srcdir/nap-tools-latest/install-tools.py" \
-    --source-dir "$srcdir/nap-tools-latest" --require-resolved \
-    --destdir "$pkgdir" --kernel-dir "$PWD/drivers/cpuidle/governors/nap"
-
   # remove build link
   rm "$modulesdir"/build
 }
