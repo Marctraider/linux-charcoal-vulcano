@@ -38,6 +38,19 @@ The selected upstream patch candidates are pinned to immutable revisions and che
 
 Steam Input and Valve's in-tree Steam Deck/controller support remain inherited from the stock SteamOS configuration. The 7.3 installer is series-specific: after confirmation, it removes only the matching `linux-neptune-73` stock kernel and headers to free system space. It does not remove existing Charcoal packages; `pacman -U` upgrades those packages in place. It does not target `linux-neptune-72` or any 7.2 Charcoal packages. The stock-kernel removal removes the matching stock-kernel fallback.
 
+
+## Install the latest 7.3 release
+
+**Important:** this command downloads and executes the 7.3 installer from this validation branch. It does not compile the kernel on the Steam Deck. The installer selects the newest published, non-draft, non-prerelease Linux 7.3 release from this repository; it does not use the repository-wide latest release, which could belong to another kernel series.
+
+Run on SteamOS 3.10:
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/Marctraider/linux-charcoal-vulcano/validation/steamos-3.10-linux-7.3/install-charcoal.sh -o install-charcoal-73.sh && bash install-charcoal-73.sh
+```
+
+Read the installer's confirmation prompts before accepting package changes. It removes only the matching SteamOS 7.3 stock kernel and headers; existing Charcoal packages are upgraded in place. Keep a recovery route available because removing the stock kernel also removes that fallback.
+
 ### CPU vulnerability mitigations
 
 Charcoal 7.3 makes the requested performance policy the kernel's built-in boot default: the build configures `CONFIG_CMDLINE` with `mitigations=off` alongside the AMD P-State EPP boost parameter. The installer/build recipe supplies this setting; users do not need to add a boot argument themselves.
