@@ -31,11 +31,13 @@ The selected upstream patch candidates are pinned to immutable revisions and che
 
 - **NAP is not included in Linux 7.3.** No native 7.3 patch has been demonstrated to apply cleanly. NAP remains part of the separate stable 7.2 line.
 - **IOMMU/PerfOpt is excluded.** Its patch, config overrides and documentation are not part of this 7.3 port.
-- **No bundled third-party controller drivers or workarounds.** xone, xpadneo and xpad-noone are not included.
+- **No bundled third-party controller drivers or workarounds.** xone, xpadneo, xpad-noone, their udev/modprobe rules and controller workarounds are not included.
 - **No custom controller or Steam Deck HID config overrides.** Controller and Steam Deck device options are inherited from Valve's SteamOS configuration; Charcoal does not force these drivers on or off.
+- **No Ryzen SMU DKMS bundle.** Van Gogh kernel frequency/power changes are separate kernel-source patches; no third-party SMU module is installed.
 - Gaming sysctl profiles, forced gaming environment variables, swapfile migration and gaming swap services/hooks are not part of this kernel package.
+- The IOMMU/PerfOpt patch and its kernel configuration changes are excluded.
 
-Steam Input and Valve's in-tree Steam Deck/controller support are not removed by excluding the third-party driver bundle.
+Steam Input and Valve's in-tree Steam Deck/controller support remain inherited from the stock SteamOS configuration. The 7.3 installer is series-specific: it removes previous Charcoal kernel packages and, only after explicit confirmation, the matching linux-neptune-73 stock kernel and headers. It does not target linux-neptune-72.
 
 ## Installation
 
