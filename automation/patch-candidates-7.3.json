@@ -32,19 +32,19 @@
     },
     {
       "name": "amd_pstate_epp_01_kernel_doc",
-      "url": "https://lore.kernel.org/linux-pm/20260728073150.54964-2-void%40manifault.com/raw"
+      "url": "https://lore.landau.one/lkml/20260728073150.54964-2-void%40manifault.com/raw"
     },
     {
       "name": "amd_pstate_epp_02_cache_order",
-      "url": "https://lore.kernel.org/linux-pm/20260728073150.54964-3-void%40manifault.com/raw"
+      "url": "https://lore.landau.one/lkml/20260728073150.54964-3-void%40manifault.com/raw"
     },
     {
       "name": "amd_pstate_epp_03_core",
-      "url": "https://lore.kernel.org/linux-pm/20260728073150.54964-4-void%40manifault.com/raw"
+      "url": "https://lore.landau.one/lkml/20260728073150.54964-4-void%40manifault.com/raw"
     },
     {
       "name": "amd_pstate_epp_04_docs",
-      "url": "https://lore.kernel.org/linux-pm/20260728073150.54964-5-void%40manifault.com/raw"
+      "url": "https://lore.landau.one/lkml/20260728073150.54964-5-void%40manifault.com/raw"
     },
     {
       "name": "bore",
