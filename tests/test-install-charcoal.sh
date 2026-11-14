@@ -76,6 +76,19 @@ grep -Fq 'release.get("prerelease") is not False' "$INSTALLER" \
   || fail "installer must reject GitHub prereleases"
 grep -Fq '!= (7, 3)' "$INSTALLER" \
   || fail "installer must accept only Linux 7.3 release tags"
+grep -Fq '^linux-charcoal-73(-headers)?
+grep -Fq '!= (7, 3)' "$INSTALLER" \
+  || fail "installer must accept only Linux 7.3 release tags"
+
+if grep -Fq 'gaming-swap' "$INSTALLER"; then
+  fail "installer still invokes removed gaming swap migration"
+fi
+
+printf 'install-charcoal SteamOS 7.3 stock-removal tests passed\n'
+ "$INSTALLER" \
+  || fail "installer must reject packages from other kernel series"
+grep -Fq '!= (7, 3)' "$INSTALLER" \
+  || fail "installer must accept only Linux 7.3 release tags"
 
 if grep -Fq 'gaming-swap' "$INSTALLER"; then
   fail "installer still invokes removed gaming swap migration"
