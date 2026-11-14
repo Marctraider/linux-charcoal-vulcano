@@ -141,6 +141,76 @@ jobs:
           PY
           git -C "$tree_dir" grep -n -E 'CONFIG_(SCHED_BORE|SCHED_POC_SELECTOR|LRU_CAST|CPU_IDLE_GOV_NAP)' -- '*Kconfig*' 'kernel/sched/*' > valve-scheduler-symbol-locations.txt || true
 
+      - name: Audit pinned Linux 7.3 scheduler and memory patch candidates
+        run: |
+          set -Eeuo pipefail
+          tree_dir="$RUNNER_TEMP/valve-linux-integration"
+          mkdir -p patch-candidates
+          python3 - <<'PY' > patch-candidate-list.tsv
+          import json
+          from pathlib import Path
+          data=json.loads(Path("automation/patch-candidates-7.3.json").read_text())
+          for item in data["patches"]:
+              print("\\t".join((item["name"],item["repository"],item["commit"],item["path"],item["blob"])))
+          PY
+          : > valve-patch-apply-audit.txt
+          while IFS=        uses: actions/upload-artifact@v4
+        with:
+          name: valve-steamos-3.10-linux-7.3.1-valve2-source-inspection
+          path: |
+            valve-source.sha256
+            valve-source-size.txt
+            archive-file-list.txt
+            source-layout.txt
+            valve-metadata/
+            valve-source-metadata.json
+            valve-git-refs.txt
+            valve-tag-object-type.txt
+            valve-source-commit.txt
+            valve-source-commit-details.txt
+            valve-git-object-stats.txt
+            valve-runner-disk-before-checkout.txt
+            valve-runner-disk-after-checkout.txt
+            valve-source-tree-path.txt
+            valve-source-tree-status.txt
+            valve-source-tree-commit.txt
+            valve-config-feature-audit.txt
+            valve-source-path-audit.txt
+            valve-scheduler-symbol-locations.txt
+            valve-patch-apply-audit.txt
+            valve-patch-applied-diff-stat.txt
+            valve-patch-applied-status.txt
+            patch-candidate-list.tsv
+            patch-candidates/
+          if-no-files-found: error
+          retention-days: 7
+\\t' read -r name repository commit patch_path blob; do
+            file="patch-candidates/$name.patch"
+            url="https://raw.githubusercontent.com/$repository/$commit/$patch_path"
+            echo "[$name] fetching $url" | tee -a valve-patch-apply-audit.txt
+            if ! curl --fail --location --retry 3 --output "$file" "$url"; then
+              echo "[$name] FETCH_FAILED" | tee -a valve-patch-apply-audit.txt
+              continue
+            fi
+            actual="$(git hash-object "$file")"
+            if [[ "$actual" != "$blob" ]]; then
+              echo "[$name] BLOB_MISMATCH expected=$blob actual=$actual" | tee -a valve-patch-apply-audit.txt
+              continue
+            fi
+            if git -C "$tree_dir" apply --check --whitespace=nowarn "$GITHUB_WORKSPACE/$file" 2>"$file.check.log"; then
+              if git -C "$tree_dir" apply --whitespace=nowarn "$GITHUB_WORKSPACE/$file"; then
+                echo "[$name] APPLIED_SEQUENTIALLY blob=$actual" | tee -a valve-patch-apply-audit.txt
+              else
+                echo "[$name] APPLY_FAILED_AFTER_CHECK" | tee -a valve-patch-apply-audit.txt
+              fi
+            else
+              echo "[$name] DOES_NOT_APPLY_AFTER_PREVIOUS_SUCCESSFUL_CANDIDATES" | tee -a valve-patch-apply-audit.txt
+              sed -n '1,100p' "$file.check.log" | tee -a valve-patch-apply-audit.txt
+            fi
+          done < patch-candidate-list.tsv
+          git -C "$tree_dir" diff --stat | tee valve-patch-applied-diff-stat.txt
+          git -C "$tree_dir" status --short | tee valve-patch-applied-status.txt
+
       - name: Upload Valve source inspection
         uses: actions/upload-artifact@v4
         with:
