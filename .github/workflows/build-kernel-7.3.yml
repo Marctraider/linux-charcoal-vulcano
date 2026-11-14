@@ -11,7 +11,7 @@ permissions:
 
 concurrency:
   group: charcoal-linux-7.3-build
-  cancel-in-progress: false
+  cancel-in-progress: true
 
 jobs:
   build-linux-7-3:
