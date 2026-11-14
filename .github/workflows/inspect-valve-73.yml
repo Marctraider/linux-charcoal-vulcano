@@ -1,0 +1,79 @@
+name: Inspect Valve SteamOS 3.10 Linux 7.3 source
+
+on:
+  push:
+    branches:
+      - validation/steamos-3.10-linux-7.3
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: charcoal-73-source-inspection
+  cancel-in-progress: false
+
+jobs:
+  inspect-valve-source:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 180
+    steps:
+      - name: Check out Charcoal
+        uses: actions/checkout@v4
+        with:
+          ref: validation/steamos-3.10-linux-7.3
+          fetch-depth: 1
+
+      - name: Install inspection tools
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y git python3 tar zstd
+
+      - name: Download and verify archive availability
+        run: |
+          set -Eeuo pipefail
+          url="https://steamdeck-packages.steamos.cloud/archlinux-mirror/sources/jupiter-3.10/linux-neptune-73-7.3.1.valve2-1.src.tar.gz"
+          curl --fail --location --retry 5 --retry-all-errors --output valve-source.tar.gz "$url"
+          tar -tzf valve-source.tar.gz > archive-file-list.txt
+          grep -E '(^|/)(PKGBUILD|config|config-neptune)$|archlinux-linux-neptune' archive-file-list.txt | head -200 > source-layout.txt
+          test -s source-layout.txt
+          sha256sum valve-source.tar.gz > valve-source.sha256
+          du -h valve-source.tar.gz | tee valve-source-size.txt
+
+      - name: Extract Valve packaging metadata and configs
+        run: |
+          set -Eeuo pipefail
+          mkdir valve-source
+          tar -xzf valve-source.tar.gz -C valve-source --wildcards '*/PKGBUILD' '*/config*' '*/.*' 2>/dev/null || true
+          find valve-source -maxdepth 4 -type f -printf '%p\n' | sort > extracted-files.txt
+          find valve-source -name PKGBUILD -print -quit | grep -q .
+          python3 - <<'PY'
+          from pathlib import Path
+          import json
+          roots = list(Path('valve-source').glob('*/PKGBUILD'))
+          if not roots:
+              roots = list(Path('valve-source').rglob('PKGBUILD'))
+          assert roots, 'Valve PKGBUILD was not found in source archive'
+          root = roots[0].parent
+          record = {
+              'pkgbuild': str(roots[0]),
+              'files': sorted(str(p.relative_to(root)) for p in root.rglob('*') if p.is_file()),
+          }
+          Path('valve-source-metadata.json').write_text(json.dumps(record, indent=2) + '\n')
+          print(roots[0].read_text(errors='replace')[:30000])
+          PY
+
+      - name: Upload Valve source inspection
+        uses: actions/upload-artifact@v4
+        with:
+          name: valve-steamos-3.10-linux-7.3.1-valve2-source-inspection
+          path: |
+            valve-source.tar.gz
+            valve-source.sha256
+            archive-file-list.txt
+            source-layout.txt
+            valve-source/
+            valve-source-metadata.json
+            extracted-files.txt
+          if-no-files-found: error
+          retention-days: 7
