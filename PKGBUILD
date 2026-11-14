@@ -2,14 +2,13 @@
 # Maintainer: John Schoenick <johns@valvesoftware.com>
 # Maintainer: Jan Alexander Steffens (heftig) <heftig@archlinux.org>
 
-pkgbase=linux-charcoal-72
-_nepbase=linux-neptune-72
-_tag=7.2.7-valve2
-_ver=2
+pkgbase=linux-charcoal-73
+_tag=7.3.1-valve2
+_ver=1
 pkgver=${_tag//-/.}.cc$_ver
 pkgrel=1
 pkgdesc='Linux'
-url="https://gitlab.steamos.cloud/jupiter/linux-integration/-/tree/$_tag"
+url="https://steamdeck-packages.steamos.cloud/archlinux-mirror/sources/jupiter-3.10/"
 arch=(x86_64)
 license=(GPL-2.0-only)
 makedepends=(
@@ -61,87 +60,47 @@ _make_llvm() {
 }
 _srcname=archlinux-linux-charcoal
 source=(
-  "$_srcname::git+https://github.com/evlaV/linux-integration.git#tag=$_tag"
-  config          # Upstream Arch Linux kernel configuration file, DO NOT EDIT!!!
-  config-neptune  # Jupiter: the neptune kernel fragment file (overrides 'config' above)
-  config-charcoal # Charcoal: The Charcoal kernel fragment file
-  charcoal.install
+  valve-source.tar.gz
   65-adios.rules
   60-charcoal-zram-ir.rules
   configure-zram-ir
-  nap-tools.tar.gz
   90-charcoal-zram.conf
   90-charcoal-zram-ir.conf
   vangogh_allow_higher_cpu_freq.patch
-  vangogh_higher_max_power_limit.patch
   latest-lru_cast.patch
   latest-zram-ir.patch
-  latest-amd-pstate-epp-boost-01-kernel-doc.patch
-  latest-amd-pstate-epp-boost-02-cache-order.patch
-  latest-amd-pstate-epp-boost-03-core.patch
-  latest-amd-pstate-epp-boost-04-docs.patch
-  latest-clear.patch
+  latest-amd-pstate-epp-02-cache-order.patch
+  latest-amd-pstate-epp-03-core.patch
   latest-o3.patch
-  latest-libbpf-uninitialized.patch
-  latest-cpu-optimizations.patch
-  latest-dkms-clang.patch
   latest-clang-polly.patch
-  latest-firmware-name.patch
-  latest-minstrel-frac.patch
-  latest-minstrel-fluctuation.patch
-  latest-minstrel-downgrade.patch
-  latest-ath11k-remapped-ce.patch
   latest-bore.patch
-  latest-bore-sched-ext-coexistence-fix.patch
-   latest-poc-selector.patch
+  latest-poc-selector.patch
   latest-adios.patch
   latest-adios-default.patch
   latest-zen-01.patch
   latest-zen-02.patch
-  latest-nap.patch
-  iommu-perfopt-consolidado-v3.patch
   zstd-crypto-default-level-1.patch
 )
 sha256sums=(
-  'SKIP'
-  'ecd8c76eb203493e67ba4052e7bc1fa46f51c91566f102172e7a18d7de2dd5eb'
-  'c9482d23e18ab37911847918eadfbc022c606f8eddab07acd43ef4d4f339037f'
-  'c681bfb19ef1ae30a984d1bfcc1cb900f8f3c8809cadcd2fc0038cef64c44cd5'
-  '1f355cd144b8bb9829e0df5f310104ddfc72862c8809d425c4ca552a2cd350b8'
+  'a6316acc22954d0685ac923248995246789a1f3b5ee6890d378ce2c3efa25af8' # Valve linux-neptune-73 7.3.1.valve2-1 source archive
   '52cbbf41450806d766260bc4f1ea055f6f9fdd55d37ad831840b16d505beb0cc'
   '35fc7647671b1ab412804143a0585dde8d9880097c06feb520f90680780ac5e5'
   '3e200a7ad9661f59be2dfd442fd993fd130da8a6f5df7d8b4ec40d86351b1dcd'
-  '58c97868ab414a9600e59a5c170dc44803b49fe07a10f7a4497076ae7ca6ffac'
   'b59543c9aac43412e8b90b050380f482214ab33c4703d621ff0ea91ea39c6761'
   '07068c432fd7e80689f44a28346f1909de9ee77aa3e72dfaa6a4ea89d9921afd'
   '1a6f9d691612c4a729032273199d17756dd6666d85019655bd95ea24eff59cac'
-  '1c49146dc5878bfab32b331d11cb66d493670bbe590ff07c2050305911c281c3'
-  '383b8cea61ef133ec2dfeb9fd1b4f1f8e55b2649cd41e1aee9d71fd8aaaaf4ea'
-  '3371e21a20c5e2a0c619984e8722b6b420f0664cacfdf65de51295176fed7ff2'
-  '74f02a5cd603afe2b714a7cccff92a715b25a643af51f3d66c959a0724e78bae'
-  '9b5caecdd70729103f04f6ec5b3e1aa8a05d91bbf79b97ad050c10c8dbb5fbe1'
-  '991cd0df7c2fabcef05e2009eb833b6087a6a3f5d1b11fc9d1f027192e131162'
-  '6ff36ba97524ce21a8b8a9e127f37c8fe1016f6a2b10ca439d2705539630d096'
-  '2c9843a51e8dd4b41f7620dcc4bf3677c7867d922073202c095324fb1443cfa5'
+  'f13ac591211d3af128f55f91658a98173472e5866d0cfcf7c730bd887cbf8271'
+  '1620f45f0fbab1173c8693a2afc0ada37920c78fdde2d0cbff6afe28545128f4'
+  'a8c4883edad965455c4d8affe6137ce34ff11563d42387ce0e83b1e7c3bed118'
+  'd7e00188cb09ad3e6cf980b5e77d1418455c62c6070aa838f532bbad731f265d'
   '492aafbd940b18b817e4b7957805b9874f488cc1463fee588dd8dacd18c86677'
-  'f573edc1cb722c34b18a62db5d04c7488d6250807e694a691382b487c48d4445'
-  'f2b896c609c672c68c47639028b1d51a2beab2c84256c0c37807142857b62763'
-  '6f45ef083841792e88fbadbfefb0630abd738a131f9782333fbc61f8b6712b4b'
   'ecb48f8b4a122180e815beff3f64fd3077fb8bfb57ff2c554c1e8e31388eb8e9'
-  'd787273bd3d00279c38127e3f4928d1685dea070f2152e75f08754e63ef1ba0f'
-  'bf2186776d96122136019b7b11aea1f0f46914bf107aa83c949e654290f7eed3'
-  '78da5c2c011b2679f1309366c3964a919607db5fa1b76a3e426c5af67eded5a1'
-  '4929f7a8033f34715c2a19b606c45d0d711e7328452ed1b31a5bf52a0c1a7232'
-  '6a2290d4edd8852c43dbb0ebc5c6c95bdaa92dd5ca4dcd22ccbe4cd9d3d07819'
-  '948aa495364332596d9f00fba1f90b2da04676a37faaeab9ef2390c44c7fbd83'
-  'cdf138cdb94fcb4e2988bd7d2873a51522fdb7212ec314fde202facaf8210b5c'
-  'a2bab701202fc4d5459e46f3b5136dca3ac8902d5f534c6d57435d811b273e80'
-  '4f186fa06bfb0e0e08320cb53a38afebe6d9eaa5c820396015c59f993bf8e1b6'
+  '59349771e5cde001b5456b29b9d302f5dca9cdbe60beb43d1161a85b21c1a82d'
+  '091a51229f796efbf2b22215d89f4502af1992ee912198f46d138aacb82f234e'
+  '5cfab7f86fe855a6b0ed5b10cb64437ab8541e80eb430945d48f94531f82cb6a'
   '5ef2f14326a5fab8980d1ebb6734ece576f930c173b4980eb026513aa3b1b9d0'
   'bc647f73ec860a0fe7d074c2377588816a616dc2a651b30d7b9cd168863a17c6'
   '5059762e54c8dbe4262d48eafb8d486a54244eec71da5d7b61fc0f5f1c5c2ea7'
-  '4d4ac50ba014de33638a2efe9c6adc507b888c6d090aa29ea17b2a4686de4e07'
-  '52ee747b6888f6e59df2cc6a4b6d6ccbc104c932bc8cb11b1ff0035cde47425a'
   '8c35a18407440f543518e383a96f8098438c3cbe4ea034241fb9a7fe8f7be129'
 )
 export KBUILD_BUILD_HOST=archlinux
@@ -151,30 +110,56 @@ export KBUILD_BUILD_TIMESTAMP="$(date -Ru${SOURCE_DATE_EPOCH:+d @$SOURCE_DATE_EP
 _validate_kernel_config() {
   local expected
   for expected in \
+    'CONFIG_CPU_MITIGATIONS=n' \
+    'CONFIG_GENERIC_CPU=n' \
+    'CONFIG_MZEN2=y' \
+    'CONFIG_X86_AMD_PSTATE=y' \
+    'CONFIG_X86_AMD_PSTATE_DEFAULT_MODE=3' \
+    'CONFIG_CMDLINE_BOOL=y' \
+    'CONFIG_CMDLINE="amd_pstate.epp_boost=1"' \
     'CONFIG_CC_OPTIMIZE_FOR_PERFORMANCE_O3=y' \
+    'CONFIG_LTO_CLANG_FULL=y' \
+    'CONFIG_POLLY_CLANG=y' \
     'CONFIG_ZEN_INTERACTIVE=y' \
     'CONFIG_LRU_CAST=y' \
+    'CONFIG_SCHED_BORE=y' \
+    'CONFIG_SCHED_POC_SELECTOR=y' \
     'CONFIG_ZSWAP=y' \
     'CONFIG_ZSWAP_DEFAULT_ON=y' \
     'CONFIG_ZSWAP_SHRINKER_DEFAULT_ON=y' \
     'CONFIG_ZSWAP_COMPRESSOR_DEFAULT_ZSTD=y' \
     'CONFIG_ZSWAP_COMPRESSOR_DEFAULT="zstd"' \
     'CONFIG_ZSMALLOC=y' \
-    'CONFIG_CRYPTO_LZ4=y'; do
+    'CONFIG_ZRAM=m' \
+    'CONFIG_ZRAM_DEF_COMP_LZ4=y' \
+    'CONFIG_ZRAM_MULTI_COMP=y' \
+    'CONFIG_ZRAM_DEF_COMP="lz4"' \
+    'CONFIG_CRYPTO_LZ4=y' \
+    'CONFIG_BTRFS_FS=y' \
+    'CONFIG_HID_STEAM=m' \
+    'CONFIG_MFD_STEAMDECK=m' \
+    'CONFIG_LEDS_STEAMDECK=m' \
+    'CONFIG_SENSORS_STEAMDECK=m' \
+    'CONFIG_LEDS_VALVE=m' \
+    'CONFIG_JOYSTICK_XBOX_GIP=m' \
+    'CONFIG_NTSYNC=y' \
+    'CONFIG_IO_DELAY_NONE=y'; do
     if ! grep -qxF "$expected" .config; then
-      echo "ERROR: kernel configuration requires $expected after olddefconfig" >&2
+      echo "ERROR: Linux 7.3 configuration requires $expected after olddefconfig" >&2
       return 1
     fi
   done
 }
-
 prepare() {
-  # Always resolve current upstream tools, including local makepkg builds.
-  python3 "$startdir/nap-tools/refresh-tools.py" \
-    --output "$srcdir/nap-tools-latest" --record "$startdir/logs/nap-tools-upstream.json"
-  NAP_TOOLS_TEST_SOURCE_DIR="$srcdir/nap-tools-latest" \
-    python3 "$startdir/tests/test_nap_tools.py"
-  cd $_srcname
+  local repo_dir="$srcdir/linux-neptune-73/archlinux-linux-neptune"
+  local valve_commit="0ed55b10a784a0a0b518ecd20551659fde1d59c9"
+
+  if [[ ! -d "$repo_dir/objects" ]]; then
+    echo "ERROR: Valve source archive did not extract the embedded bare Git repository" >&2
+    return 1
+  fi
+  git --git-dir="$repo_dir" worktree add --detach "$srcdir/$_srcname" "$valve_commit"
+  cd "$srcdir/$_srcname"
 
   echo "Setting version..."
   echo "-$pkgrel" > localversion.10-pkgrel
@@ -186,67 +171,44 @@ prepare() {
     src="${src##*/}"
     src="${src%.zst}"
     [[ $src = *.patch ]] || continue
-    echo "Applying patch $src..."
-    if [[ $src == latest-lru_cast.patch ]]; then
-      local prepared_cast="../${src%.patch}-prepared.patch"
-      python3 "$startdir/automation/port-lru-cast-latest.py" "../$src" "$prepared_cast" "$PWD"
-      git apply --recount --check "$prepared_cast"
-      git apply --recount "$prepared_cast"
-    elif [[ $src == latest-poc-selector.patch ]]; then
-      local adapted_poc="../${src%.patch}-valve-port.patch"
-      python3 "$startdir/automation/port-poc-selector.py" \
-        "../$src" "$adapted_poc" kernel/sched/sched.h kernel/sched/fair.c
-      git apply --check "$adapted_poc"
-      git apply "$adapted_poc"
-    elif [[ $src == latest-adios.patch ]]; then
-      local adapted_adios="../${src%.patch}-7.2-port.patch"
-      python3 "$startdir/automation/port-adios-7.2.py" \
-        "../$src" "$adapted_adios" block/elevator.c scripts/setlocalversion
-      git apply --check "$adapted_adios"
-      git apply "$adapted_adios"
-    elif [[ $src == latest-zen-02.patch ]]; then
-      python3 "$startdir/automation/port-zen-cpufreq-7.2.py" \
-        "../$src" drivers/cpufreq/Kconfig.x86
-      git diff --check -- drivers/cpufreq/Kconfig.x86
-    elif [[ $src == latest-libbpf-uninitialized.patch ]]; then
-      patch -Np1 < "../$src"
-      python3 "$startdir/automation/fix-libbpf-clang-warning.py" \
-        tools/lib/bpf/elf.c
-    else
-      patch -Np1 < "../$src"
-    fi
+    echo "Applying or porting patch $src..."
+    case "$src" in
+      latest-amd-pstate-epp-03-core.patch)
+        python3 "$startdir/automation/port-amd-pstate-epp-boost-73.py" "../$src" "$PWD"
+        ;;
+      latest-zen-02.patch)
+        python3 "$startdir/automation/port-zen-cpufreq-7.3.py" "../$src" drivers/cpufreq/Kconfig.x86
+        ;;
+      *)
+        git apply --check --whitespace=nowarn "../$src"
+        git apply --whitespace=nowarn "../$src"
+        ;;
+    esac
   done
 
+  python3 "$startdir/automation/port-vangogh-power-7.3.py" \
+    drivers/gpu/drm/amd/pm/swsmu/smu11/vangogh_ppt.c
+  python3 "$startdir/automation/configure-zen-interactive.py" "$PWD"
   python3 "$startdir/automation/fix-gud-tv-mode-fortify.py" \
     drivers/gpu/drm/gud/gud_connector.c
-  git diff --check -- drivers/gpu/drm/gud/gud_connector.c
+  git diff --check -- drivers/cpufreq/Kconfig.x86 \
 
-  python3 "$startdir/automation/fix-nap-kernel-api.py" \
-    drivers/cpuidle/governors/nap/nap.c
-  git diff --check -- drivers/cpuidle/governors/nap/nap.c
-
-  python3 "$startdir/automation/configure-zen-interactive.py" "$PWD"
-
-  # This Crypto API default feeds both compression parameters and workspace
-  # allocation. Fail before compiling if source changes stop applying it.
+  # Verify the ZSTD Crypto API default remains at level 1.
   grep -Eq '^#define[[:space:]]+ZSTD_DEF_LEVEL[[:space:]]+1([[:space:]]|$)' crypto/zstd.c
   sha256sum crypto/zstd.c | tee "$startdir/logs/zstd-crypto-source.sha256"
-  grep -E '^#define[[:space:]]+ZSTD_DEF_LEVEL[[:space:]]+' crypto/zstd.c \
-    | tee "$startdir/logs/zstd-crypto-level.txt"
 
-  echo "Setting config..."
-  cp ../config .config
-  scripts/kconfig/merge_config.sh -m ../config ../config-neptune ../config-charcoal # Charcoal: merge the extra fragment
+  # Merge the exact Valve 7.3 base fragments with the Charcoal overlay.
+  cp "$srcdir/linux-neptune-73/config.x86_64" "$srcdir/config.x86_64"
+  cp "$srcdir/linux-neptune-73/config-neptune" "$srcdir/config-neptune"
+  cp "$startdir/config-charcoal" "$srcdir/config-charcoal"
+  cp ../config.x86_64 .config
+  scripts/kconfig/merge_config.sh -m ../config.x86_64 ../config-neptune ../config-charcoal
   _make_llvm olddefconfig
   _validate_kernel_config
-  diff -u ../config .config || :
-
+  diff -u ../config.x86_64 .config || :
   _make_llvm -s kernelrelease > version
-
-
-  echo "Prepared $pkgbase version $(<../$_srcname/version)"
+  echo "Prepared $pkgbase version $(<version)"
 }
-
 build() {
   cd $_srcname
   _make_llvm all
@@ -256,7 +218,6 @@ build() {
 }
 
 _package() {
-  install=charcoal.install
   pkgdesc="The $pkgdesc kernel and modules"
   depends=(
     coreutils
@@ -274,15 +235,13 @@ _package() {
     KSMBD-MODULE
     VIRTUALBOX-GUEST-MODULES
     WIREGUARD-MODULE
-    $_nepbase
   )
   replaces=(
     virtualbox-guest-modules-arch
     wireguard-arch
-    $_nepbase
   )
   conflicts=(
-    $_nepbase
+    linux-charcoal-72
   )
 
   cd $_srcname
@@ -294,14 +253,11 @@ _package() {
   install -Dm644 "$(_make_llvm -s image_name)" "$modulesdir/vmlinuz"
 
   # Used by mkinitcpio to name the kernel
-  echo "$_nepbase" | install -Dm644 /dev/stdin "$modulesdir/pkgbase"
+  echo "$pkgbase" | install -Dm644 /dev/stdin "$modulesdir/pkgbase"
 
   echo "Installing modules..."
   ZSTD_CLEVEL=19 _make_llvm INSTALL_MOD_PATH="$pkgdir/usr" INSTALL_MOD_STRIP=1 \
     DEPMOD=/doesnt/exist modules_install  # Suppress depmod
-
-  # Install the post-install/runtime verification utility.
-  install -D -m 0755 "$startdir/charcoal-status" "$pkgdir/usr/bin/charcoal-status"
 
   # Install device-specific udev rules for ADIOS and ZRAM-IR
   install -D -m 0644 -t "$pkgdir/etc/udev/rules.d" ../65-adios.rules
@@ -313,11 +269,6 @@ _package() {
     "$pkgdir/usr/lib/systemd/zram-generator.conf.d/90-charcoal-zram.conf"
   install -D -m 0644 ../90-charcoal-zram-ir.conf \
     "$pkgdir/usr/lib/systemd/system/systemd-zram-setup@.service.d/90-charcoal-zram-ir.conf"
-
-  # Preserve NAP learning and build the offline viewer from this kernel's model.
-  python3 "$srcdir/nap-tools-latest/install-tools.py" \
-    --source-dir "$srcdir/nap-tools-latest" --require-resolved \
-    --destdir "$pkgdir" --kernel-dir "$PWD/drivers/cpuidle/governors/nap"
 
   # remove build link
   rm "$modulesdir"/build
@@ -446,4 +397,6 @@ for _p in "${pkgname[@]}"; do
 done
 
 # vim:set ts=8 sts=2 sw=2 et:
+
+
 
