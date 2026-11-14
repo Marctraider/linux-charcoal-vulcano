@@ -36,7 +36,7 @@ The selected upstream patch candidates are pinned to immutable revisions and che
 - **No Ryzen SMU DKMS bundle.** Van Gogh kernel frequency/power changes are separate kernel-source patches; no third-party SMU module is installed.
 - Gaming sysctl profiles, forced gaming environment variables, swapfile migration and gaming swap services/hooks are not part of this kernel package.
 
-Steam Input and Valve's in-tree Steam Deck/controller support remain inherited from the stock SteamOS configuration. The 7.3 installer is series-specific: it removes previous Charcoal kernel packages and, only after explicit confirmation, the matching linux-neptune-73 stock kernel and headers. It does not target linux-neptune-72.
+Steam Input and Valve's in-tree Steam Deck/controller support remain inherited from the stock SteamOS configuration. The 7.3 installer is series-specific: before installing Charcoal, it removes previous Charcoal kernel packages and the matching linux-neptune-73 stock kernel and headers to free system space. The installer asks for confirmation before changing packages. This removes the stock-kernel fallback; it does not target linux-neptune-72.
 
 ### CPU vulnerability mitigations
 
