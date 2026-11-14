@@ -138,13 +138,12 @@ _validate_kernel_config() {
     'CONFIG_ZRAM_DEF_COMP="lz4"' \
     'CONFIG_CRYPTO_LZ4=y' \
     'CONFIG_BTRFS_FS=y' \
-    'CONFIG_HID_STEAM=y' \
-    'CONFIG_MFD_STEAMDECK=y' \
-    'CONFIG_LEDS_STEAMDECK=y' \
-    'CONFIG_SENSORS_STEAMDECK=y' \
-    'CONFIG_EXTCON_STEAMDECK=y' \
-    'CONFIG_JOYSTICK_XPAD=n' \
-    'CONFIG_JOYSTICK_XBOX_GIP=n' \
+    'CONFIG_HID_STEAM=m' \
+    'CONFIG_MFD_STEAMDECK=m' \
+    'CONFIG_LEDS_STEAMDECK=m' \
+    'CONFIG_SENSORS_STEAMDECK=m' \
+    'CONFIG_LEDS_VALVE=m' \
+    'CONFIG_JOYSTICK_XBOX_GIP=m' \
     'CONFIG_NTSYNC=y' \
     'CONFIG_IO_DELAY_NONE=y'; do
     if ! grep -qxF "$expected" .config; then
