@@ -1,0 +1,108 @@
+name: Build SteamOS 3.10 Charcoal Linux 7.3
+
+on:
+  push:
+    branches:
+      - validation/steamos-3.10-linux-7.3
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: charcoal-linux-7.3-build
+  cancel-in-progress: false
+
+jobs:
+  build-linux-7-3:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 360
+    steps:
+      - name: Check out 7.3 validation branch
+        uses: actions/checkout@v4
+        with:
+          ref: validation/steamos-3.10-linux-7.3
+          fetch-depth: 1
+
+      - name: Free runner disk space
+        uses: jlumbroso/free-disk-space@54081f138730dfa15788a46383842cd2f914a1be
+        with:
+          tool-cache: true
+
+      - name: Configure build swap
+        uses: pierotofy/set-swap-space@fc79b3f67fa8a838184ce84a674ca12238d2c761
+        with:
+          swap-size-gb: 16
+
+      - name: Validate 7.3 recipe and installer
+        run: |
+          set -Eeuo pipefail
+          mkdir -p logs
+          bash -n PKGBUILD-73
+          bash -n install-charcoal.sh
+          bash tests/test-install-charcoal.sh
+          python3 tests/test_port_steamos_73.py
+          python3 -m py_compile \
+            automation/prepare-sources-73.py \
+            automation/port-amd-pstate-epp-boost-73.py \
+            automation/port-vangogh-power-7.3.py \
+            automation/port-zen-cpufreq-7.3.py \
+            automation/configure-zen-interactive.py \
+            automation/fix-gud-tv-mode-fortify.py
+
+      - name: Prepare exact Valve source and pinned patch inputs
+        run: |
+          set -Eeuo pipefail
+          python3 automation/prepare-sources-73.py --root "$GITHUB_WORKSPACE" \
+            2>&1 | tee logs/source-preparation-73.log
+          cp PKGBUILD-73 PKGBUILD
+          bash -n PKGBUILD
+
+      - name: Build Arch Linux LLVM toolchain container
+        run: docker build . --tag charcoal-linux-73
+
+      - name: Prepare source tree and compile/package Linux 7.3
+        run: |
+          set -Eeuo pipefail
+          restore_owner() {
+            sudo chown -R "$(id -u):$(id -g)" "$PWD" 2>/dev/null || true
+          }
+          trap restore_owner EXIT
+
+          docker run --rm -v "$PWD:/project" charcoal-linux-73 \
+            chown -R nobody /project
+
+          docker run --rm -v "$PWD:/project" charcoal-linux-73 \
+            sudo -u nobody bash -lc '
+              set -Eeuo pipefail
+              cd /project
+              mkdir -p logs .cache/ccache
+              export CCACHE_DIR=/project/.cache/ccache
+              export CCACHE_BASEDIR=/project
+              export CCACHE_COMPILERCHECK=content
+              export CCACHE_NOHASHDIR=true
+              export CCACHE_MAXSIZE=5G
+              export CCACHE_COMPRESS=true
+
+              makepkg --verifysource 2>&1 | tee logs/verifysource-73.log
+              makepkg -Cof --noconfirm 2>&1 | tee logs/prepare-73.log
+              git -C src/archlinux-linux-charcoal diff --check \
+                | tee logs/git-diff-check-73.txt
+              makepkg -ef --noconfirm 2>&1 | tee logs/makepkg-73.log
+              sha256sum linux-charcoal-73-*.pkg.tar.zst \
+                | tee logs/SHA256SUMS-73
+            '
+
+          restore_owner
+          trap - EXIT
+
+      - name: Upload Linux 7.3 build artifacts and logs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: charcoal-steamos-3.10-linux-7.3-build-\${{ github.run_number }}
+          path: |
+            linux-charcoal-73-*.pkg.tar.zst
+            logs/
+          if-no-files-found: warn
+          retention-days: 14
