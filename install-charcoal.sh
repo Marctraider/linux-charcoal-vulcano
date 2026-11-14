@@ -209,13 +209,6 @@ list_installed_packages() {
   pacman -Qq || die "Could not query installed packages"
 }
 
-select_installed_charcoal() {
-  local installed_file=$1 name
-  while IFS= read -r name; do
-    [[ "$name" == linux-charcoal || "$name" == linux-charcoal-* ]] && printf '%s\n' "$name"
-  done < "$installed_file"
-}
-
 select_stock_kernel() {
   local installed_file=$1 pkgbase=${2:-linux-charcoal-73} name
   local stock="linux-neptune-${pkgbase#linux-charcoal-}"
@@ -337,12 +330,13 @@ main() {
 
   local installed_file="$WORKDIR/installed-packages.txt"
   list_installed_packages > "$installed_file"
-  local -a previous_charcoal stock_packages remove_packages
-  mapfile -t previous_charcoal < <(select_installed_charcoal "$installed_file")
+  local -a stock_packages remove_packages
   mapfile -t stock_packages < <(select_stock_kernel "$installed_file" "$pkgbase")
 
   confirm_stock_removal stock_packages
-  remove_packages=("${previous_charcoal[@]}" "${stock_packages[@]}")
+  # Only the matching SteamOS stock 7.3 kernel may be removed. Existing
+  # Charcoal packages are left in place; pacman -U upgrades them in-place.
+  remove_packages=("${stock_packages[@]}")
   capture_rollback_packages remove_packages
   confirm_transaction "$release_tag" "${remove_packages[@]}"
 
