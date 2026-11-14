@@ -110,13 +110,13 @@ export KBUILD_BUILD_TIMESTAMP="$(date -Ru${SOURCE_DATE_EPOCH:+d @$SOURCE_DATE_EP
 _validate_kernel_config() {
   local expected
   for expected in \
-    'CONFIG_CPU_MITIGATIONS=n' \
+    'CONFIG_CPU_MITIGATIONS=y' \
     'CONFIG_GENERIC_CPU=n' \
     'CONFIG_MZEN2=y' \
     'CONFIG_X86_AMD_PSTATE=y' \
     'CONFIG_X86_AMD_PSTATE_DEFAULT_MODE=3' \
     'CONFIG_CMDLINE_BOOL=y' \
-    'CONFIG_CMDLINE="amd_pstate.epp_boost=1"' \
+    'CONFIG_CMDLINE="amd_pstate.epp_boost=1 mitigations=off"' \
     'CONFIG_CC_OPTIMIZE_FOR_PERFORMANCE_O3=y' \
     'CONFIG_LTO_CLANG_FULL=y' \
     'CONFIG_POLLY_CLANG=y' \
