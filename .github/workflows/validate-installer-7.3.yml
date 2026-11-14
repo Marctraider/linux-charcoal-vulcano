@@ -6,6 +6,7 @@ on:
       - validation/steamos-3.10-linux-7.3
     paths:
       - 'install-charcoal.sh'
+      - 'PKGBUILD'
       - 'tests/test-install-charcoal.sh'
 
 permissions:
