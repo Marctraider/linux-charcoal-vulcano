@@ -210,10 +210,22 @@ for raw in changed:
         lines.pop()
     path.write_text("\\n".join(lines) + "\\n", encoding="utf-8")
 PY
-  git diff --check
+  echo "Checking patch whitespace..."
+  git diff --check || { echo "ERROR: patched source contains whitespace errors" >&2; return 1; }
 
-  # Verify the ZSTD Crypto API default remains at level 1.
-  grep -Eq '^#define[[:space:]]+ZSTD_DEF_LEVEL[[:space:]]+1([[:space:]]|$)' crypto/zstd.c
+  # Verify the ZSTD Crypto API default remains at level 1 and log the exact source line.
+  echo "Checking ZSTD Crypto API default in crypto/zstd.c..."
+  grep -n 'ZSTD_DEF_LEVEL' crypto/zstd.c || true
+  python3 - <<'PY'
+import re
+from pathlib import Path
+
+source = Path("crypto/zstd.c").read_text(encoding="utf-8")
+match = re.search(r"(?m)^\\s*#\\s*define\\s+ZSTD_DEF_LEVEL\\s+(\\d+)\\b", source)
+if not match or match.group(1) != "1":
+    actual = match.group(1) if match else "not found"
+    raise SystemExit(f"ERROR: expected ZSTD_DEF_LEVEL=1 in crypto/zstd.c, found {actual}")
+PY
   sha256sum crypto/zstd.c | tee "$startdir/logs/zstd-crypto-source.sha256"
 
   # Merge the exact Valve 7.3 base fragments with the Charcoal overlay.
