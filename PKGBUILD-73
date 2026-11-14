@@ -61,7 +61,6 @@ _make_llvm() {
 _srcname=archlinux-linux-charcoal
 source=(
   valve-source.tar.gz
-  charcoal.install
   65-adios.rules
   60-charcoal-zram-ir.rules
   configure-zram-ir
@@ -84,7 +83,6 @@ source=(
 )
 sha256sums=(
   'a6316acc22954d0685ac923248995246789a1f3b5ee6890d378ce2c3efa25af8' # Valve linux-neptune-73 7.3.1.valve2-1 source archive
-  '1f355cd144b8bb9829e0df5f310104ddfc72862c8809d425c4ca552a2cd350b8'
   '52cbbf41450806d766260bc4f1ea055f6f9fdd55d37ad831840b16d505beb0cc'
   '35fc7647671b1ab412804143a0585dde8d9880097c06feb520f90680780ac5e5'
   '3e200a7ad9661f59be2dfd442fd993fd130da8a6f5df7d8b4ec40d86351b1dcd'
@@ -220,7 +218,6 @@ build() {
 }
 
 _package() {
-  install=charcoal.install
   pkgdesc="The $pkgdesc kernel and modules"
   depends=(
     coreutils
