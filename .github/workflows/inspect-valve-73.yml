@@ -60,8 +60,7 @@ jobs:
         run: |
           set -Eeuo pipefail
           repo_dir="$GITHUB_WORKSPACE/valve-package/linux-neptune-73/archlinux-linux-neptune"
-          mkdir -p "$repo_dir"
-          tar -xzf valve-source.tar.gz -C "$repo_dir" --strip-components=2 linux-neptune-73/archlinux-linux-neptune
+          test -d "$repo_dir"
           git --git-dir="$repo_dir" rev-parse --is-bare-repository
           git --git-dir="$repo_dir" show-ref | tee valve-git-refs.txt
           git --git-dir="$repo_dir" cat-file -t refs/tags/7.3.1-valve2 | tee valve-tag-object-type.txt
@@ -72,11 +71,10 @@ jobs:
       - name: Check out the exact Valve 7.3.1-valve2 source tree
         run: |
           set -Eeuo pipefail
-          repo_dir="$RUNNER_TEMP/valve-linux-integration.git"
+          repo_dir="$GITHUB_WORKSPACE/valve-package/linux-neptune-73/archlinux-linux-neptune"
           tree_dir="$RUNNER_TEMP/valve-linux-integration"
           commit="$(cat valve-source-commit.txt)"
           df -h "$RUNNER_TEMP" | tee valve-runner-disk-before-checkout.txt
-          rm -f valve-source.tar.gz
           git --git-dir="$repo_dir" worktree add --detach "$tree_dir" "$commit"
           test "$(git -C "$tree_dir" rev-parse HEAD)" = "$commit"
           printf '%s\n' "$tree_dir" > valve-source-tree-path.txt
@@ -181,8 +179,12 @@ jobs:
             valve-source-size.txt
             archive-file-list.txt
             source-layout.txt
-            valve-metadata/
-            valve-source-metadata.json
+            valve-PKGBUILD.txt
+            valve-config.txt
+            valve-config-neptune.txt
+            valve-config-x86_64.txt
+            valve-embedded-git-size.txt
+            valve-runner-disk-after-extraction.txt
             valve-git-refs.txt
             valve-tag-object-type.txt
             valve-source-commit.txt
