@@ -1,6 +1,6 @@
 # Charcoal SteamOS 3.10 / Linux 7.3
 
-This branch contains the Linux 7.3 port and installer validation work for SteamOS 3.10 Preview. The published `r1` release still contains the earlier installer; do not use its bundled installer until a corrected release is published. It is separate from the stable 7.2 line on `master`; the 7.2 branch is not part of this work and must remain unchanged.
+This branch contains the Linux 7.3 port and installer validation work for SteamOS 3.10 Preview. The published `r1` release has a known boot-packaging defect: its kernel package uses the wrong mkinitcpio/boot identity. **Do not install r1.** The branch installer rejects r1 and will not select a release until a corrected r2-or-newer package has been built and published. It is separate from the stable 7.2 line on `master`; the 7.2 branch is not part of this work and must remain unchanged.
 
 The build target is Valve's exact SteamOS 3.10 source package:
 
@@ -41,7 +41,7 @@ Steam Input and Valve's in-tree Steam Deck/controller support remain inherited f
 
 ## Install the latest 7.3 release
 
-**Important:** this command downloads and executes the 7.3 installer from this validation branch. It does not compile the kernel on the Steam Deck. The installer selects the newest published, non-draft, non-prerelease Linux 7.3 release from this repository; it does not use the repository-wide latest release, which could belong to another kernel series.
+**Important:** this command downloads and executes the 7.3 installer from this validation branch. It does not compile the kernel on the Steam Deck. The installer selects the newest published, non-draft, non-prerelease Linux 7.3 release at revision r2 or newer. It deliberately rejects the known-broken r1 package. It does not use the repository-wide latest release, which could belong to another kernel series.
 
 Run on SteamOS 3.10:
 
