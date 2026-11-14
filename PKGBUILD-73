@@ -83,7 +83,7 @@ source=(
   zstd-crypto-default-level-1.patch
 )
 sha256sums=(
-  'a6316acc5d0c...' # Valve source archive; full digest pinned in build workflow
+  'a6316acc22954d0685ac923248995246789a1f3b5ee6890d378ce2c3efa25af8' # Valve linux-neptune-73 7.3.1.valve2-1 source archive
   '1f355cd144b8bb9829e0df5f310104ddfc72862c8809d425c4ca552a2cd350b8'
   '52cbbf41450806d766260bc4f1ea055f6f9fdd55d37ad831840b16d505beb0cc'
   '35fc7647671b1ab412804143a0585dde8d9880097c06feb520f90680780ac5e5'
@@ -261,9 +261,6 @@ _package() {
   echo "Installing modules..."
   ZSTD_CLEVEL=19 _make_llvm INSTALL_MOD_PATH="$pkgdir/usr" INSTALL_MOD_STRIP=1 \
     DEPMOD=/doesnt/exist modules_install  # Suppress depmod
-
-  # Install the post-install/runtime verification utility.
-  install -D -m 0755 "$startdir/charcoal-status-73" "$pkgdir/usr/bin/charcoal-status-73"
 
   # Install device-specific udev rules for ADIOS and ZRAM-IR
   install -D -m 0644 -t "$pkgdir/etc/udev/rules.d" ../65-adios.rules
