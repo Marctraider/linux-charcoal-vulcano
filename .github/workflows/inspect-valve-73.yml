@@ -120,16 +120,20 @@ jobs:
               "CONFIG_CPU_IDLE_GOV_NAP", "CONFIG_ZEN_INTERACTIVE",
               "CONFIG_LTO_CLANG_FULL", "CONFIG_POLLY_CLANG",
           ]
-          files = [root / ".config", root / "config", root / "config-neptune", root / "config.x86_64"]
+          files = [
+              ("source/config", root / "config"),
+              ("package/config-neptune", Path("valve-metadata/linux-neptune-73__config-neptune")),
+              ("package/config.x86_64", Path("valve-metadata/linux-neptune-73__config.x86_64")),
+          ]
           out = []
           for key in required:
               found = []
-              for path in files:
+              for label, path in files:
                   if not path.is_file():
                       continue
                   for line in path.read_text(errors="replace").splitlines():
                       if line.startswith(key + "=") or line == "# " + key + " is not set":
-                          found.append(f"{path.relative_to(root)}: {line}")
+                          found.append(f"{label}: {line}")
               out.append(f"{key}: " + (" | ".join(found) if found else "NOT PRESENT IN BASE FRAGMENTS"))
           (Path("valve-config-feature-audit.txt")).write_text("\\n".join(out) + "\\n")
           print("\\n".join(out))
