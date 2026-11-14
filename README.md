@@ -58,7 +58,7 @@ The package identity is `linux-charcoal-73` with matching `linux-charcoal-73-hea
 
 ## Build and validation
 
-The dedicated 7.3 build recipe is `PKGBUILD-73`; it uses the exact Valve source archive and matching base config fragments. The archive SHA-256 is pinned in the recipe.
+The dedicated 7.3 build recipe is `PKGBUILD`; it uses the exact Valve source archive and matching base config fragments. The archive SHA-256 is pinned in the recipe.
 
 The source-inspection workflow downloads Valve's source, verifies the embedded tag/commit and audits the selected patch candidates. Its successful result is **not** a successful kernel build. The 7.3 build still has separate gates:
 
