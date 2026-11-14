@@ -37,43 +37,29 @@ jobs:
           sha256sum valve-source.tar.gz | tee valve-source.sha256
           du -h valve-source.tar.gz | tee valve-source-size.txt
 
-      - name: Extract compact Valve packaging metadata and configs
+      - name: Extract Valve package metadata and embedded source in one archive pass
         run: |
           set -Eeuo pipefail
-          python3 - <<'PY'
-          import json, subprocess
-          from pathlib import Path
-          archive = "valve-source.tar.gz"
-          names = subprocess.check_output(["tar", "-tzf", archive], text=True).splitlines()
-          Path("archive-file-list.txt").write_text("\n".join(names) + "\n")
-          pkgbuilds = [n for n in names if n.endswith("/PKGBUILD") or n == "PKGBUILD"]
-          configs = [n for n in names if n.rsplit("/", 1)[-1] in {
-              "config", "config-neptune", "config.x86_64", "config-neptune.x86_64"
-          }]
-          selected = []
-          for name in pkgbuilds[:5] + configs[:20]:
-              out = subprocess.check_output(["tar", "-xOzf", archive, name])
-              target = Path("valve-metadata") / name.replace("/", "__")
-              target.parent.mkdir(parents=True, exist_ok=True)
-              target.write_bytes(out)
-              selected.append({"archive_path": name, "saved_as": str(target), "bytes": len(out)})
-          assert pkgbuilds, "No PKGBUILD found in Valve source archive"
-          Path("source-layout.txt").write_text("\n".join(
-              n for n in names if "archlinux-linux-neptune" in n or n.endswith("/PKGBUILD")
-          ) + "\n")
-          Path("valve-source-metadata.json").write_text(json.dumps({
-              "pkgbuild_paths": pkgbuilds[:20],
-              "config_paths": configs[:50],
-              "extracted_files": selected,
-              "archive_member_count": len(names),
-          }, indent=2) + "\n")
-          print(json.dumps({"pkgbuild_paths": pkgbuilds[:20], "config_paths": configs[:50]}, indent=2))
-          PY
+          mkdir -p valve-package
+          tar -xzf valve-source.tar.gz -C valve-package \
+            linux-neptune-73/PKGBUILD \
+            linux-neptune-73/config \
+            linux-neptune-73/config-neptune \
+            linux-neptune-73/config.x86_64 \
+            linux-neptune-73/archlinux-linux-neptune
+          find valve-package/linux-neptune-73 -maxdepth 2 -type f ! -path '*/archlinux-linux-neptune/objects/*' -printf '%P\\n' | sort > archive-file-list.txt
+          cp valve-package/linux-neptune-73/PKGBUILD valve-PKGBUILD.txt
+          cp valve-package/linux-neptune-73/config valve-config.txt
+          cp valve-package/linux-neptune-73/config-neptune valve-config-neptune.txt
+          cp valve-package/linux-neptune-73/config.x86_64 valve-config-x86_64.txt
+          printf '%s\\n' 'linux-neptune-73/PKGBUILD' 'linux-neptune-73/config' 'linux-neptune-73/config-neptune' 'linux-neptune-73/config.x86_64' 'linux-neptune-73/archlinux-linux-neptune' > source-layout.txt
+          du -sh valve-package/linux-neptune-73/archlinux-linux-neptune | tee valve-embedded-git-size.txt
+          df -h "$RUNNER_TEMP" | tee valve-runner-disk-after-extraction.txt
 
       - name: Inspect Valve's embedded source Git repository
         run: |
           set -Eeuo pipefail
-          repo_dir="$RUNNER_TEMP/valve-linux-integration.git"
+          repo_dir="$GITHUB_WORKSPACE/valve-package/linux-neptune-73/archlinux-linux-neptune"
           mkdir -p "$repo_dir"
           tar -xzf valve-source.tar.gz -C "$repo_dir" --strip-components=2 linux-neptune-73/archlinux-linux-neptune
           git --git-dir="$repo_dir" rev-parse --is-bare-repository
@@ -116,8 +102,8 @@ jobs:
           ]
           files = [
               ("source/config", root / "config"),
-              ("package/config-neptune", Path("valve-metadata/linux-neptune-73__config-neptune")),
-              ("package/config.x86_64", Path("valve-metadata/linux-neptune-73__config.x86_64")),
+              ("package/config-neptune", Path("valve-package/linux-neptune-73/config-neptune")),
+              ("package/config.x86_64", Path("valve-package/linux-neptune-73/config.x86_64")),
           ]
           out = []
           for key in required:
