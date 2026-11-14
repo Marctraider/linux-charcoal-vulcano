@@ -37,6 +37,18 @@ run_privileged() {
 
 GRUB_CONFIG=""
 
+verify_host_platform() {
+  local release_file=${1:-/etc/os-release}
+  [[ -r "$release_file" ]] || { info "error: SteamOS release metadata is unavailable"; return 1; }
+  # shellcheck disable=SC1090
+  . "$release_file"
+  [[ ${ID:-} == steamos ]] || { info "error: this installer only supports SteamOS"; return 1; }
+  case ${VERSION_ID:-} in
+    3.10|3.10.*) ;;
+    *) info "error: this installer requires SteamOS 3.10 (found ${VERSION_ID:-unknown})"; return 1 ;;
+  esac
+}
+
 _update_grub() {
   local steamos_efi_dir=${1:-/efi/EFI/steamos}
   # Prefer Valve's SteamOS wrapper so its EFI/GRUB integration is respected.
@@ -251,6 +263,46 @@ with zipfile.ZipFile(archive) as zf:
 PY
 }
 
+verify_kernel_package_identity() {
+  local -n package_files=$1
+  local pkg pkgname="" pkgver="" kernel_pkg="" headers_pkg="" kernel_pkgver="" headers_pkgver=""
+  local entry module_dir package_base archive_listing
+  local -a pkgbase_entries=()
+
+  for pkg in "${package_files[@]}"; do
+    read -r pkgname pkgver < <(pacman -Qp "$pkg")
+    [[ -n "$pkgname" && -n "$pkgver" ]] || { info "error: cannot read package metadata: $pkg"; return 1; }
+    case "$pkgname" in
+      linux-charcoal-73)
+        [[ -z "$kernel_pkg" ]] || { info "error: duplicate 7.3 kernel package"; return 1; }
+        kernel_pkg=$pkg
+        kernel_pkgver=$pkgver
+        ;;
+      linux-charcoal-73-headers)
+        [[ -z "$headers_pkg" ]] || { info "error: duplicate 7.3 headers package"; return 1; }
+        headers_pkg=$pkg
+        headers_pkgver=$pkgver
+        ;;
+      *) info "error: unexpected package identity: $pkgname"; return 1 ;;
+    esac
+  done
+
+  [[ -n "$kernel_pkg" && -n "$headers_pkg" ]] || { info "error: kernel and matching headers packages are both required"; return 1; }
+  [[ "$kernel_pkgver" == "$headers_pkgver" ]] || { info "error: kernel and headers package versions do not match"; return 1; }
+
+  mapfile -t pkgbase_entries < <(bsdtar -tf "$kernel_pkg" | grep -E '^(\\./)?usr/lib/modules/[^/]+/pkgbase$' || true)
+  [[ ${#pkgbase_entries[@]} -eq 1 ]] || { info "error: kernel package must contain exactly one modules pkgbase marker"; return 1; }
+  entry=${pkgbase_entries[0]}
+  module_dir=${entry%/pkgbase}
+  archive_listing="$(bsdtar -tf "$kernel_pkg")" || { info "error: cannot list kernel package contents"; return 1; }
+  grep -Fxq "$module_dir/vmlinuz" <<< "$archive_listing" || { info "error: kernel package has no modules/vmlinuz image"; return 1; }
+  package_base="$(bsdtar -xOf "$kernel_pkg" "$entry" | tr -d '\\r\\n')" || { info "error: cannot read kernel package boot identity"; return 1; }
+  [[ "$package_base" == linux-neptune-73 ]] || {
+    info "error: kernel package boot identity is '$package_base', expected linux-neptune-73"
+    return 1
+  }
+}
+
 list_installed_packages() {
   pacman -Qq || die "Could not query installed packages"
 }
@@ -344,8 +396,9 @@ attempt_rollback() {
 }
 
 main() {
-  for cmd in curl python3 mktemp pacman awk find sort mkinitcpio steamos-readonly steamos-devmode; do require_command "$cmd"; done
+  for cmd in curl python3 mktemp pacman bsdtar awk grep tr find sort mkinitcpio steamos-readonly steamos-devmode; do require_command "$cmd"; done
   (( EUID == 0 )) || require_command sudo
+  verify_host_platform || die "Unsupported SteamOS version; no packages were changed"
   WORKDIR="$(mktemp -d "${TMPDIR:-/tmp}/charcoal-73-installer.XXXXXX")"
   trap cleanup EXIT
 
@@ -386,10 +439,16 @@ main() {
     pkgbase=${pkgname%-headers}
   done
 
+  verify_kernel_package_identity packages \\\n    || die "Release package contents do not match the required linux-neptune-73 boot identity"
+
   local installed_file="$WORKDIR/installed-packages.txt"
   list_installed_packages > "$installed_file"
   local -a stock_packages remove_packages
   mapfile -t stock_packages < <(select_stock_kernel "$installed_file" "$pkgbase")
+
+  if ! grep -Fxq 'linux-neptune-73' "$installed_file"; then
+    die "The Valve linux-neptune-73 stock kernel is not installed; refusing to replace an unknown or already-broken boot setup"
+  fi
 
   confirm_stock_removal stock_packages
   # Only the matching SteamOS stock 7.3 kernel may be removed. Existing
