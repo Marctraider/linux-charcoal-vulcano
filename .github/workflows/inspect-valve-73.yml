@@ -43,7 +43,6 @@ jobs:
           python3 - <<'PY'
           import json, subprocess
           from pathlib import Path
-
           archive = "valve-source.tar.gz"
           names = subprocess.check_output(["tar", "-tzf", archive], text=True).splitlines()
           Path("archive-file-list.txt").write_text("\n".join(names) + "\n")
@@ -68,12 +67,7 @@ jobs:
               "extracted_files": selected,
               "archive_member_count": len(names),
           }, indent=2) + "\n")
-          print(json.dumps({
-              "archive_member_count": len(names),
-              "pkgbuild_paths": pkgbuilds[:20],
-              "config_paths": configs[:50],
-              "extracted_files": selected,
-          }, indent=2))
+          print(json.dumps({"pkgbuild_paths": pkgbuilds[:20], "config_paths": configs[:50]}, indent=2))
           PY
 
       - name: Inspect Valve's embedded source Git repository
@@ -99,7 +93,7 @@ jobs:
           rm -f valve-source.tar.gz
           git --git-dir="$repo_dir" --work-tree="$tree_dir" checkout --force --detach "$commit"
           test "$(git -C "$tree_dir" rev-parse HEAD)" = "$commit"
-          printf '%s\\n' "$tree_dir" > valve-source-tree-path.txt
+          printf '%s\n' "$tree_dir" > valve-source-tree-path.txt
           git -C "$tree_dir" status --short --branch | tee valve-source-tree-status.txt
           git -C "$tree_dir" log -1 --format=fuller | tee valve-source-tree-commit.txt
           df -h "$RUNNER_TEMP" | tee valve-runner-disk-after-checkout.txt
@@ -109,7 +103,7 @@ jobs:
           set -Eeuo pipefail
           tree_dir="$RUNNER_TEMP/valve-linux-integration"
           python3 - "$tree_dir" <<'PY'
-          import re, sys
+          import sys
           from pathlib import Path
           root = Path(sys.argv[1])
           required = [
@@ -129,17 +123,24 @@ jobs:
           for key in required:
               found = []
               for label, path in files:
-                  if not path.is_file():
-                      continue
-                  for line in path.read_text(errors="replace").splitlines():
-                      if line.startswith(key + "=") or line == "# " + key + " is not set":
-                          found.append(f"{label}: {line}")
+                  if path.is_file():
+                      for line in path.read_text(errors="replace").splitlines():
+                          if line.startswith(key + "=") or line == "# " + key + " is not set":
+                              found.append(f"{label}: {line}")
               out.append(f"{key}: " + (" | ".join(found) if found else "NOT PRESENT IN BASE FRAGMENTS"))
-          (Path("valve-config-feature-audit.txt")).write_text("\\n".join(out) + "\\n")
-          print("\\n".join(out))
-          candidates = ["block/elevator.c", "kernel/sched/fair.c", "kernel/sched/core.c", "kernel/sched/sched.h", "mm/folio.c", "mm/vmscan.c", "drivers/block/zram/zram_drv.c", "drivers/block/zram/zcomp.c", "drivers/cpufreq/amd-pstate.c", "drivers/cpuidle/governors/Makefile", "scripts/setlocalversion", "include/linux/sched.h"]
+          Path("valve-config-feature-audit.txt").write_text("\n".join(out) + "\n")
+          print("\n".join(out))
+          candidates = [
+              "block/elevator.c", "kernel/sched/fair.c", "kernel/sched/core.c",
+              "kernel/sched/sched.h", "mm/folio.c", "mm/vmscan.c",
+              "drivers/block/zram/zram_drv.c", "drivers/block/zram/zcomp.c",
+              "drivers/cpufreq/amd-pstate.c", "drivers/cpuidle/governors/Makefile",
+              "scripts/setlocalversion", "include/linux/sched.h"
+          ]
           missing = [name for name in candidates if not (root / name).is_file()]
-          Path("valve-source-path-audit.txt").write_text("\\n".join(f"{name}: {'present' if (root/name).is_file() else 'MISSING'}" for name in candidates) + "\\n")
+          Path("valve-source-path-audit.txt").write_text("\n".join(
+              f"{name}: {'present' if (root/name).is_file() else 'MISSING'}" for name in candidates
+          ) + "\n")
           if missing:
               raise SystemExit("Required source path(s) missing: " + ", ".join(missing))
           PY
@@ -153,42 +154,12 @@ jobs:
           python3 - <<'PY' > patch-candidate-list.tsv
           import json
           from pathlib import Path
-          data=json.loads(Path("automation/patch-candidates-7.3.json").read_text())
+          data = json.loads(Path("automation/patch-candidates-7.3.json").read_text())
           for item in data["patches"]:
-              print("\\t".join((item["name"],item["repository"],item["commit"],item["path"],item["blob"])))
+              print("\t".join((item["name"], item["repository"], item["commit"], item["path"], item["blob"])))
           PY
           : > valve-patch-apply-audit.txt
-          while IFS=        uses: actions/upload-artifact@v4
-        with:
-          name: valve-steamos-3.10-linux-7.3.1-valve2-source-inspection
-          path: |
-            valve-source.sha256
-            valve-source-size.txt
-            archive-file-list.txt
-            source-layout.txt
-            valve-metadata/
-            valve-source-metadata.json
-            valve-git-refs.txt
-            valve-tag-object-type.txt
-            valve-source-commit.txt
-            valve-source-commit-details.txt
-            valve-git-object-stats.txt
-            valve-runner-disk-before-checkout.txt
-            valve-runner-disk-after-checkout.txt
-            valve-source-tree-path.txt
-            valve-source-tree-status.txt
-            valve-source-tree-commit.txt
-            valve-config-feature-audit.txt
-            valve-source-path-audit.txt
-            valve-scheduler-symbol-locations.txt
-            valve-patch-apply-audit.txt
-            valve-patch-applied-diff-stat.txt
-            valve-patch-applied-status.txt
-            patch-candidate-list.tsv
-            patch-candidates/
-          if-no-files-found: error
-          retention-days: 7
-\\t' read -r name repository commit patch_path blob; do
+          while IFS="$(printf '\t')" read -r name repository commit patch_path blob; do
             file="patch-candidates/$name.patch"
             url="https://raw.githubusercontent.com/$repository/$commit/$patch_path"
             echo "[$name] fetching $url" | tee -a valve-patch-apply-audit.txt
@@ -197,7 +168,7 @@ jobs:
               continue
             fi
             actual="$(git hash-object "$file")"
-            if [[ "$actual" != "$blob" ]]; then
+            if [ "$actual" != "$blob" ]; then
               echo "[$name] BLOB_MISMATCH expected=$blob actual=$actual" | tee -a valve-patch-apply-audit.txt
               continue
             fi
@@ -239,5 +210,10 @@ jobs:
             valve-config-feature-audit.txt
             valve-source-path-audit.txt
             valve-scheduler-symbol-locations.txt
+            valve-patch-apply-audit.txt
+            valve-patch-applied-diff-stat.txt
+            valve-patch-applied-status.txt
+            patch-candidate-list.tsv
+            patch-candidates/
           if-no-files-found: error
           retention-days: 7
