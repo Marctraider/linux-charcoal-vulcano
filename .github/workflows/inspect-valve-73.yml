@@ -139,25 +139,43 @@ jobs:
           from pathlib import Path
           data = json.loads(Path("automation/patch-candidates-7.3.json").read_text())
           for item in data["patches"]:
-              print("\t".join((item["name"], item["repository"], item["commit"], item["path"], item["blob"])))
+              fields = [item.get(key, "") for key in (
+                  "name", "repository", "commit", "path", "blob",
+                  "local_path", "url", "expected_commit"
+              )]
+              print("\t".join(fields))
           PY
           : > valve-patch-apply-audit.txt
-          while IFS="$(printf '\t')" read -r name repository commit patch_path blob; do
+          : > valve-patch-candidate-hashes.txt
+          while IFS="$(printf '\t')" read -r name repository commit patch_path blob local_path url expected_commit; do
             file="patch-candidates/$name.patch"
-            url="https://raw.githubusercontent.com/$repository/$commit/$patch_path"
-            echo "[$name] fetching $url" | tee -a valve-patch-apply-audit.txt
-            if ! curl --fail --location --retry 3 --output "$file" "$url"; then
-              echo "[$name] FETCH_FAILED" | tee -a valve-patch-apply-audit.txt
+            if [ -n "$local_path" ]; then
+              echo "[$name] using local pinned file $local_path" | tee -a valve-patch-apply-audit.txt
+              cp "$GITHUB_WORKSPACE/$local_path" "$file"
+            else
+              if [ -z "$url" ]; then
+                url="https://raw.githubusercontent.com/$repository/$commit/$patch_path"
+              fi
+              echo "[$name] fetching $url" | tee -a valve-patch-apply-audit.txt
+              if ! curl --fail --location --retry 3 --retry-all-errors --output "$file" "$url"; then
+                echo "[$name] FETCH_FAILED" | tee -a valve-patch-apply-audit.txt
+                continue
+              fi
+            fi
+            actual_blob="$(git hash-object "$file")"
+            actual_sha256="$(sha256sum "$file" | awk '{print $1}')"
+            echo "$name blob=$actual_blob sha256=$actual_sha256" | tee -a valve-patch-candidate-hashes.txt
+            if [ -n "$blob" ] && [ "$actual_blob" != "$blob" ]; then
+              echo "[$name] BLOB_MISMATCH expected=$blob actual=$actual_blob" | tee -a valve-patch-apply-audit.txt
               continue
             fi
-            actual="$(git hash-object "$file")"
-            if [ "$actual" != "$blob" ]; then
-              echo "[$name] BLOB_MISMATCH expected=$blob actual=$actual" | tee -a valve-patch-apply-audit.txt
+            if [ -n "$expected_commit" ] && ! head -n 1 "$file" | grep -Fq "From $expected_commit "; then
+              echo "[$name] COMMIT_HEADER_MISMATCH expected=$expected_commit" | tee -a valve-patch-apply-audit.txt
               continue
             fi
             if git -C "$tree_dir" apply --check --whitespace=nowarn "$GITHUB_WORKSPACE/$file" 2>"$file.check.log"; then
               if git -C "$tree_dir" apply --whitespace=nowarn "$GITHUB_WORKSPACE/$file"; then
-                echo "[$name] APPLIED_SEQUENTIALLY blob=$actual" | tee -a valve-patch-apply-audit.txt
+                echo "[$name] APPLIED_SEQUENTIALLY blob=$actual_blob sha256=$actual_sha256" | tee -a valve-patch-apply-audit.txt
               else
                 echo "[$name] APPLY_FAILED_AFTER_CHECK" | tee -a valve-patch-apply-audit.txt
               fi
@@ -166,6 +184,13 @@ jobs:
               sed -n '1,100p' "$file.check.log" | tee -a valve-patch-apply-audit.txt
             fi
           done < patch-candidate-list.tsv
+          {
+            echo "Scheduler reweight symbols and sched-ext call sites:"
+            grep -R -n -E 'reweight_task(_fair)?|init_sched_fair_class' "$tree_dir/kernel/sched" "$tree_dir/include/linux/sched" 2>/dev/null || true
+            echo
+            echo "Tail of fair scheduler initialization:"
+            sed -n '/__init void init_sched_fair_class/,$p' "$tree_dir/kernel/sched/fair.c" | tail -n 100
+          } > valve-sched-ext-audit.txt
           git -C "$tree_dir" diff --stat | tee valve-patch-applied-diff-stat.txt
           git -C "$tree_dir" status --short | tee valve-patch-applied-status.txt
 
@@ -198,6 +223,8 @@ jobs:
             valve-source-path-audit.txt
             valve-scheduler-symbol-locations.txt
             valve-patch-apply-audit.txt
+            valve-patch-candidate-hashes.txt
+            valve-sched-ext-audit.txt
             valve-patch-applied-diff-stat.txt
             valve-patch-applied-status.txt
             patch-candidate-list.tsv
