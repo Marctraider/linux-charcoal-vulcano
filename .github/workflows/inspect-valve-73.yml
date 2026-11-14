@@ -190,11 +190,31 @@ jobs:
           } > valve-vangogh-power-source.txt
           {
             echo "AMD/Intel P-State Kconfig blocks before Zen helper:"
-            grep -n -A28 -E '^config X86_(INTEL|AMD)_PSTATE
-            grep -R -n -E 'reweight_task(_fair)?|init_sched_fair_class' "$tree_dir/kernel/sched" "$tree_dir/include/linux/sched" 2>/dev/null || true
+            grep -n -A28 "config X86_INTEL_PSTATE" "$tree_dir/drivers/cpufreq/Kconfig.x86" || true
+            grep -n -A28 "config X86_AMD_PSTATE" "$tree_dir/drivers/cpufreq/Kconfig.x86" || true
+          } > valve-zen-kconfig-audit.txt
+          if python3 "$GITHUB_WORKSPACE/automation/configure-zen-interactive.py" "$tree_dir" > valve-zen-helper-audit.txt 2>&1; then
+            echo "ZEN_INTERACTIVE_HELPER=PASS" >> valve-zen-helper-audit.txt
+          else
+            echo "ZEN_INTERACTIVE_HELPER=FAIL" >> valve-zen-helper-audit.txt
+          fi
+          if python3 "$GITHUB_WORKSPACE/automation/fix-nap-kernel-api.py" "$tree_dir/drivers/cpuidle/governors/nap/nap.c" > valve-nap-helper-audit.txt 2>&1; then
+            echo "NAP_API_HELPER=PASS" >> valve-nap-helper-audit.txt
+          else
+            echo "NAP_API_HELPER=FAIL" >> valve-nap-helper-audit.txt
+          fi
+          if python3 "$GITHUB_WORKSPACE/automation/fix-gud-tv-mode-fortify.py" "$tree_dir/drivers/gpu/drm/gud/gud_connector.c" > valve-gud-helper-audit.txt 2>&1; then
+            echo "GUD_FORTIFY_HELPER=PASS" >> valve-gud-helper-audit.txt
+          else
+            echo "GUD_FORTIFY_HELPER=FAIL" >> valve-gud-helper-audit.txt
+          fi
+          git -C "$tree_dir" diff --check > valve-patch-whitespace-audit.txt 2>&1 || true
+          {
+            echo "Scheduler reweight_task symbols:"
+            grep -R -n "reweight_task" "$tree_dir/kernel/sched" "$tree_dir/include/linux/sched" 2>/dev/null || true
             echo
-            echo "Tail of fair scheduler initialization:"
-            sed -n '/__init void init_sched_fair_class/,$p' "$tree_dir/kernel/sched/fair.c" | tail -n 100
+            echo "Scheduler initialization symbol:"
+            grep -n -A40 "init_sched_fair_class" "$tree_dir/kernel/sched/fair.c" || true
           } > valve-sched-ext-audit.txt
           git -C "$tree_dir" diff --stat | tee valve-patch-applied-diff-stat.txt
           git -C "$tree_dir" status --short | tee valve-patch-applied-status.txt
