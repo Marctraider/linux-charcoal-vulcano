@@ -76,6 +76,19 @@ jobs:
           }, indent=2))
           PY
 
+      - name: Inspect Valve's embedded source Git repository
+        run: |
+          set -Eeuo pipefail
+          repo_dir="$RUNNER_TEMP/valve-linux-integration.git"
+          mkdir -p "$repo_dir"
+          tar -xzf valve-source.tar.gz -C "$repo_dir" --strip-components=2 linux-neptune-73/archlinux-linux-neptune
+          git --git-dir="$repo_dir" rev-parse --is-bare-repository
+          git --git-dir="$repo_dir" show-ref | tee valve-git-refs.txt
+          git --git-dir="$repo_dir" cat-file -t refs/tags/7.3.1-valve2 | tee valve-tag-object-type.txt
+          git --git-dir="$repo_dir" rev-parse 'refs/tags/7.3.1-valve2^{commit}' | tee valve-source-commit.txt
+          git --git-dir="$repo_dir" show -s --format=fuller 'refs/tags/7.3.1-valve2^{commit}' | tee valve-source-commit-details.txt
+          git --git-dir="$repo_dir" count-objects -v | tee valve-git-object-stats.txt
+
       - name: Upload Valve source inspection
         uses: actions/upload-artifact@v4
         with:
@@ -87,5 +100,10 @@ jobs:
             source-layout.txt
             valve-metadata/
             valve-source-metadata.json
+            valve-git-refs.txt
+            valve-tag-object-type.txt
+            valve-source-commit.txt
+            valve-source-commit-details.txt
+            valve-git-object-stats.txt
           if-no-files-found: error
           retention-days: 7
