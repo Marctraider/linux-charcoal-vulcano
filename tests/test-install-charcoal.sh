@@ -113,7 +113,9 @@ releases = [
 with open(sys.argv[1], "w", encoding="utf-8") as f:
     json.dump(releases, f)
 PY
-mapfile -t release_fields < <(parse_release_metadata "$tmp/releases.json")
+release_metadata="$(parse_release_metadata "$tmp/releases.json")" \
+  || fail "release metadata parser rejected the release-list fixture"
+mapfile -t release_fields <<< "$release_metadata"
 [[ ${release_fields[0]} == charcoal-7.3.1.valve2.cc1-r2 ]] \
   || fail "installer did not select the newest stable 7.3 release"
 [[ ${#release_fields[@]} -eq 5 ]] \
