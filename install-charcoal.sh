@@ -229,20 +229,21 @@ select_stock_kernel() {
 confirm_stock_removal() {
   local -n stock_ref=$1
   (( ${#stock_ref[@]} > 0 )) || return 0
-  info "The stock SteamOS 7.3 kernel conflicts with the selected Charcoal kernel:"
-  printf '  - %s\n' "${stock_ref[@]}"
-  info "It must be removed before Charcoal can be installed."
 
-  if [[ "${CHARCOAL_73_REMOVE_STOCK:-0}" == "1" || "${CHARCOAL_73_ASSUME_YES:-0}" == "1" ]]; then
+  if [[ "${CHARCOAL_73_REMOVE_STOCK:-0}" == "1" ]]; then
+    info "Explicit opt-in received: the matching SteamOS 7.3 stock kernel will be removed."
     return 0
   fi
-  [[ -t 0 ]] || die "Stock kernel removal needs confirmation; rerun in a terminal or set CHARCOAL_73_REMOVE_STOCK=1"
-  local answer
-  read -r -p "Remove the SteamOS 7.3 stock kernel and continue? [s/N] " answer
-  case "$answer" in
-    s|S|y|Y|yes|YES|sim|SIM) return 0 ;;
-    *) die "Installation cancelled; the stock kernel was not changed" ;;
-  esac
+  if [[ -t 0 && "${CHARCOAL_73_ASSUME_YES:-0}" != "1" ]]; then
+    local answer
+    read -r -p "Remove the stock SteamOS 7.3 kernel? This removes your fallback. [y/N] " answer
+    case "$answer" in
+      y|Y|yes|YES) info "Stock kernel removal approved."; return 0 ;;
+    esac
+  fi
+
+  info "Keeping the stock SteamOS 7.3 kernel as a bootable fallback."
+  stock_ref=()
 }
 
 confirm_transaction() {
