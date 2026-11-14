@@ -40,55 +40,8 @@ Steam Input and Valve's in-tree Steam Deck/controller support remain inherited f
 
 ### CPU vulnerability mitigations
 
-Linux 7.3 follows the former Charcoal 7.2 performance configuration: the build overlay explicitly passes `CONFIG_CPU_MITIGATIONS=n` to the kernel configuration, and the build checks that this setting survives `olddefconfig`. CPU vulnerability mitigations are therefore **disabled by default in this kernel build**. This can reduce mitigation overhead and may help in CPU-constrained workloads, but it reduces protection against classes of CPU side-channel vulnerabilities. Use this kernel only if you understand and accept that security trade-off. This is a compile-time kernel configuration choice, not merely a runtime boot argument; adding `mitigations=off` does not provide an additional change to this already-disabled configuration.
+Charcoal 7.3 makes the requested performance policy the kernel's built-in boot default: the build configures `CONFIG_CMDLINE` with `mitigations=off` alongside the AMD P-State EPP boost parameter. The installer/build recipe supplies this setting; users do not need to add a boot argument themselves.
 
-## Installation
+Valve's 7.3 x86 Kconfig selects `ARCH_CONFIGURES_CPU_MITIGATIONS`, so `CONFIG_CPU_MITIGATIONS=n` is not a valid final x86 configuration: `olddefconfig` restores it to `y`. The mitigation framework remains compiled in, while the built-in `mitigations=off` parameter disables mitigations by default at boot. The kernel command line is not forced to override the SteamOS bootloader command line, preserving required SteamOS boot arguments.
 
-A 7.3 release has not been published yet. The installer refuses to install a 7.2 release; it accepts only a Charcoal 7.3 release from this fork.
-
-Once a 7.3 release has been built and published, the installer on this branch can be downloaded with:
-
-```bash
-curl -fsSL https://raw.githubusercontent.com/Marctraider/linux-charcoal-vulcano/validation%2Fsteamos-3.10-linux-7.3/install-charcoal.sh -o install-charcoal.sh && bash install-charcoal.sh
-```
-
-The installer verifies the release ZIP and package checksums before changing packages. It removes previously installed Charcoal kernel packages and, after explicit confirmation, the matching SteamOS stock `linux-neptune-73` kernel and headers. This is a deliberate replacement step: do not approve it unless you have a separate recovery route. The installer does not reboot automatically.
-
-Optional installer variables:
-
-- `CHARCOAL_73_REMOVE_STOCK=1` pre-authorizes removal of the matching stock 7.3 kernel.
-- `CHARCOAL_73_ASSUME_YES=1` accepts the installer confirmations.
-
-The package identity is `linux-charcoal-73` with matching `linux-charcoal-73-headers`. It is versioned separately from the 7.2 package.
-
-## Build and validation
-
-The dedicated 7.3 build recipe is `PKGBUILD`; it uses the exact Valve source archive and matching base config fragments. The archive SHA-256 is pinned in the recipe.
-
-The source-inspection workflow downloads Valve's source, verifies the embedded tag/commit and audits the selected patch candidates. Its successful result is **not** a successful kernel build. The 7.3 build still has separate gates:
-
-1. Verify every required patch/helper source and checksum.
-2. Apply the selected patches and 7.3-specific source adapters in a clean tree.
-3. Merge Valve's base config fragments with `config-charcoal-73` and validate the resulting `.config`.
-4. Compile and package the kernel and headers.
-5. Validate package metadata, module paths and bootloader integration.
-6. Boot and test on an actual Steam Deck, including Wi-Fi, audio, controls, suspend/resume, storage and games.
-
-The GitHub Actions workflow for 7.2 is not the 7.3 build workflow. This branch must use its own 7.3-only build path and must not publish or replace the 7.2 release.
-
-## Historical benchmark
-
-The following two sample runs were recorded against the older 3.9.5 baseline. They are historical measurements, not a benchmark of this Linux 7.3 port.
-
-| Kernel | Run | Average FPS | Minimum FPS | Maximum FPS |
-|---|---:|---:|---:|---:|
-| Default 3.9.5 kernel | 1 | 59.03 | 43.53 | 85.91 |
-| Default 3.9.5 kernel | 2 | 58.67 | 43.17 | 85.72 |
-| Older tuned kernel | 1 | 62.94 | 44.73 | 89.92 |
-| Older tuned kernel | 2 | 62.96 | 44.85 | 89.09 |
-
-The test used graphics settings intended to stress the CPU and a modded OLED BIOS with a 4.2 GHz CPU limit. The results are only two sample runs and do not establish causation or predict Linux 7.3 performance.
-
-## Project scope
-
-This is an enthusiast kernel port for SteamOS, not an official Valve kernel. Kernel patches and compiler settings have workload- and hardware-dependent trade-offs. CI can validate source preparation, configuration, compilation and package structure; it cannot prove correct boot or runtime behavior on the Steam Deck.
+Disabling mitigations can reduce overhead and may help CPU-constrained workloads, but reduces protection against CPU side-channel vulnerabilities. This is a deliberate security/performance trade-off.
