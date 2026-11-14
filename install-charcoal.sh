@@ -324,8 +324,15 @@ attempt_rollback() {
   mapfile -d '' -t rollback_packages < <(find "$WORKDIR/rollback" -maxdepth 1 -type f -name '*.pkg.tar.zst' -print0 | sort -z)
   (( ${#rollback_packages[@]} > 0 )) || return 1
   info "Installation failed; attempting to restore the previous SteamOS kernel..."
-  if pacman -Qq linux-charcoal-73 >/dev/null 2>&1; then
-    run_privileged pacman -Rdd --noconfirm linux-charcoal-73 linux-charcoal-73-headers || return 1
+  local -a installed_charcoal=()
+  local package_name
+  for package_name in linux-charcoal-73 linux-charcoal-73-headers; do
+    if pacman -Qq "$package_name" >/dev/null 2>&1; then
+      installed_charcoal+=("$package_name")
+    fi
+  done
+  if (( ${#installed_charcoal[@]} > 0 )); then
+    run_privileged pacman -Rdd --noconfirm "${installed_charcoal[@]}" || return 1
   fi
   if ! run_privileged pacman -U --noconfirm "${rollback_packages[@]}"; then
     return 1
