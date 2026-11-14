@@ -26,7 +26,7 @@ concurrency:
 
 jobs:
   build-kernel-7-2:
-    if: github.event_name == 'pull_request' || github.ref == 'refs/heads/master' || startsWith(github.ref, 'refs/heads/validation/')
+    if: github.event_name == 'pull_request' || github.ref == 'refs/heads/master' || (startsWith(github.ref, 'refs/heads/validation/') && github.ref != 'refs/heads/validation/steamos-3.10-linux-7.3')
     runs-on: ubuntu-24.04
     timeout-minutes: 360
     env:
