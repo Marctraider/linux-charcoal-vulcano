@@ -297,7 +297,8 @@ _package() {
   install -Dm644 "$(_make_llvm -s image_name)" "$modulesdir/vmlinuz"
 
   # Used by mkinitcpio to name the kernel
-  echo "$pkgbase" | install -Dm644 /dev/stdin "$modulesdir/pkgbase"
+  # Match Valve SteamOS 3.10 boot naming and mkinitcpio preset identity.
+  echo "linux-neptune-73" | install -Dm644 /dev/stdin "$modulesdir/pkgbase"
 
   echo "Installing modules..."
   ZSTD_CLEVEL=19 _make_llvm INSTALL_MOD_PATH="$pkgdir/usr" INSTALL_MOD_STRIP=1 \
