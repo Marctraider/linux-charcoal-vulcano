@@ -22,6 +22,11 @@ Two sample benchmark runs comparing the default 3.9.5 kernel with this tuned ker
 
 Charcoal is a custom SteamOS kernel maintained in this repository. The purpose of this fork is to keep the kernel-side performance, scheduling, memory-management and Steam Deck hardware work while removing the gaming-oriented userspace configuration and bundled third-party controller-driver stack that are not required for those kernel features.
 
+
+## SteamOS 3.10 / Linux 7.3 validation
+
+This branch is an unreleased validation effort, not the stable 7.2 release. NAP is intentionally omitted from the 7.3 port because no native 7.3 patch has been validated. IOMMU/PerfOpt changes are also excluded. Controller-related kernel options are inherited from Valve's SteamOS configuration; the Charcoal overlay does not force Xbox or Steam Deck HID drivers on or off. The stable 7.2 branch retains its existing NAP support.
+
 **This repository is the installer and release source.** The installer must download packages from `Marctraider/linux-charcoal-vulcano`, not from the original `zarpon/linux-charcoal-vulcano` repository.
 
 ## Project intent: this fork vs. Zarpon's original
