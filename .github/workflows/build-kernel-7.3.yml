@@ -38,7 +38,7 @@ jobs:
         run: |
           set -Eeuo pipefail
           mkdir -p logs
-          bash -n PKGBUILD-73
+          bash -n PKGBUILD
           bash -n install-charcoal.sh
           bash tests/test-install-charcoal.sh
           python3 tests/test_port_steamos_73.py
@@ -55,7 +55,6 @@ jobs:
           set -Eeuo pipefail
           python3 automation/prepare-sources-73.py --root "$GITHUB_WORKSPACE" \
             2>&1 | tee logs/source-preparation-73.log
-          cp PKGBUILD-73 PKGBUILD
           bash -n PKGBUILD
 
       - name: Build Arch Linux LLVM toolchain container
