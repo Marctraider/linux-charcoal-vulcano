@@ -25,6 +25,52 @@ source "$INSTALLER"
 tmp="$(mktemp -d)"
 trap 'rm -rf "$tmp"' EXIT
 
+# The 7.3 installer must refuse other operating-system releases.
+cat > "$tmp/os-release" <<'EOF'
+ID=steamos
+VERSION_ID=3.10
+EOF
+verify_host_platform "$tmp/os-release" || fail "SteamOS 3.10 host was rejected"
+sed 's/VERSION_ID=3.10/VERSION_ID=3.9.5/' "$tmp/os-release" > "$tmp/os-release-old"
+if verify_host_platform "$tmp/os-release-old" >/dev/null 2>&1; then
+  fail "installer accepted a non-3.10 SteamOS host"
+fi
+
+# Inspect the actual package payload before allowing any package transaction.
+mkdir -p "$tmp/bin"
+cat > "$tmp/bin/pacman" <<'EOF'
+#!/usr/bin/env bash
+[[ "$1" == "-Qp" ]] || exit 2
+case "$2" in
+  *headers*) printf '%s\n' 'linux-charcoal-73-headers 7.3.1.valve2.cc1-1' ;;
+  *) printf '%s\n' 'linux-charcoal-73 7.3.1.valve2.cc1-1' ;;
+esac
+EOF
+cat > "$tmp/bin/bsdtar" <<'EOF'
+#!/usr/bin/env bash
+case "$1" in
+  -tf)
+    if [[ "$2" == *headers* ]]; then
+      printf '%s\n' 'usr/lib/modules/7.3.1-neptune-73/build/Makefile'
+    else
+      printf '%s\n' \
+        'usr/lib/modules/7.3.1-neptune-73/pkgbase' \
+        'usr/lib/modules/7.3.1-neptune-73/vmlinuz'
+    fi
+    ;;
+  -xOf) printf '%s\n' "\${MOCK_PKGBASE:-linux-neptune-73}" ;;
+  *) exit 2 ;;
+esac
+EOF
+chmod +x "$tmp/bin/pacman" "$tmp/bin/bsdtar"
+touch "$tmp/linux-charcoal-73.pkg.tar.zst" "$tmp/linux-charcoal-73-headers.pkg.tar.zst"
+packages=("$tmp/linux-charcoal-73.pkg.tar.zst" "$tmp/linux-charcoal-73-headers.pkg.tar.zst")
+PATH="$tmp/bin:$PATH" verify_kernel_package_identity packages \
+  || fail "installer rejected a package with the correct SteamOS 7.3 boot identity"
+if ( MOCK_PKGBASE=linux-charcoal-73 PATH="$tmp/bin:$PATH" verify_kernel_package_identity packages >/dev/null 2>&1 ); then
+  fail "installer accepted a package with the incorrect Charcoal boot identity"
+fi
+
 cat > "$tmp/installed" <<'EOF'
 linux-charcoal-72
 linux-charcoal-72-headers
@@ -133,6 +179,15 @@ PY
 if parse_release_metadata "$tmp/releases.json" >/dev/null 2>&1; then
   fail "installer must reject the known-broken r1 release"
 fi
+
+grep -Fq 'verify_host_platform || die' "$INSTALLER" \
+  || fail "installer does not enforce the SteamOS 3.10 target"
+grep -Fq 'verify_kernel_package_identity packages' "$INSTALLER" \
+  || fail "installer does not inspect the downloaded kernel package boot identity"
+grep -Fq 'package_base" == linux-neptune-73' "$INSTALLER" \
+  || fail "installer does not require Valve's SteamOS 7.3 pkgbase"
+grep -Fq 'The Valve linux-neptune-73 stock kernel is not installed' "$INSTALLER" \
+  || fail "installer does not require a known-good matching stock-kernel fallback"
 
 grep -Fq 'mkinitcpio -p linux-neptune-73' "$INSTALLER" \
   || fail "installer does not explicitly generate the SteamOS 7.3 initramfs"
