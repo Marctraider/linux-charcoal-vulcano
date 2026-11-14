@@ -45,7 +45,6 @@ jobs:
           python3 -m py_compile \
             automation/prepare-sources-73.py \
             automation/port-amd-pstate-epp-boost-73.py \
-            automation/port-vangogh-power-7.3.py \
             automation/port-zen-cpufreq-7.3.py \
             automation/configure-zen-interactive.py \
             automation/fix-gud-tv-mode-fortify.py
