@@ -44,7 +44,7 @@ A 7.3 release has not been published yet. The installer refuses to install a 7.2
 Once a 7.3 release has been built and published, the installer on this branch can be downloaded with:
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/Marctraider/linux-charcoal-vulcano/validation/steamos-3.10-linux-7.3/install-charcoal.sh -o install-charcoal.sh && bash install-charcoal.sh
+curl -fsSL https://raw.githubusercontent.com/Marctraider/linux-charcoal-vulcano/validation%2Fsteamos-3.10-linux-7.3/install-charcoal.sh -o install-charcoal.sh && bash install-charcoal.sh
 ```
 
 The installer verifies the release ZIP and package checksums before changing packages. It removes previously installed Charcoal kernel packages and, after explicit confirmation, the matching SteamOS stock `linux-neptune-73` kernel and headers. This is a deliberate replacement step: do not approve it unless you have a separate recovery route. The installer does not reboot automatically.
