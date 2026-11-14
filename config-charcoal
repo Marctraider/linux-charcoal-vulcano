@@ -1,5 +1,6 @@
 # Charcoal SteamOS 3.10 / Linux 7.3 configuration overlay.
-# No CPU mitigations
+# Match Charcoal 7.2: disable CPU vulnerability mitigations at build time.
+CONFIG_CPU_MITIGATIONS=n
 
 # Enable expert adjustments
 CONFIG_EXPERT=y
