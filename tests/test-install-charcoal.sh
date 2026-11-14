@@ -10,6 +10,11 @@ fail() {
 }
 
 bash -n "$INSTALLER" || fail "installer shell syntax is invalid"
+grep -Fxq 'pkgbase=linux-charcoal-73' "$REPO_ROOT/PKGBUILD-73" \
+  || fail "7.3 package identity is incorrect"
+if grep -Eq '^  install=charcoal\.install$|/usr/lib/nap' "$REPO_ROOT/PKGBUILD-73"; then
+  fail "7.3 package still installs the NAP lifecycle hook"
+fi
 
 # Source functions without running main().
 # shellcheck source=/dev/null
@@ -21,6 +26,8 @@ trap 'rm -rf "$tmp"' EXIT
 cat > "$tmp/installed" <<'EOF'
 linux-charcoal-72
 linux-charcoal-72-headers
+linux-neptune-72
+linux-neptune-72-headers
 linux-neptune-73
 linux-neptune-73-headers
 unrelated-package
