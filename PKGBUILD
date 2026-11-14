@@ -205,8 +205,10 @@ prepare() {
   # Diagnose Valve's 7.3 Kconfig ownership of CPU_MITIGATIONS before resolution.
   {
     echo "=== CPU mitigation Kconfig definitions ==="
-    grep -n -B 3 -A 8 -E 'CPU_MITIGATIONS|ARCH_CONFIGURES_CPU_MITIGATIONS' \
+    grep -n -B 3 -A 40 -E 'CPU_MITIGATIONS|ARCH_CONFIGURES_CPU_MITIGATIONS' \
       arch/x86/Kconfig arch/Kconfig || true
+    echo "=== x86 mitigation Kconfig context ==="
+    sed -n '2395,2445p' arch/x86/Kconfig
     echo "=== merged CPU mitigation values before olddefconfig ==="
     grep -E '^(CONFIG_CPU_MITIGATIONS|CONFIG_ARCH_CONFIGURES_CPU_MITIGATIONS)=' .config || true
   } | tee "$startdir/logs/cpu-mitigations-kconfig-73.log"
