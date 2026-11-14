@@ -4,7 +4,7 @@
 set -Eeuo pipefail
 
 readonly REPOSITORY="Marctraider/linux-charcoal-vulcano"
-readonly RELEASES_API="https://api.github.com/repos/${REPOSITORY}/releases/latest"
+readonly RELEASES_API="https://api.github.com/repos/${REPOSITORY}/releases?per_page=100"
 readonly RELEASE_DOWNLOAD_PREFIX="https://github.com/${REPOSITORY}/releases/download/"
 readonly RELEASE_TAG_PREFIX="charcoal-"
 readonly RELEASE_ZIP_PREFIX="linux-charcoal-"
@@ -86,9 +86,8 @@ from pathlib import PurePosixPath
 releases_json, repository, download_prefix, tag_prefix, zip_prefix = sys.argv[1:]
 with open(releases_json, encoding="utf-8") as handle:
     releases = json.load(handle)
-if not isinstance(releases, dict):
-    raise SystemExit("GitHub did not return the Latest 7.3 release")
-releases = [releases]
+if not isinstance(releases, list):
+    raise SystemExit("GitHub did not return a release list")
 
 def text(value, label):
     if not isinstance(value, str) or not value or any(c in value for c in "\x00\r\n"):
@@ -104,21 +103,29 @@ def checked_asset(asset, expected, tag):
         raise SystemExit(f"Refusing asset outside {repository} release {tag}: {url}")
     return url
 
-selected = None
+candidates = []
+tag_pattern = re.compile(
+    re.escape(tag_prefix)
+    + r"([0-9]+)\\.([0-9]+)\\.([0-9]+)\\.valve([0-9]+)\\.cc([0-9]+)-r([0-9]+)"
+)
 for release in releases:
     if not isinstance(release, dict):
         continue
     tag = release.get("tag_name")
     if release.get("draft") is not False or release.get("prerelease") is not False:
         continue
-    if isinstance(tag, str) and re.fullmatch(re.escape(tag_prefix) + r"[0-9]+\.[0-9]+\.[0-9]+\.valve[0-9.]+\.cc[0-9]+-r[0-9]+", tag):
-        if tuple(map(int, tag[len(tag_prefix):].split('.')[:2])) != (7, 3):
-            continue
-        selected = release
-        break
-if selected is None:
+    match = tag_pattern.fullmatch(tag) if isinstance(tag, str) else None
+    if match is None:
+        continue
+    version = tuple(map(int, match.groups()))
+    if version[:2] != (7, 3):
+        continue
+    candidates.append((version, str(release.get("published_at") or ""), release))
+if not candidates:
     raise SystemExit("No published Charcoal SteamOS 7.3 release was found")
 
+# Pick the highest 7.3 package/release revision, regardless of newer 7.2 releases.
+selected = max(candidates, key=lambda item: (item[0], item[1]))[2]
 tag = text(selected.get("tag_name"), "release tag")
 assets = selected.get("assets")
 if not isinstance(assets, list):
