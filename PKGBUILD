@@ -195,6 +195,7 @@ prepare() {
   python3 - <<'PY'
 import subprocess
 from pathlib import Path
+import re
 
 changed = subprocess.check_output(["git", "diff", "--name-only", "-z"]).split(b"\0")
 for raw in changed:
@@ -205,7 +206,7 @@ for raw in changed:
         content = path.read_text(encoding="utf-8")
     except (UnicodeDecodeError, OSError):
         continue
-    lines = [line.rstrip(" \t") for line in content.splitlines()]
+    lines = [re.sub(r"^ +(?=\\t)", "", line).rstrip(" \\t") for line in content.splitlines()]
     while lines and not lines[-1]:
         lines.pop()
     path.write_text("\n".join(lines) + "\n", encoding="utf-8")
