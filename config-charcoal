@@ -1,6 +1,4 @@
 # Charcoal SteamOS 3.10 / Linux 7.3 configuration overlay.
-# Match Charcoal 7.2: disable CPU vulnerability mitigations at build time.
-CONFIG_CPU_MITIGATIONS=n
 
 # Enable expert adjustments
 CONFIG_EXPERT=y
@@ -20,7 +18,7 @@ CONFIG_CPU_SUP_ZHAOXIN=n
 CONFIG_X86_AMD_PSTATE=y
 CONFIG_X86_AMD_PSTATE_DEFAULT_MODE=3
 CONFIG_CMDLINE_BOOL=y
-CONFIG_CMDLINE="amd_pstate.epp_boost=1"
+CONFIG_CMDLINE="amd_pstate.epp_boost=1 mitigations=off"
 # CONFIG_CMDLINE_OVERRIDE is not set
 
 # Enable CAST page replacement by default.
