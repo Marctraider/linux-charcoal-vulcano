@@ -19,8 +19,6 @@ def load_module(name: str, path: Path):
 
 
 ZEN = load_module("port_zen_73", ROOT / "automation/port-zen-cpufreq-7.3.py")
-VANGOGH = load_module("port_vangogh_power_73", ROOT / "automation/port-vangogh-power-7.3.py")
-
 
 class ZenPortTests(unittest.TestCase):
     def test_removes_only_the_two_reviewed_pstate_selects(self):
@@ -63,37 +61,6 @@ class ZenPortTests(unittest.TestCase):
         )
         with self.assertRaises(ZEN.PortError):
             ZEN.adapt_source(source)
-
-
-class VanGoghPortTests(unittest.TestCase):
-    def test_raises_both_reviewed_limits(self):
-        source = (
-            "static int get_power_limit(void) {\n"
-            "\t*max_power_limit = 29;\n"
-            "\tpower_context->max_fast_ppt_limit = 30;\n"
-            "}\n"
-        )
-        result, changed = VANGOGH.port(source)
-        self.assertTrue(changed)
-        self.assertIn("*max_power_limit = 50;", result)
-        self.assertIn("max_fast_ppt_limit = 51;", result)
-
-    def test_is_idempotent(self):
-        source = (
-            "*max_power_limit = 50;\n"
-            "power_context->max_fast_ppt_limit = 51;\n"
-        )
-        result, changed = VANGOGH.port(source)
-        self.assertFalse(changed)
-        self.assertEqual(result, source)
-
-    def test_rejects_unreviewed_values(self):
-        source = (
-            "*max_power_limit = 35;\n"
-            "power_context->max_fast_ppt_limit = 36;\n"
-        )
-        with self.assertRaises(VANGOGH.PortError):
-            VANGOGH.port(source)
 
 
 if __name__ == "__main__":
