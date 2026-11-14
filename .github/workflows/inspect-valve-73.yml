@@ -43,16 +43,15 @@ jobs:
           mkdir -p valve-package
           tar -xzf valve-source.tar.gz -C valve-package \
             linux-neptune-73/PKGBUILD \
-            linux-neptune-73/config \
             linux-neptune-73/config-neptune \
             linux-neptune-73/config.x86_64 \
             linux-neptune-73/archlinux-linux-neptune
-          find valve-package/linux-neptune-73 -maxdepth 2 -type f ! -path '*/archlinux-linux-neptune/objects/*' -printf '%P\\n' | sort > archive-file-list.txt
+          find valve-package/linux-neptune-73 -maxdepth 2 -type f ! -path '*/archlinux-linux-neptune/objects/*' -printf '%P\n' | sort > archive-file-list.txt
           cp valve-package/linux-neptune-73/PKGBUILD valve-PKGBUILD.txt
-          cp valve-package/linux-neptune-73/config valve-config.txt
+          cp valve-package/linux-neptune-73/archlinux-linux-neptune/config valve-config.txt
           cp valve-package/linux-neptune-73/config-neptune valve-config-neptune.txt
           cp valve-package/linux-neptune-73/config.x86_64 valve-config-x86_64.txt
-          printf '%s\\n' 'linux-neptune-73/PKGBUILD' 'linux-neptune-73/config' 'linux-neptune-73/config-neptune' 'linux-neptune-73/config.x86_64' 'linux-neptune-73/archlinux-linux-neptune' > source-layout.txt
+          printf '%s\n' 'linux-neptune-73/PKGBUILD' 'linux-neptune-73/config' 'linux-neptune-73/config-neptune' 'linux-neptune-73/config.x86_64' 'linux-neptune-73/archlinux-linux-neptune' > source-layout.txt
           du -sh valve-package/linux-neptune-73/archlinux-linux-neptune | tee valve-embedded-git-size.txt
           df -h "$RUNNER_TEMP" | tee valve-runner-disk-after-extraction.txt
 
