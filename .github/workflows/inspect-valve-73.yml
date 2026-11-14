@@ -144,7 +144,7 @@ jobs:
           PY
           : > valve-patch-apply-audit.txt
           : > valve-patch-candidate-hashes.txt
-          while IFS='|' read -r name repository commit patch_path blob local_path url expected_commit; do
+          while IFS='|' read -r name repository commit patch_path blob local_path url expected_commit format; do
             file="patch-candidates/$name.patch"
             if [ -n "$local_path" ]; then
               echo "[$name] using local pinned file $local_path" | tee -a valve-patch-apply-audit.txt
