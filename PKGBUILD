@@ -201,6 +201,16 @@ prepare() {
   cp "$startdir/config-charcoal" "$srcdir/config-charcoal"
   cp ../config.x86_64 .config
   scripts/kconfig/merge_config.sh -m ../config.x86_64 ../config-neptune ../config-charcoal
+
+  # Diagnose Valve's 7.3 Kconfig ownership of CPU_MITIGATIONS before resolution.
+  {
+    echo "=== CPU mitigation Kconfig definitions ==="
+    grep -n -B 3 -A 8 -E 'CPU_MITIGATIONS|ARCH_CONFIGURES_CPU_MITIGATIONS' \
+      arch/x86/Kconfig arch/Kconfig || true
+    echo "=== merged CPU mitigation values before olddefconfig ==="
+    grep -E '^(CONFIG_CPU_MITIGATIONS|CONFIG_ARCH_CONFIGURES_CPU_MITIGATIONS)=' .config || true
+  } | tee "$startdir/logs/cpu-mitigations-kconfig-73.log"
+
   _make_llvm olddefconfig
   _validate_kernel_config
   diff -u ../config.x86_64 .config || :
