@@ -290,7 +290,8 @@ verify_kernel_package_identity() {
   [[ -n "$kernel_pkg" && -n "$headers_pkg" ]] || { info "error: kernel and matching headers packages are both required"; return 1; }
   [[ "$kernel_pkgver" == "$headers_pkgver" ]] || { info "error: kernel and headers package versions do not match"; return 1; }
 
-  mapfile -t pkgbase_entries < <(bsdtar -tf "$kernel_pkg" | grep -E '^(\./)?usr/lib/modules/[^/]+/pkgbase  [[ ${#pkgbase_entries[@]} -eq 1 ]] || { info "error: kernel package must contain exactly one modules pkgbase marker"; return 1; }
+  mapfile -t pkgbase_entries < <(bsdtar -tf "$kernel_pkg" | grep -E '^(\./)?usr/lib/modules/[^/]+/pkgbase$' || true)
+  [[ ${#pkgbase_entries[@]} -eq 1 ]] || { info "error: kernel package must contain exactly one modules pkgbase marker"; return 1; }
   entry=${pkgbase_entries[0]}
   module_dir=${entry%/pkgbase}
   archive_listing="$(bsdtar -tf "$kernel_pkg")" || { info "error: cannot list kernel package contents"; return 1; }
