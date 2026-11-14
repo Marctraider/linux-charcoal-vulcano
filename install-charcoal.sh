@@ -35,21 +35,57 @@ run_privileged() {
   fi
 }
 
+GRUB_CONFIG=""
+
 _update_grub() {
   local steamos_efi_dir=${1:-/efi/EFI/steamos}
-  if command -v grub-mkconfig >/dev/null 2>&1; then
+  # Prefer Valve's SteamOS wrapper so its EFI/GRUB integration is respected.
+  if command -v steamos-update-grub >/dev/null 2>&1; then
+    run_privileged steamos-update-grub
+  elif command -v grub-mkconfig >/dev/null 2>&1; then
     if [[ -d "$steamos_efi_dir" ]]; then
       run_privileged grub-mkconfig -o "$steamos_efi_dir/grub.cfg"
     else
       run_privileged grub-mkconfig -o /boot/grub/grub.cfg
     fi
-  elif command -v steamos-update-grub >/dev/null 2>&1; then
-    run_privileged steamos-update-grub
   elif command -v update-grub >/dev/null 2>&1; then
     run_privileged update-grub
   else
-    die "No supported bootloader update command found; update the bootloader manually before rebooting"
+    die "No supported SteamOS bootloader update command found"
   fi
+
+  if [[ -s "$steamos_efi_dir/grub.cfg" ]]; then
+    GRUB_CONFIG="$steamos_efi_dir/grub.cfg"
+  elif [[ -s /boot/grub/grub.cfg ]]; then
+    GRUB_CONFIG=/boot/grub/grub.cfg
+  else
+    die "Bootloader update completed but no GRUB configuration was found"
+  fi
+}
+
+verify_boot_artifacts() {
+  local preset=/etc/mkinitcpio.d/linux-neptune-73.preset
+  local kernel=/boot/vmlinuz-linux-neptune-73
+  local initramfs=/boot/initramfs-linux-neptune-73.img
+
+  [[ -s "$preset" ]] || { info "error: SteamOS 7.3 mkinitcpio preset is missing"; return 1; }
+  [[ -s "$kernel" ]] || { info "error: expected boot kernel is missing: $kernel"; return 1; }
+  [[ -s "$initramfs" ]] || { info "error: expected initramfs is missing: $initramfs"; return 1; }
+}
+
+verify_grub_entry() {
+  [[ -n "$GRUB_CONFIG" && -s "$GRUB_CONFIG" ]] || {
+    info "error: generated GRUB configuration is missing"
+    return 1
+  }
+  grep -Fq '/boot/vmlinuz-linux-neptune-73' "$GRUB_CONFIG" || {
+    info "error: GRUB configuration does not reference the SteamOS 7.3 kernel image"
+    return 1
+  }
+  grep -Fq '/boot/initramfs-linux-neptune-73.img' "$GRUB_CONFIG" || {
+    info "error: GRUB configuration does not reference the SteamOS 7.3 initramfs"
+    return 1
+  }
 }
 
 cleanup() {
@@ -119,6 +155,9 @@ for release in releases:
         continue
     version = tuple(map(int, match.groups()))
     if version[:2] != (7, 3):
+        continue
+    # r1 predates the corrected SteamOS boot-image identity and is unsafe.
+    if version[-1] < 2:
         continue
     candidates.append((version, str(release.get("published_at") or ""), release))
 if not candidates:
@@ -284,16 +323,21 @@ attempt_rollback() {
   local -a rollback_packages
   mapfile -d '' -t rollback_packages < <(find "$WORKDIR/rollback" -maxdepth 1 -type f -name '*.pkg.tar.zst' -print0 | sort -z)
   (( ${#rollback_packages[@]} > 0 )) || return 1
-  info "Installation failed; attempting to restore the previous kernel packages from pacman cache..."
-  if run_privileged pacman -U --noconfirm "${rollback_packages[@]}"; then
-    _update_grub || true
-    return 0
+  info "Installation failed; attempting to restore the previous SteamOS kernel..."
+  if pacman -Qq linux-charcoal-73 >/dev/null 2>&1; then
+    run_privileged pacman -Rdd --noconfirm linux-charcoal-73 linux-charcoal-73-headers || return 1
   fi
-  return 1
+  if ! run_privileged pacman -U --noconfirm "${rollback_packages[@]}"; then
+    return 1
+  fi
+  run_privileged mkinitcpio -p linux-neptune-73 || return 1
+  verify_boot_artifacts || return 1
+  _update_grub || return 1
+  verify_grub_entry || return 1
 }
 
 main() {
-  for cmd in curl python3 mktemp pacman awk find sort steamos-readonly steamos-devmode; do require_command "$cmd"; done
+  for cmd in curl python3 mktemp pacman awk find sort mkinitcpio steamos-readonly steamos-devmode; do require_command "$cmd"; done
   (( EUID == 0 )) || require_command sudo
   WORKDIR="$(mktemp -d "${TMPDIR:-/tmp}/charcoal-73-installer.XXXXXX")"
   trap cleanup EXIT
@@ -345,6 +389,9 @@ main() {
   # Charcoal packages are left in place; pacman -U upgrades them in-place.
   remove_packages=("${stock_packages[@]}")
   capture_rollback_packages remove_packages
+  if (( ${#remove_packages[@]} > 0 && ! ROLLBACK_READY )); then
+    die "Refusing to remove the stock kernel: exact rollback packages are not available in pacman's cache"
+  fi
   confirm_transaction "$release_tag" "${remove_packages[@]}"
 
   info "Making SteamOS writable for the package transaction..."
@@ -367,10 +414,23 @@ main() {
   fi
 
 
-  info "Updating the bootloader configuration..."
-  _update_grub
-  info "Charcoal SteamOS 7.3 ${release_tag} installed successfully."
-  info "Verify after reboot with: uname -r and pacman -Q linux-charcoal-73"
+  info "Generating and checking the SteamOS 7.3 boot image and initramfs..."
+  if ! run_privileged mkinitcpio -p linux-neptune-73 || ! verify_boot_artifacts; then
+    if attempt_rollback; then
+      die "Charcoal boot-image validation failed; the previous SteamOS kernel was restored"
+    fi
+    die "Charcoal boot-image validation failed and automatic rollback was unsuccessful; do not reboot"
+  fi
+
+  info "Updating the SteamOS bootloader configuration..."
+  if ! _update_grub || ! verify_grub_entry; then
+    if attempt_rollback; then
+      die "Charcoal GRUB validation failed; the previous SteamOS kernel was restored"
+    fi
+    die "Charcoal GRUB validation failed and automatic rollback was unsuccessful; do not reboot"
+  fi
+  info "Charcoal SteamOS 7.3 ${release_tag} installed; kernel, initramfs and GRUB references verified."
+  info "Reboot only after the installer reports all three boot checks passed."
 }
 
 if [[ "${BASH_SOURCE[0]}" == "$0" ]]; then
