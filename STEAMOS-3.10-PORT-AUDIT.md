@@ -18,7 +18,7 @@ Do not substitute valve1, generic upstream v7.3.1, or a newer unrelated SteamOS 
 
 ## 7.3 package and installer
 
-- Dedicated recipe: `PKGBUILD-73`
+- Dedicated recipe: `PKGBUILD`
 - Package identity: `linux-charcoal-73` and `linux-charcoal-73-headers`
 - Kernel source identity is pinned to Valve's exact 7.3.1.valve2 tag and archive checksum.
 - The 7.3 installer accepts only 7.3 release tags and package names.
@@ -79,4 +79,4 @@ The source-inspection workflow is diagnostic. The build workflow must complete a
 
 The source inspection workflow successfully downloaded the official archive, extracted its package metadata and inspected the embedded repository. The exact annotated tag `7.3.1-valve2` resolves to commit `0ed55b10a784a0a0b518ecd20551659fde1d59c9`, subject `linux-integration 7.3.1-valve2`. The embedded bare Git repository contains 14,163,020 objects and its packed data is approximately 3.6 GiB.
 
-This identity is the pinned base for `PKGBUILD-73` and the 7.3-only build workflow.
+This identity is the pinned base for `PKGBUILD` and the 7.3-only build workflow.
