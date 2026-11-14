@@ -1,0 +1,59 @@
+{
+  "schema": 1,
+  "target": {
+    "tag": "7.3.1-valve2",
+    "commit": "0ed55b10a784a0a0b518ecd20551659fde1d59c9"
+  },
+  "policy": "Pinned upstream refs and exact blob IDs; diagnostic direct-apply audit only. No patch is considered ported until sequential application and feature-specific tests pass.",
+  "patches": [
+    {
+      "name": "bore",
+      "repository": "firelzrd/bore-scheduler",
+      "commit": "8e1b3d4081e4667513bed5888534295f79d89add",
+      "path": "patches/stable/0001-linux7.3-rc2-bore-7.0.0.patch",
+      "blob": "2514a802a78ccbe3fe0efaa7e075c9ee2fd45bc3"
+    },
+    {
+      "name": "bore_sched_ext_coexistence",
+      "repository": "firelzrd/bore-scheduler",
+      "commit": "8e1b3d4081e4667513bed5888534295f79d89add",
+      "path": "patches/additions/0002-sched-ext-coexistence-fix.patch",
+      "blob": "403f82d282bd20b570926975aaa44e8f6db81436"
+    },
+    {
+      "name": "poc_selector",
+      "repository": "firelzrd/poc-selector",
+      "commit": "0ab5651a40669c2d1d48a7d425859b1480e52403",
+      "path": "patches/stable/0001-7.3-rc1-poc-selector-v3.0.0.patch",
+      "blob": "55f8f576cce4f7943e1dd5c50d3026eac58945f8"
+    },
+    {
+      "name": "adios",
+      "repository": "firelzrd/adios",
+      "commit": "8117e935197fd45259ef77407b1c274d3386cd53",
+      "path": "patches/stable/0001-linux7.3-rc1-ADIOS-3.3.0r3.patch",
+      "blob": "fc69fdf4a3d16a2b658fac5616b0e8d54403c18e"
+    },
+    {
+      "name": "adios_default",
+      "repository": "firelzrd/adios",
+      "commit": "8117e935197fd45259ef77407b1c274d3386cd53",
+      "path": "patches/0002-Make-ADIOS-the-Default-I-O-scheduler.patch",
+      "blob": "d4295a6accd5d06c3b559a1508dd5782f9c7047b"
+    },
+    {
+      "name": "lru_cast",
+      "repository": "firelzrd/lru_cast",
+      "commit": "ce117bba02bdca77dc292e2fde0796b6b6fd4541",
+      "path": "patches/0001-7.3-rc7-lru_cast-v0.2.10.patch",
+      "blob": "dd3818e5a05a4a83b0fb87969b4e6f0748dae2fd"
+    },
+    {
+      "name": "zram_ir",
+      "repository": "firelzrd/zram-ir",
+      "commit": "2362f6e08c966950c5d774a314b3f9f075153419",
+      "path": "patches/0001-linux7.3-rc1-zram-ir-1.3.patch",
+      "blob": "3b3341f9751cc8add94286a7cf1883a21fdf69cd"
+    }
+  ]
+}
