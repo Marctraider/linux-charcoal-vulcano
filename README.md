@@ -22,7 +22,7 @@ The intended kernel-side features retained in this port are:
 - ZRAM-IR and its udev/runtime configuration.
 - Kernel ZSWAP.
 - AMD P-State EPP defaults and the per-core EPP boost port, subject to clean application and compilation validation.
-- Zen 2 targeting, Clang/LLVM, O3, full Clang LTO and Polly.
+- Zen 2 targeting via Clang's `-march=znver2` kernel compile flag, Clang/LLVM, O3, full Clang LTO and Polly. Valve 7.3 no longer exposes the older x86-64 `MZEN2` Kconfig selector, so the target is set explicitly by the build recipe.
 - Van Gogh 4.2 GHz frequency patch, subject to source and hardware validation. The separate Van Gogh power-limit patch is omitted because its source anchors changed in Valve 7.3 and a safe port was not established.
 
 The selected upstream patch candidates are pinned to immutable revisions and checked against the Valve source. A patch applying cleanly is only an initial compatibility check; it is not proof that the kernel compiles or works correctly.
