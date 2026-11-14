@@ -143,6 +143,13 @@ def prepare(root: Path) -> None:
         else:
             download(source_url(item), destination)
 
+        expected_sha256 = item.get("sha256")
+        if expected_sha256:
+            actual_sha256 = sha256(destination)
+            if actual_sha256 != expected_sha256:
+                raise RuntimeError(
+                    f"{name} SHA-256 mismatch: expected {expected_sha256}, got {actual_sha256}"
+                )
         expected_blob = item.get("blob")
         if expected_blob:
             actual_blob = git_blob(destination)
