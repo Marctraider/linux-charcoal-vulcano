@@ -195,8 +195,6 @@ jobs:
           else
             echo "ZEN_INTERACTIVE_HELPER=FAIL" >> valve-zen-helper-audit.txt
           fi
-          else
-          fi
           if python3 "$GITHUB_WORKSPACE/automation/fix-gud-tv-mode-fortify.py" "$tree_dir/drivers/gpu/drm/gud/gud_connector.c" > valve-gud-helper-audit.txt 2>&1; then
             echo "GUD_FORTIFY_HELPER=PASS" >> valve-gud-helper-audit.txt
           else
