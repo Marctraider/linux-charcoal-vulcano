@@ -1,9 +1,6 @@
 name: Inspect Valve SteamOS 3.10 Linux 7.3 source
 
 on:
-  push:
-    branches:
-      - validation/steamos-3.10-linux-7.3
   workflow_dispatch:
 
 permissions:
