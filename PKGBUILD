@@ -110,7 +110,7 @@ export KBUILD_BUILD_TIMESTAMP="$(date -Ru${SOURCE_DATE_EPOCH:+d @$SOURCE_DATE_EP
 _validate_kernel_config() {
   local expected
   for expected in \
-    'CONFIG_CPU_MITIGATIONS=y' \
+    'CONFIG_CPU_MITIGATIONS=n' \
     'CONFIG_GENERIC_CPU=n' \
     'CONFIG_MZEN2=y' \
     'CONFIG_X86_AMD_PSTATE=y' \
