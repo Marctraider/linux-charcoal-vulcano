@@ -10,9 +10,9 @@ fail() {
 }
 
 bash -n "$INSTALLER" || fail "installer shell syntax is invalid"
-grep -Fxq 'pkgbase=linux-charcoal-73' "$REPO_ROOT/PKGBUILD-73" \
+grep -Fxq 'pkgbase=linux-charcoal-73' "$REPO_ROOT/PKGBUILD" \
   || fail "7.3 package identity is incorrect"
-if grep -Eq '^  install=charcoal\.install$|/usr/lib/nap' "$REPO_ROOT/PKGBUILD-73"; then
+if grep -Eq '^  install=charcoal\.install$|/usr/lib/nap' "$REPO_ROOT/PKGBUILD"; then
   fail "7.3 package still installs the NAP lifecycle hook"
 fi
 
