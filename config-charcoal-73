@@ -83,9 +83,6 @@ CONFIG_SCHED_BORE=y
 # Enable only the existing evdev RCU and P-State dependency patches.
 CONFIG_ZEN_INTERACTIVE=y
 
-# Disable Xbox gamepad drivers; retain the Steam Deck HID controller driver.
-CONFIG_JOYSTICK_XPAD=n
-CONFIG_JOYSTICK_XBOX_GIP=n
 CONFIG_MT76x2U=n
 
 # Change IO delay type
@@ -94,15 +91,10 @@ CONFIG_IO_DELAY_NONE=y
 
 # LTO optimization: Build common things into the kernel
 CONFIG_TLS=y
-CONFIG_INPUT_UINPUT=y
 CONFIG_SOUND=y
 CONFIG_SND=y
 CONFIG_SND_HRTIMER=y
 CONFIG_SND_SOC=y
-CONFIG_INPUT_JOYDEV=y
-CONFIG_INPUT_MOUSEDEV=y
-CONFIG_HID_GENERIC=y
-CONFIG_HID_MULTITOUCH=y
 CONFIG_RFKILL=y
 CONFIG_CRYPTO_AES_NI_INTEL=y
 CONFIG_BLK_DEV_NVME=y
@@ -121,13 +113,7 @@ CONFIG_CRYPTO_LZ4=y
 CONFIG_CRYPTO_DEV_CCP_DD=y
 CONFIG_CRYPTO_DEV_CCP_CRYPTO=y
 
-# LTO optimization: Build Steam Deck specific things into the kernel
-# TODO: Need a lsmod of a steam deck lcd
 # TODO: Firmware issues on gpu, sound and wifi
-CONFIG_HID_STEAM=y
-CONFIG_MFD_STEAMDECK=y
-CONFIG_LEDS_STEAMDECK=y
-CONFIG_SENSORS_STEAMDECK=y
 CONFIG_I2C_PIIX4=y
 CONFIG_PERF_EVENTS_INTEL_RAPL=y
 CONFIG_IIO=y
@@ -139,17 +125,13 @@ CONFIG_BT_HCIUART=y
 CONFIG_I2C_HID=y
 CONFIG_I2C_HID_ACPI=y
 CONFIG_SND_SOC_MAX98388=y
-CONFIG_EXTCON_STEAMDECK=y
 CONFIG_SOUNDWIRE=y
 CONFIG_SOUNDWIRE_AMD=y
 CONFIG_SND_SOC_NAU8821=y
 CONFIG_SND_SOC_SOF_PCI=y
 CONFIG_F2FS_FS=y
 
-# LTO optimization: Build Steam Machine specific things into the kernel
-# TODO: Needs a lsmod of steam machine
 CONFIG_LEDS_CLASS_MULTICOLOR=y
-CONFIG_LEDS_VALVE=y
 
 # Disable debugging
 CONFIG_PM_DEBUG=n
