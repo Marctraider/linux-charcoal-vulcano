@@ -28,12 +28,14 @@
     {
       "name": "amd_pstate_epp_02_cache_order",
       "url": "https://lists.openwall.net/linux-kernel/2026/07/28/666",
-      "format": "openwall-pre"
+      "format": "openwall-pre",
+      "sha256": "454f353669c81b5e214e5b71327ed5735733e6bd9f5671e710520a2c3e455cb6"
     },
     {
       "name": "amd_pstate_epp_03_core",
       "url": "https://lists.openwall.net/linux-kernel/2026/07/28/678",
-      "format": "openwall-pre"
+      "format": "openwall-pre",
+      "sha256": "072927860ad14a09bbc08ef4f99d52d9964ed4de5800b647e3d61bab7a046dda"
     },
     {
       "name": "bore",
