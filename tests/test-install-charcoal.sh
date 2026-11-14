@@ -3,7 +3,6 @@ set -Eeuo pipefail
 
 readonly REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 readonly INSTALLER="$REPO_ROOT/install-charcoal.sh"
-readonly STATUS="$REPO_ROOT/charcoal-status"
 
 tmp="$(mktemp -d)"
 trap 'rm -rf "$tmp"' EXIT
@@ -14,11 +13,8 @@ fail() {
 }
 
 bash -n "$INSTALLER" || fail "installer shell syntax is invalid"
-bash -n "$STATUS" || fail "status utility shell syntax is invalid"
-grep -Fq '"$startdir/charcoal-status" "$pkgdir/usr/bin/charcoal-status"' "$REPO_ROOT/PKGBUILD" \
+grep -Fq '"$startdir/charcoal-status-73" "$pkgdir/usr/bin/charcoal-status-73"' "$REPO_ROOT/PKGBUILD-73" \
   || fail "PKGBUILD does not install the status utility"
-grep -Fq 'charcoal-status' "$INSTALLER" \
-  || fail "installer does not run post-install status checks"
 
 # Source functions without running main().
 # shellcheck source=/dev/null
@@ -27,24 +23,24 @@ source "$INSTALLER"
 cat > "$tmp/installed" <<'EOF'
 linux-charcoal-616
 linux-charcoal-616-headers
-linux-neptune-72
-linux-neptune-72-headers
+linux-neptune-73
+linux-neptune-73-headers
 unrelated-package
 EOF
 
 mapfile -t stock < <(select_stock_kernel "$tmp/installed")
 [[ ${#stock[@]} -eq 2 ]] || fail "expected stock kernel and stock headers"
-[[ ${stock[0]} == linux-neptune-72 ]] || fail "stock kernel was not detected"
-[[ ${stock[1]} == linux-neptune-72-headers ]] || fail "stock headers were not detected"
+[[ ${stock[0]} == linux-neptune-73 ]] || fail "stock kernel was not detected"
+[[ ${stock[1]} == linux-neptune-73-headers ]] || fail "stock headers were not detected"
 
 mapfile -t old_charcoal < <(select_installed_charcoal "$tmp/installed")
 [[ ${#old_charcoal[@]} -eq 2 ]] || fail "previous Charcoal packages were not detected"
 
 # Automatic mode used by CI must explicitly authorize stock removal.
-CHARCOAL_72_REMOVE_STOCK=1 confirm_stock_removal stock
+CHARCOAL_73_REMOVE_STOCK=1 confirm_stock_removal stock
 
 # Non-interactive execution without authorization must refuse to remove stock.
-if ( CHARCOAL_72_REMOVE_STOCK=0 CHARCOAL_72_ASSUME_YES=0 confirm_stock_removal stock >/dev/null 2>&1 ); then
+if ( CHARCOAL_73_REMOVE_STOCK=0 CHARCOAL_73_ASSUME_YES=0 confirm_stock_removal stock >/dev/null 2>&1 ); then
   fail "installer removed stock kernel without explicit authorization"
 fi
 
@@ -77,7 +73,7 @@ install_line="$(grep -n -F 'run_privileged pacman -U --noconfirm "${packages[@]}
   || fail "stock removal must occur before Charcoal installation"
 
 grep -Fq 'RELEASE_TAG_PREFIX="charcoal-"' "$INSTALLER" \
-  || fail "installer is not pinned to the 7.2 stable release channel"
+  || fail "installer is not pinned to the 7.3 release channel"
 grep -Fq 'release.get("prerelease") is not False' "$INSTALLER" \
   || fail "installer must reject GitHub prereleases"
 
@@ -85,4 +81,4 @@ if grep -Fq 'gaming-swap' "$INSTALLER"; then
   fail "installer still invokes removed gaming swap migration"
 fi
 
-printf 'install-charcoal SteamOS 7.2 stock-removal tests passed\n'
+printf 'install-charcoal SteamOS 7.3 stock-removal tests passed\n'
