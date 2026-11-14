@@ -12,11 +12,6 @@
       "blob": "19d442b3f1199019ecb66d52288f5da3d75d1d80"
     },
     {
-      "name": "vangogh_power_limit",
-      "local_path": "vangogh_higher_max_power_limit.patch",
-      "blob": "8a7aaddbd74be248f4cf85cb42c07bdeb048baa5"
-    },
-    {
       "name": "lru_cast",
       "repository": "firelzrd/lru_cast",
       "commit": "ce117bba02bdca77dc292e2fde0796b6b6fd4541",
@@ -31,20 +26,14 @@
       "blob": "3b3341f9751cc8add94286a7cf1883a21fdf69cd"
     },
     {
-      "name": "amd_pstate_epp_01_kernel_doc",
-      "url": "https://lore.landau.one/lkml/20260728073150.54964-2-void%40manifault.com/raw"
-    },
-    {
       "name": "amd_pstate_epp_02_cache_order",
-      "url": "https://lore.landau.one/lkml/20260728073150.54964-3-void%40manifault.com/raw"
+      "url": "https://lists.openwall.net/linux-kernel/2026/07/28/666",
+      "format": "openwall-pre"
     },
     {
       "name": "amd_pstate_epp_03_core",
-      "url": "https://lore.landau.one/lkml/20260728073150.54964-4-void%40manifault.com/raw"
-    },
-    {
-      "name": "amd_pstate_epp_04_docs",
-      "url": "https://lore.landau.one/lkml/20260728073150.54964-5-void%40manifault.com/raw"
+      "url": "https://lists.openwall.net/linux-kernel/2026/07/28/678",
+      "format": "openwall-pre"
     },
     {
       "name": "bore",
