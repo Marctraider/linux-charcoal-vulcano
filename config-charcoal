@@ -3,9 +3,8 @@
 # Enable expert adjustments
 CONFIG_EXPERT=y
 
-# Zen 2 as minimum target
-CONFIG_GENERIC_CPU=n
-CONFIG_MZEN2=y
+# Zen 2 as minimum target is applied through KCFLAGS=-march=znver2 in PKGBUILD;
+# Valve 7.3 no longer provides the older x86-64 MZEN2 Kconfig selector.
 CONFIG_PROCESSOR_SELECT=y
 CONFIG_CPU_SUP_INTEL=n
 CONFIG_CPU_SUP_HYGON=n
