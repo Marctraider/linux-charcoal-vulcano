@@ -52,7 +52,9 @@ if command -v ccache >/dev/null 2>&1; then
 fi
 
 _make_llvm() {
-  make LLVM=1 \
+  # Valve 7.3 no longer exposes the old x86-64 MZEN2 Kconfig selector.
+  # Apply the Steam Deck's Zen 2 target directly to kernel compilation.
+  make LLVM=1 KCFLAGS="${KCFLAGS:+$KCFLAGS }-march=znver2" \
     CC="${_ccache_prefix}clang" \
     HOSTCC="${_ccache_prefix}clang" \
     HOSTCXX="${_ccache_prefix}clang++" \
@@ -111,7 +113,6 @@ _validate_kernel_config() {
   local expected
   for expected in \
     'CONFIG_CPU_MITIGATIONS=y' \
-    'CONFIG_MZEN2=y' \
     'CONFIG_X86_AMD_PSTATE=y' \
     'CONFIG_X86_AMD_PSTATE_DEFAULT_MODE=3' \
     'CONFIG_CMDLINE_BOOL=y' \
