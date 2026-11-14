@@ -26,6 +26,8 @@ trap 'rm -rf "$tmp"' EXIT
 cat > "$tmp/installed" <<'EOF'
 linux-charcoal-72
 linux-charcoal-72-headers
+linux-charcoal-73
+linux-charcoal-73-headers
 linux-neptune-72
 linux-neptune-72-headers
 linux-neptune-73
@@ -38,8 +40,9 @@ mapfile -t stock < <(select_stock_kernel "$tmp/installed")
 [[ ${stock[0]} == linux-neptune-73 ]] || fail "stock kernel was not detected"
 [[ ${stock[1]} == linux-neptune-73-headers ]] || fail "stock headers were not detected"
 
-mapfile -t old_charcoal < <(select_installed_charcoal "$tmp/installed")
-[[ ${#old_charcoal[@]} -eq 2 ]] || fail "previous Charcoal packages were not detected"
+if declare -F select_installed_charcoal >/dev/null; then
+  fail "installer must not select or remove any installed Charcoal package"
+fi
 
 # The matching stock SteamOS 7.3 kernel is always selected for removal.
 CHARCOAL_73_REMOVE_STOCK=0 CHARCOAL_73_ASSUME_YES=1 confirm_stock_removal stock
