@@ -4,8 +4,48 @@
     "tag": "7.3.1-valve2",
     "commit": "0ed55b10a784a0a0b518ecd20551659fde1d59c9"
   },
-  "policy": "Pinned newest upstream 7.3-compatible patch candidates at exact repository commits and Git blob IDs, consistent with the 7.2 resolver's latest-release-first policy. Diagnostic direct-apply audit only; no patch is considered ported until sequential application and feature-specific tests pass.",
+  "policy": "Pinned SteamOS 3.10 / Valve 7.3.1-valve2 audit candidates. Local patch blobs and upstream Git blobs are verified; URL patches are pinned to immutable commit or lore message URLs and SHA-256 recorded in the audit artifact. Sequential application is diagnostic only; compile and runtime validation remain separate gates.",
   "patches": [
+    {
+      "name": "vangogh_freq_4_2ghz",
+      "local_path": "vangogh_allow_higher_cpu_freq.patch",
+      "blob": "19d442b3f1199019ecb66d52288f5da3d75d1d80"
+    },
+    {
+      "name": "vangogh_power_limit",
+      "local_path": "vangogh_higher_max_power_limit.patch",
+      "blob": "8a7aaddbd74be248f4cf85cb42c07bdeb048baa5"
+    },
+    {
+      "name": "lru_cast",
+      "repository": "firelzrd/lru_cast",
+      "commit": "ce117bba02bdca77dc292e2fde0796b6b6fd4541",
+      "path": "patches/0001-7.3-rc7-lru_cast-v0.2.10.patch",
+      "blob": "dd3818e5a05a4a83b0fb87969b4e6f0748dae2fd"
+    },
+    {
+      "name": "zram_ir",
+      "repository": "firelzrd/zram-ir",
+      "commit": "2362f6e08c966950c5d774a314b3f9f075153419",
+      "path": "patches/0001-linux7.3-rc1-zram-ir-1.3.patch",
+      "blob": "3b3341f9751cc8add94286a7cf1883a21fdf69cd"
+    },
+    {
+      "name": "amd_pstate_epp_01_kernel_doc",
+      "url": "https://lore.kernel.org/linux-pm/20260728073150.54964-2-void%40manifault.com/raw"
+    },
+    {
+      "name": "amd_pstate_epp_02_cache_order",
+      "url": "https://lore.kernel.org/linux-pm/20260728073150.54964-3-void%40manifault.com/raw"
+    },
+    {
+      "name": "amd_pstate_epp_03_core",
+      "url": "https://lore.kernel.org/linux-pm/20260728073150.54964-4-void%40manifault.com/raw"
+    },
+    {
+      "name": "amd_pstate_epp_04_docs",
+      "url": "https://lore.kernel.org/linux-pm/20260728073150.54964-5-void%40manifault.com/raw"
+    },
     {
       "name": "bore",
       "repository": "firelzrd/bore-scheduler",
@@ -42,18 +82,31 @@
       "blob": "d4295a6accd5d06c3b559a1508dd5782f9c7047b"
     },
     {
-      "name": "lru_cast",
-      "repository": "firelzrd/lru_cast",
-      "commit": "ce117bba02bdca77dc292e2fde0796b6b6fd4541",
-      "path": "patches/0001-7.3-rc7-lru_cast-v0.2.10.patch",
-      "blob": "dd3818e5a05a4a83b0fb87969b4e6f0748dae2fd"
+      "name": "zen_evdev_call_rcu",
+      "url": "https://github.com/zen-kernel/zen-kernel/commit/f6ed65cd7bda9cb6009c6a12efd7c4311df31936.patch",
+      "expected_commit": "f6ed65cd7bda9cb6009c6a12efd7c4311df31936"
     },
     {
-      "name": "zram_ir",
-      "repository": "firelzrd/zram-ir",
-      "commit": "2362f6e08c966950c5d774a314b3f9f075153419",
-      "path": "patches/0001-linux7.3-rc1-zram-ir-1.3.patch",
-      "blob": "3b3341f9751cc8add94286a7cf1883a21fdf69cd"
+      "name": "zen_pstate_schedutil_dependency",
+      "url": "https://github.com/zen-kernel/zen-kernel/commit/cab7ea1a4ef6685a133ae121ca27098b9dd31287.patch",
+      "expected_commit": "cab7ea1a4ef6685a133ae121ca27098b9dd31287"
+    },
+    {
+      "name": "o3_7_3",
+      "repository": "Frogging-Family/linux-tkg",
+      "commit": "606bafc61b98fea49452c004f8f63ac55974ad27",
+      "path": "linux-tkg-patches/7.3/0013-optimize_harder_O3.patch",
+      "blob": "8fa50bc034b9772bf06f11f747442dd2e2c531f9"
+    },
+    {
+      "name": "clang_polly_7_2_port",
+      "local_path": "7.2-clang-polly-from-cachyos-7.1.patch",
+      "blob": "fd1509bad9285ba15fdc1f973dd30dc31682d37f"
+    },
+    {
+      "name": "iommu_perfopt",
+      "local_path": "iommu-perfopt-consolidado-v3.patch",
+      "blob": "77fdc89799895ab4b020c99922ee596e8198e0b9"
     },
     {
       "name": "nap_6_12_reference",
@@ -61,6 +114,11 @@
       "commit": "5092cfdbc615f2e1626e68ab03d3d9730364bcbd",
       "path": "patches/testing/0001-6.12-nap-v0.6.6.patch",
       "blob": "6870461a8cca403e5bb00454c4106fe7427d616b"
+    },
+    {
+      "name": "zstd_crypto_default_level_1",
+      "local_path": "zstd-crypto-default-level-1.patch",
+      "blob": "5a231b3b681cdf7695443337775cd12551f65868"
     }
   ]
 }
