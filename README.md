@@ -1,6 +1,6 @@
 # Charcoal SteamOS 3.10 / Linux 7.3
 
-This branch is the **unreleased Linux 7.3 port** for SteamOS 3.10 Preview. It is separate from the stable 7.2 line on `master`; the 7.2 branch is not part of this work and must remain unchanged.
+This branch contains the Linux 7.3 port and installer validation work for SteamOS 3.10 Preview. The published `r1` release still contains the earlier installer; do not use its bundled installer until a corrected release is published. It is separate from the stable 7.2 line on `master`; the 7.2 branch is not part of this work and must remain unchanged.
 
 The build target is Valve's exact SteamOS 3.10 source package:
 
@@ -36,7 +36,7 @@ The selected upstream patch candidates are pinned to immutable revisions and che
 - **No Ryzen SMU DKMS bundle.** Van Gogh kernel frequency/power changes are separate kernel-source patches; no third-party SMU module is installed.
 - Gaming sysctl profiles, forced gaming environment variables, swapfile migration and gaming swap services/hooks are not part of this kernel package.
 
-Steam Input and Valve's in-tree Steam Deck/controller support remain inherited from the stock SteamOS configuration. The 7.3 installer is series-specific: before installing Charcoal, it removes previous Charcoal kernel packages and the matching linux-neptune-73 stock kernel and headers to free system space. The installer asks for confirmation before changing packages. This removes the stock-kernel fallback; it does not target linux-neptune-72.
+Steam Input and Valve's in-tree Steam Deck/controller support remain inherited from the stock SteamOS configuration. The 7.3 installer is series-specific: after confirmation, it removes only the matching `linux-neptune-73` stock kernel and headers to free system space. It does not remove existing Charcoal packages; `pacman -U` upgrades those packages in place. It does not target `linux-neptune-72` or any 7.2 Charcoal packages. The stock-kernel removal removes the matching stock-kernel fallback.
 
 ### CPU vulnerability mitigations
 
