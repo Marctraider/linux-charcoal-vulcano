@@ -12,6 +12,8 @@ fail() {
 bash -n "$INSTALLER" || fail "installer shell syntax is invalid"
 grep -Fxq 'pkgbase=linux-charcoal-73' "$REPO_ROOT/PKGBUILD" \
   || fail "7.3 package identity is incorrect"
+grep -Fq 'echo "linux-neptune-73" | install -Dm644 /dev/stdin "$modulesdir/pkgbase"' "$REPO_ROOT/PKGBUILD" \
+  || fail "kernel package does not use Valve's SteamOS 7.3 boot identity"
 if grep -Eq '^  install=charcoal\.install$|/usr/lib/nap' "$REPO_ROOT/PKGBUILD"; then
   fail "7.3 package still installs the NAP lifecycle hook"
 fi
@@ -120,6 +122,28 @@ mapfile -t release_fields <<< "$release_metadata"
   || fail "installer did not select the newest stable 7.3 release"
 [[ ${#release_fields[@]} -eq 5 ]] \
   || fail "release metadata parser returned an incomplete asset set"
+
+# The published r1 archive contains the broken kernel identity and must never be selected.
+python3 - "$tmp/releases.json" <<'PY'
+import json, sys
+data = json.load(open(sys.argv[1], encoding="utf-8"))
+with open(sys.argv[1], "w", encoding="utf-8") as f:
+    json.dump([r for r in data if r["tag_name"].endswith("-r1")], f)
+PY
+if parse_release_metadata "$tmp/releases.json" >/dev/null 2>&1; then
+  fail "installer must reject the known-broken r1 release"
+fi
+
+grep -Fq 'mkinitcpio -p linux-neptune-73' "$INSTALLER" \
+  || fail "installer does not explicitly generate the SteamOS 7.3 initramfs"
+grep -Fq '/boot/vmlinuz-linux-neptune-73' "$INSTALLER" \
+  || fail "installer does not verify the expected SteamOS kernel image"
+grep -Fq '/boot/initramfs-linux-neptune-73.img' "$INSTALLER" \
+  || fail "installer does not verify the expected SteamOS initramfs"
+grep -Fq 'verify_grub_entry' "$INSTALLER" \
+  || fail "installer does not validate the generated GRUB entry"
+grep -Fq 'version[-1] < 2' "$INSTALLER" \
+  || fail "installer does not reject the known-broken r1 release"
 grep -Fq 'linux-charcoal-73(-headers)?' "$INSTALLER" \
   || fail "installer must reject packages from other kernel series"
 
