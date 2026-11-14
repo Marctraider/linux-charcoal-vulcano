@@ -44,7 +44,7 @@ jobs:
         run: |
           set -Eeuo pipefail
           mkdir valve-source
-          tar -xzf valve-source.tar.gz -C valve-source --wildcards '*/PKGBUILD' '*/config*' '*/.*' 2>/dev/null || true
+          tar -xzf valve-source.tar.gz -C valve-source --wildcards '*/PKGBUILD' '*/config*' 2>/dev/null || true
           find valve-source -maxdepth 4 -type f -printf '%p\n' | sort > extracted-files.txt
           find valve-source -name PKGBUILD -print -quit | grep -q .
           python3 - <<'PY'
@@ -68,7 +68,6 @@ jobs:
         with:
           name: valve-steamos-3.10-linux-7.3.1-valve2-source-inspection
           path: |
-            valve-source.tar.gz
             valve-source.sha256
             archive-file-list.txt
             source-layout.txt
