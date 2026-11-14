@@ -91,7 +91,7 @@ jobs:
           commit="$(cat valve-source-commit.txt)"
           df -h "$RUNNER_TEMP" | tee valve-runner-disk-before-checkout.txt
           rm -f valve-source.tar.gz
-          git --git-dir="$repo_dir" --work-tree="$tree_dir" checkout --force --detach "$commit"
+          git --git-dir="$repo_dir" --work-tree="$tree_dir" -c core.bare=false checkout --force --detach "$commit"
           test "$(git -C "$tree_dir" rev-parse HEAD)" = "$commit"
           printf '%s\n' "$tree_dir" > valve-source-tree-path.txt
           git -C "$tree_dir" status --short --branch | tee valve-source-tree-status.txt
