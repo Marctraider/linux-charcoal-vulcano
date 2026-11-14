@@ -1,6 +1,9 @@
 name: Inspect Valve SteamOS 3.10 Linux 7.3 source
 
 on:
+  push:
+    branches:
+      - validation/steamos-3.10-linux-7.3
   workflow_dispatch:
 
 permissions:
@@ -185,6 +188,11 @@ jobs:
             echo "Van Gogh power-limit function context (after the 4.2 GHz patch):"
             sed -n '2315,2375p' "$tree_dir/drivers/gpu/drm/amd/pm/swsmu/smu11/vangogh_ppt.c"
           } > valve-vangogh-power-source.txt
+            valve-amd-pstate-header.txt
+            valve-amd-pstate-source.txt
+            valve-amd-pstate-doc-source.txt
+            valve-amd-pstate-reject-audit.txt
+            valve-amd-pstate-rejects.txt
           {
             echo "AMD/Intel P-State Kconfig blocks before Zen helper:"
             grep -n -A28 "config X86_INTEL_PSTATE" "$tree_dir/drivers/cpufreq/Kconfig.x86" || true
@@ -205,6 +213,25 @@ jobs:
           else
             echo "GUD_FORTIFY_HELPER=FAIL" >> valve-gud-helper-audit.txt
           fi
+          {
+            echo "amd-pstate.h before manual EPP port:"
+            sed -n "1,230p" "$tree_dir/drivers/cpufreq/amd-pstate.h"
+          } > valve-amd-pstate-header.txt
+          {
+            echo "amd-pstate.c relevant functions before EPP core reject test:"
+            grep -n -A45 "static int msr_update_perf" "$tree_dir/drivers/cpufreq/amd-pstate.c" || true
+            grep -n -A55 "static int msr_set_epp" "$tree_dir/drivers/cpufreq/amd-pstate.c" || true
+            grep -n -A220 "static bool amd_pstate_acpi_pm_profile_undefined" "$tree_dir/drivers/cpufreq/amd-pstate.c" || true
+            grep -n -A90 "static int amd_pstate_epp_cpu_init" "$tree_dir/drivers/cpufreq/amd-pstate.c" || true
+            grep -n -A70 "static int amd_pstate_epp_resume" "$tree_dir/drivers/cpufreq/amd-pstate.c" || true
+          } > valve-amd-pstate-source.txt
+          sed -n "350,430p" "$tree_dir/Documentation/admin-guide/pm/amd-pstate.rst" > valve-amd-pstate-doc-source.txt
+          if git -C "$tree_dir" apply --reject --whitespace=nowarn "$GITHUB_WORKSPACE/patch-candidates/amd_pstate_epp_03_core.patch" > valve-amd-pstate-reject-audit.txt 2>&1; then
+            echo "EPP_CORE_REJECT_TEST=APPLIED" >> valve-amd-pstate-reject-audit.txt
+          else
+            echo "EPP_CORE_REJECT_TEST=PARTIAL_OR_REJECTED" >> valve-amd-pstate-reject-audit.txt
+          fi
+          find "$tree_dir" -name "*.rej" -type f -print -exec cat {} \; > valve-amd-pstate-rejects.txt || true
           git -C "$tree_dir" diff --check > valve-patch-whitespace-audit.txt 2>&1 || true
           {
             echo "Scheduler reweight_task symbols:"
@@ -259,3 +286,4 @@ jobs:
             patch-candidates/
           if-no-files-found: error
           retention-days: 7
+
