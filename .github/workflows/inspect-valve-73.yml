@@ -89,6 +89,58 @@ jobs:
           git --git-dir="$repo_dir" show -s --format=fuller 'refs/tags/7.3.1-valve2^{commit}' | tee valve-source-commit-details.txt
           git --git-dir="$repo_dir" count-objects -v | tee valve-git-object-stats.txt
 
+      - name: Check out the exact Valve 7.3.1-valve2 source tree
+        run: |
+          set -Eeuo pipefail
+          repo_dir="$RUNNER_TEMP/valve-linux-integration.git"
+          tree_dir="$RUNNER_TEMP/valve-linux-integration"
+          commit="$(cat valve-source-commit.txt)"
+          df -h "$RUNNER_TEMP" | tee valve-runner-disk-before-checkout.txt
+          rm -f valve-source.tar.gz
+          git --git-dir="$repo_dir" --work-tree="$tree_dir" checkout --force --detach "$commit"
+          test "$(git -C "$tree_dir" rev-parse HEAD)" = "$commit"
+          printf '%s\\n' "$tree_dir" > valve-source-tree-path.txt
+          git -C "$tree_dir" status --short --branch | tee valve-source-tree-status.txt
+          git -C "$tree_dir" log -1 --format=fuller | tee valve-source-tree-commit.txt
+          df -h "$RUNNER_TEMP" | tee valve-runner-disk-after-checkout.txt
+
+      - name: Audit Valve source layout and required base configuration
+        run: |
+          set -Eeuo pipefail
+          tree_dir="$RUNNER_TEMP/valve-linux-integration"
+          python3 - "$tree_dir" <<'PY'
+          import re, sys
+          from pathlib import Path
+          root = Path(sys.argv[1])
+          required = [
+              "CONFIG_BTRFS_FS", "CONFIG_HID_STEAM", "CONFIG_MFD_STEAMDECK",
+              "CONFIG_LEDS_STEAMDECK", "CONFIG_SENSORS_STEAMDECK",
+              "CONFIG_X86_AMD_PSTATE", "CONFIG_ZRAM", "CONFIG_ZSWAP",
+              "CONFIG_LRU_CAST", "CONFIG_SCHED_BORE", "CONFIG_SCHED_POC_SELECTOR",
+              "CONFIG_CPU_IDLE_GOV_NAP", "CONFIG_ZEN_INTERACTIVE",
+              "CONFIG_LTO_CLANG_FULL", "CONFIG_POLLY_CLANG",
+          ]
+          files = [root / ".config", root / "config", root / "config-neptune", root / "config.x86_64"]
+          out = []
+          for key in required:
+              found = []
+              for path in files:
+                  if not path.is_file():
+                      continue
+                  for line in path.read_text(errors="replace").splitlines():
+                      if line.startswith(key + "=") or line == "# " + key + " is not set":
+                          found.append(f"{path.relative_to(root)}: {line}")
+              out.append(f"{key}: " + (" | ".join(found) if found else "NOT PRESENT IN BASE FRAGMENTS"))
+          (Path("valve-config-feature-audit.txt")).write_text("\\n".join(out) + "\\n")
+          print("\\n".join(out))
+          candidates = ["block/elevator.c", "kernel/sched/fair.c", "kernel/sched/core.c", "kernel/sched/sched.h", "mm/folio.c", "mm/vmscan.c", "drivers/block/zram/zram_drv.c", "drivers/block/zram/zcomp.c", "drivers/cpufreq/amd-pstate.c", "drivers/cpuidle/governors/Makefile", "scripts/setlocalversion", "include/linux/sched.h"]
+          missing = [name for name in candidates if not (root / name).is_file()]
+          Path("valve-source-path-audit.txt").write_text("\\n".join(f"{name}: {'present' if (root/name).is_file() else 'MISSING'}" for name in candidates) + "\\n")
+          if missing:
+              raise SystemExit("Required source path(s) missing: " + ", ".join(missing))
+          PY
+          git -C "$tree_dir" grep -n -E 'CONFIG_(SCHED_BORE|SCHED_POC_SELECTOR|LRU_CAST|CPU_IDLE_GOV_NAP)' -- '*Kconfig*' 'kernel/sched/*' > valve-scheduler-symbol-locations.txt || true
+
       - name: Upload Valve source inspection
         uses: actions/upload-artifact@v4
         with:
@@ -105,5 +157,13 @@ jobs:
             valve-source-commit.txt
             valve-source-commit-details.txt
             valve-git-object-stats.txt
+            valve-runner-disk-before-checkout.txt
+            valve-runner-disk-after-checkout.txt
+            valve-source-tree-path.txt
+            valve-source-tree-status.txt
+            valve-source-tree-commit.txt
+            valve-config-feature-audit.txt
+            valve-source-path-audit.txt
+            valve-scheduler-symbol-locations.txt
           if-no-files-found: error
           retention-days: 7
