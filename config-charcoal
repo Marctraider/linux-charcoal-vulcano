@@ -1,6 +1,5 @@
 # Charcoal SteamOS 3.10 / Linux 7.3 configuration overlay.
 # No CPU mitigations
-CONFIG_CPU_MITIGATIONS=n
 
 # Enable expert adjustments
 CONFIG_EXPERT=y
