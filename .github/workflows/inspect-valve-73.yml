@@ -91,7 +91,7 @@ jobs:
               "CONFIG_LEDS_STEAMDECK", "CONFIG_SENSORS_STEAMDECK",
               "CONFIG_X86_AMD_PSTATE", "CONFIG_ZRAM", "CONFIG_ZSWAP",
               "CONFIG_LRU_CAST", "CONFIG_SCHED_BORE", "CONFIG_SCHED_POC_SELECTOR",
-              "CONFIG_CPU_IDLE_GOV_NAP", "CONFIG_ZEN_INTERACTIVE",
+              "CONFIG_ZEN_INTERACTIVE",
               "CONFIG_LTO_CLANG_FULL", "CONFIG_POLLY_CLANG",
           ]
           files = [
@@ -124,7 +124,7 @@ jobs:
           if missing:
               raise SystemExit("Required source path(s) missing: " + ", ".join(missing))
           PY
-          git -C "$tree_dir" grep -n -E 'CONFIG_(SCHED_BORE|SCHED_POC_SELECTOR|LRU_CAST|CPU_IDLE_GOV_NAP)' -- '*Kconfig*' 'kernel/sched/*' > valve-scheduler-symbol-locations.txt || true
+          git -C "$tree_dir" grep -n -E 'CONFIG_(SCHED_BORE|SCHED_POC_SELECTOR|LRU_CAST)' -- '*Kconfig*' 'kernel/sched/*' > valve-scheduler-symbol-locations.txt || true
 
       - name: Audit pinned Linux 7.3 scheduler and memory patch candidates
         run: |
