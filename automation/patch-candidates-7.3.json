@@ -104,13 +104,6 @@
       "blob": "fd1509bad9285ba15fdc1f973dd30dc31682d37f"
     },
     {
-      "name": "nap_6_12_reference",
-      "repository": "firelzrd/nap",
-      "commit": "5092cfdbc615f2e1626e68ab03d3d9730364bcbd",
-      "path": "patches/testing/0001-6.12-nap-v0.6.6.patch",
-      "blob": "6870461a8cca403e5bb00454c4106fe7427d616b"
-    },
-    {
       "name": "zstd_crypto_default_level_1",
       "local_path": "zstd-crypto-default-level-1.patch",
       "blob": "5a231b3b681cdf7695443337775cd12551f65868"
