@@ -7,6 +7,7 @@ readonly REPOSITORY="Marctraider/linux-charcoal-vulcano"
 readonly RELEASES_API="https://api.github.com/repos/${REPOSITORY}/releases?per_page=100"
 readonly RELEASE_DOWNLOAD_PREFIX="https://github.com/${REPOSITORY}/releases/download/"
 readonly RELEASE_TAG_PREFIX="charcoal-"
+readonly NORMALIZER_URL="https://raw.githubusercontent.com/Marctraider/linux-charcoal-vulcano/4fe6d52a9589ef6dd0534c6ea6ac80e14418d893/automation/normalize-legacy-73-package.py"
 readonly RELEASE_ZIP_PREFIX="linux-charcoal-"
 readonly USER_AGENT="charcoal-73-installer"
 
@@ -197,9 +198,8 @@ for release in releases:
     version = tuple(map(int, match.groups()))
     if version[:2] != (7, 3):
         continue
-    # r1 predates the corrected SteamOS boot-image identity and is unsafe.
-    if version[-1] < 2:
-        continue
+    # r1 is accepted only after the downloaded kernel archive is normalized
+    # and its pkgbase/.MTREE pair is verified before pacman sees the package.
     candidates.append((version, str(release.get("published_at") or ""), release))
 if not candidates:
     raise SystemExit("No published Charcoal SteamOS 7.3 release was found")
@@ -425,7 +425,7 @@ attempt_rollback() {
 }
 
 main() {
-  for cmd in curl python3 mktemp pacman bsdtar awk grep tr find sort mkinitcpio steamos-readonly steamos-devmode; do require_command "$cmd"; done
+  for cmd in curl python3 zstd sha256sum mktemp pacman bsdtar awk grep tr find sort mkinitcpio steamos-readonly steamos-devmode; do require_command "$cmd"; done
   (( EUID == 0 )) || require_command sudo
   verify_host_platform || die "Unsupported SteamOS version; no packages were changed"
   WORKDIR="$(mktemp -d "${TMPDIR:-/tmp}/charcoal-73-installer.XXXXXX")"
@@ -454,6 +454,17 @@ main() {
   verify_release_archive "$archive_path" "$checksum_path" "$archive_name"
   info "Extracting and verifying SteamOS 7.3 packages..."
   extract_and_verify_packages "$archive_path" "$package_dir"
+
+  # r1 has the right 7.3 kernel payload but the wrong mkinitcpio pkgbase.
+  # Normalize only the marker and its package .MTREE record; kernel bytes remain untouched.
+  local normalizer="$WORKDIR/normalize-legacy-73-package.py"
+  download_file "$NORMALIZER_URL" "$normalizer"
+  local package
+  for package in "$package_dir"/linux-charcoal-73-*.pkg.tar.zst; do
+    [[ "$package" == *-headers-* ]] && continue
+    info "Correcting and verifying the r1 SteamOS boot identity in the local package copy..."
+    python3 "$normalizer" "$package" || die "Could not safely normalize the downloaded 7.3 kernel package"
+  done
 
   local -a packages
   mapfile -d '' -t packages < <(find "$package_dir" -maxdepth 1 -type f -name 'linux-charcoal-*.pkg.tar.zst' -print0 | sort -z)
