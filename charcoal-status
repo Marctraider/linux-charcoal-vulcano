@@ -200,8 +200,36 @@ check_config CONFIG_LTO_CLANG_FULL "Full Clang LTO"
 check_config CONFIG_POLLY_CLANG "Clang Polly"
 
 section "Runtime feature activation"
-info "BORE and POC scheduler changes have no reliable standard sysfs switch/status; their presence is verified at build time only"
-info "LRU CAST has no reliable standard runtime status interface; build configuration is reported above"
+# The BORE patch exposes a runtime sysctl. A value of 1 means the BORE
+# burst-oriented scheduling logic is enabled; CONFIG_SCHED_BORE alone only
+# proves that the code was compiled into the kernel.
+bore_sysctl=/proc/sys/kernel/sched_bore
+if [[ -r "$bore_sysctl" ]]; then
+  bore_value=$(<"$bore_sysctl")
+  if [[ "$bore_value" == "1" ]]; then
+    pass "BORE scheduler is enabled at runtime (kernel.sched_bore=1)"
+  elif [[ "$bore_value" == "0" ]]; then
+    fail "BORE scheduler is compiled in but disabled at runtime (kernel.sched_bore=0)"
+  else
+    warn "BORE runtime sysctl has unexpected value: $bore_value"
+  fi
+else
+  if config_enabled CONFIG_SCHED_BORE; then
+    fail "BORE is compiled in, but /proc/sys/kernel/sched_bore is unavailable; runtime activation cannot be confirmed"
+  else
+    warn "BORE runtime sysctl is unavailable and CONFIG_SCHED_BORE is not enabled"
+  fi
+fi
+
+# Per-task BORE scores are an additional live indicator when this kernel
+# exposes them through procfs (typically with scheduler debug support).
+if [[ -r /proc/self/sched ]] && grep -qE '(^|[[:space:]])bore[.]score[[:space:]]*:' /proc/self/sched; then
+  bore_score=$(awk '/bore[.]score[[:space:]]*:/ {print $3; exit}' /proc/self/sched)
+  info "Current status process exposes a live BORE task score: ${bore_score:-unknown}"
+else
+  info "Per-task BORE score is not exposed by /proc/self/sched; runtime enablement is verified through kernel.sched_bore"
+fi
+info "POC scheduler selector and LRU CAST have no verified runtime status interface in this kernel; build configuration is reported above"
 info "O3, Clang LTO and Polly are compile/link-time properties; Linux exposes no reliable runtime activation status"
 if [[ -r /etc/udev/rules.d/65-adios.rules ]]; then
   pass "ADIOS udev rule is installed"
