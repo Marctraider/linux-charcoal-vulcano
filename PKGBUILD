@@ -108,7 +108,7 @@ sha256sums=(
   '5059762e54c8dbe4262d48eafb8d486a54244eec71da5d7b61fc0f5f1c5c2ea7'
   '8c35a18407440f543518e383a96f8098438c3cbe4ea034241fb9a7fe8f7be129'
   '4d4ac50ba014de33638a2efe9c6adc507b888c6d090aa29ea17b2a4686de4e07' # firelzrd/nap v0.6.5, pinned upstream commit 5092cfdbc615f2e1626e68ab03d3d9730364bcbd
-  '6e510d8b74798944b5cb84ac775156831410c853c8a03c2a3f79e9bc7be9c2e2' # DRM scheduler default Round Robin patch
+  '7e57307253178a7a99df479c6bdc43ccec0422ca7204b60daf17ab75bf63b5a4' # DRM scheduler default Round Robin patch
   '2f8c55a6ab9edb5ca08db326cd6aad1de8819f25352aec5247ea84827d305186' # deterministic NAP tools integration bootstrap
 )
 export KBUILD_BUILD_HOST=archlinux
