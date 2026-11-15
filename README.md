@@ -30,7 +30,7 @@ NAP changes CPU idle-state selection. It is not a scheduler or GPU-frequency boo
 
 GitHub Actions builds this branch only. The workflow downloads and verifies the exact Valve source archive, checks out the pinned Valve source commit, applies the NAP and DRM RR changes, resolves the kernel config, compiles with Clang/LLVM and packages kernel plus headers.
 
-The build artifact contains the two packages, a SHA-256 manifest, build log and NAP upstream provenance. The installer selects the latest successful run of this branch's dedicated workflow and verifies package checksums before pacman runs. It does not use GitHub Releases.
+The successful build is published as the [SteamOS 3.10 – Linux 7.3 NAP GitHub Release](https://github.com/Marctraider/linux-charcoal-vulcano/releases/tag/steamos-3.10-linux-7.3-nap). The release contains the complete build ZIP and its `RELEASE-ZIP-SHA256SUM` checksum file. Verify the ZIP against that checksum before extracting it; the ZIP contains the kernel and headers packages, package SHA-256 manifest, build log and NAP upstream provenance. The published ZIP SHA-256 is `395cf9671e6149f26695e69eeed2fb4c1ae59a63ab35ee005f9519ca8d8e0680`. The installer continues to select the latest successful run of this branch's dedicated workflow and verify package checksums before pacman runs; it does not download from GitHub Releases.
 
 A green build proves compilation and packaging only. It does not prove Steam Deck boot, Btrfs root mounting on a particular installation, or performance benefit.
 
