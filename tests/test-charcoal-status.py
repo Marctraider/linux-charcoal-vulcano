@@ -41,9 +41,17 @@ class CharcoalStatusTests(unittest.TestCase):
         self.assertIn("grep -q '\\[adios\\]'", SCRIPT)
         self.assertIn("grep -q '\\[lz4\\]'", SCRIPT)
 
-    def test_mitigations_check_distinguishes_build_config_from_boot_argument(self):
-        self.assertIn("mitigations=off is a runtime control", SCRIPT)
-        self.assertIn("compiled in (CONFIG_CPU_MITIGATIONS=y)", SCRIPT)
+    def test_mitigations_off_passes_when_present_on_running_command_line(self):
+        self.assertIn("grep -qw -- 'mitigations=off' /proc/cmdline", SCRIPT)
+        self.assertIn("supported CPU mitigations disabled at runtime", SCRIPT)
+        self.assertIn('if (( MITIGATIONS_OFF )); then', SCRIPT)
+        self.assertIn('info "CONFIG_CPU_MITIGATIONS=y:', SCRIPT)
+        self.assertIn('fail "CPU mitigation framework is compiled in and mitigations=off is not active"', SCRIPT)
+
+    def test_compiled_in_framework_is_not_a_failure_when_runtime_flag_is_active(self):
+        security = SCRIPT.split('section "Kernel security and CPU target"', 1)[1].split('if [[ -n "$CONFIG_FILE" ]]; then', 1)[0]
+        self.assertIn('if (( MITIGATIONS_OFF )); then', security)
+        self.assertNotIn('fail "CPU mitigation framework is compiled in (CONFIG_CPU_MITIGATIONS=y)', security)
 
 
 if __name__ == "__main__":
