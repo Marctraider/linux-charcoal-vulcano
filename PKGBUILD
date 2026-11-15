@@ -82,6 +82,7 @@ source=(
   latest-zen-01.patch
   latest-zen-02.patch
   zstd-crypto-default-level-1.patch
+  nap-6.12-v0.6.5.patch
 )
 sha256sums=(
   'a6316acc22954d0685ac923248995246789a1f3b5ee6890d378ce2c3efa25af8' # Valve linux-neptune-73 7.3.1.valve2-1 source archive
@@ -104,6 +105,7 @@ sha256sums=(
   'bc647f73ec860a0fe7d074c2377588816a616dc2a651b30d7b9cd168863a17c6'
   '5059762e54c8dbe4262d48eafb8d486a54244eec71da5d7b61fc0f5f1c5c2ea7'
   '8c35a18407440f543518e383a96f8098438c3cbe4ea034241fb9a7fe8f7be129'
+  '9baff430e13c423e06cb1edc85f74d297beeac5867b5863ab1cc769b2a168628' # firelzrd/nap v0.6.5, pinned upstream commit 5092cfdbc615f2e1626e68ab03d3d9730364bcbd
 )
 export KBUILD_BUILD_HOST=archlinux
 export KBUILD_BUILD_USER=$pkgbase
@@ -139,7 +141,8 @@ _validate_kernel_config() {
     'CONFIG_LEDS_VALVE=m' \
     'CONFIG_JOYSTICK_XBOX_GIP=m' \
     'CONFIG_NTSYNC=y' \
-    'CONFIG_IO_DELAY_NONE=y'; do
+    'CONFIG_IO_DELAY_NONE=y' \
+    'CONFIG_CPU_IDLE_GOV_NAP=y'; do
     if ! grep -qxF "$expected" .config; then
       echo "ERROR: Linux 7.3 configuration requires $expected after olddefconfig" >&2
       return 1
@@ -174,6 +177,11 @@ prepare() {
         ;;
       latest-zen-02.patch)
         python3 "$startdir/automation/port-zen-cpufreq-7.3.py" "../$src" drivers/cpufreq/Kconfig.x86
+        ;;
+      nap-6.12-v0.6.5.patch)
+        git apply --check --whitespace=nowarn "../$src"
+        git apply --whitespace=nowarn "../$src"
+        python3 "$startdir/automation/fix-nap-kernel-api.py" drivers/cpuidle/governors/nap/nap.c
         ;;
       *)
         git apply --check --whitespace=nowarn "../$src"
