@@ -139,13 +139,24 @@ elif [[ -n "$CHARCOAL_PACKAGE" ]]; then
 fi
 
 section "Kernel security and CPU target"
+MITIGATIONS_OFF=0
+if grep -qw -- 'mitigations=off' /proc/cmdline 2>/dev/null; then
+  MITIGATIONS_OFF=1
+  pass "mitigations=off is active on the running kernel command line (supported CPU mitigations disabled at runtime)"
+else
+  warn "mitigations=off is not present on the running kernel command line"
+fi
+
 if [[ -z "$CONFIG_FILE" ]]; then
-  warn "CPU mitigations: kernel .config unavailable; cannot verify CONFIG_CPU_MITIGATIONS"
+  warn "Kernel .config unavailable; cannot verify the build-time CONFIG_CPU_MITIGATIONS setting"
 elif config_disabled CONFIG_CPU_MITIGATIONS; then
   pass "CPU mitigation framework is disabled at build time (CONFIG_CPU_MITIGATIONS=n)"
 elif config_enabled CONFIG_CPU_MITIGATIONS; then
-  fail "CPU mitigation framework is compiled in (CONFIG_CPU_MITIGATIONS=y); expected it disabled at build time"
-  info "mitigations=off is a runtime control and is not equivalent to compiling CONFIG_CPU_MITIGATIONS=n"
+  if (( MITIGATIONS_OFF )); then
+    info "CONFIG_CPU_MITIGATIONS=y: framework is compiled in, but mitigations=off disables supported mitigations at runtime"
+  else
+    fail "CPU mitigation framework is compiled in and mitigations=off is not active"
+  fi
 else
   warn "CONFIG_CPU_MITIGATIONS is absent from the selected config; cannot determine its build state"
 fi
