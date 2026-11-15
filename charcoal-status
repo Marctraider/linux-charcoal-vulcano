@@ -216,9 +216,9 @@ if [[ -n "$CONFIG_FILE" ]]; then
     warn "AMD P-State default mode is not configured as active (EPP)"
   fi
   if config_disabled CONFIG_JOYSTICK_XPAD; then
-    warn "Built-in xpad controller driver is disabled in this kernel config"
+    info "Built-in xpad controller driver is disabled in this kernel config; this is a build-time setting, not a runtime status"
   else
-    pass "Built-in xpad controller driver is not explicitly disabled"
+    info "Built-in xpad controller driver is not explicitly disabled in this kernel config; runtime device binding is hardware-dependent"
   fi
 fi
 
