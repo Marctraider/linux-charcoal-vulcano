@@ -576,10 +576,8 @@ main() {
   fi
 
   info "Persistently disabling kernel ZSWAP through the GRUB boot command line..."
-  ensure_zswap_disabled_boot_parameter || die "Could not configure zswap.enabled=0 in GRUB defaults"
-
-  info "Updating the SteamOS bootloader configuration..."
-  if ! _update_grub || ! verify_grub_entry; then
+  info "Updating and verifying the SteamOS bootloader configuration..."
+  if ! ensure_zswap_disabled_boot_parameter || ! _update_grub || ! verify_grub_entry; then
     if attempt_rollback; then
       die "Charcoal GRUB validation failed; the previous SteamOS kernel was restored"
     fi
