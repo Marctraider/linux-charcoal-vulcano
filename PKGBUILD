@@ -105,7 +105,7 @@ sha256sums=(
   'bc647f73ec860a0fe7d074c2377588816a616dc2a651b30d7b9cd168863a17c6'
   '5059762e54c8dbe4262d48eafb8d486a54244eec71da5d7b61fc0f5f1c5c2ea7'
   '8c35a18407440f543518e383a96f8098438c3cbe4ea034241fb9a7fe8f7be129'
-  '9baff430e13c423e06cb1edc85f74d297beeac5867b5863ab1cc769b2a168628' # firelzrd/nap v0.6.5, pinned upstream commit 5092cfdbc615f2e1626e68ab03d3d9730364bcbd
+  'f4d7a42355df20ea18eac2dffd1a681c5c107e1be82334c644e3bb9bf1ba6293' # firelzrd/nap v0.6.5, pinned upstream commit 5092cfdbc615f2e1626e68ab03d3d9730364bcbd
 )
 export KBUILD_BUILD_HOST=archlinux
 export KBUILD_BUILD_USER=$pkgbase
