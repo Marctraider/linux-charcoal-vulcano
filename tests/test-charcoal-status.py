@@ -38,8 +38,8 @@ class CharcoalStatusTests(unittest.TestCase):
         self.assertIn("generated compile.h unavailable", SCRIPT)
 
     def test_scheduler_patterns_match_bracketed_active_values(self):
-        self.assertIn("grep -q '\\\\[adios\\\\]'", SCRIPT)
-        self.assertIn("grep -q '\\\\[lz4\\\\]'", SCRIPT)
+        self.assertIn("grep -q '\\[adios\\]'", SCRIPT)
+        self.assertIn("grep -q '\\[lz4\\]'", SCRIPT)
 
     def test_mitigations_check_distinguishes_build_config_from_boot_argument(self):
         self.assertIn("mitigations=off is a runtime control", SCRIPT)
