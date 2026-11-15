@@ -54,11 +54,21 @@ jobs:
           grep -q 'irqs_sum' "$RUNNER_TEMP/linux-7.3/include/linux/kernel_stat.h"
           grep -q 'const struct bin_attribute \*attr' "$RUNNER_TEMP/linux-7.3/include/linux/sysfs.h"
           grep -q 'const struct bin_attribute.*bin_attrs' "$RUNNER_TEMP/linux-7.3/include/linux/sysfs.h"
-      - name: Check availability of the pinned Valve source archive
+      - name: Verify patch against Valve's exact 7.3.1-valve2 source
+        timeout-minutes: 45
         run: |
           set -Eeuo pipefail
-          curl --fail --silent --show-error --location --head \
-            https://steamdeck-packages.steamos.cloud/archlinux-mirror/sources/jupiter-3.10/linux-neptune-73-7.3.1.valve2-1.src.tar.gz \
-            | tee "$RUNNER_TEMP/valve-source-headers.txt"
-          grep -qi '^HTTP/.* 200' "$RUNNER_TEMP/valve-source-headers.txt"
-          grep -qi '^content-length:' "$RUNNER_TEMP/valve-source-headers.txt"
+          archive="$RUNNER_TEMP/linux-neptune-73-7.3.1.valve2-1.src.tar.gz"
+          curl --fail --location --retry 3 --retry-all-errors --output "$archive" \
+            https://steamdeck-packages.steamos.cloud/archlinux-mirror/sources/jupiter-3.10/linux-neptune-73-7.3.1.valve2-1.src.tar.gz
+          echo 'a6316acc22954d0685ac923248995246789a1f3b5ee6890d378ce2c3efa25af8  '"$archive" | sha256sum --check
+          mkdir -p "$RUNNER_TEMP/valve-source"
+          tar -xzf "$archive" -C "$RUNNER_TEMP/valve-source" linux-neptune-73/archlinux-linux-neptune
+          repo="$RUNNER_TEMP/valve-source/linux-neptune-73/archlinux-linux-neptune"
+          commit=0ed55b10a784a0a0b518ecd20551659fde1d59c9
+          git --git-dir="$repo" cat-file -e "$commit^{commit}"
+          git --git-dir="$repo" worktree add --detach "$RUNNER_TEMP/linux-neptune-73-worktree" "$commit"
+          git -C "$RUNNER_TEMP/linux-neptune-73-worktree" apply --check --whitespace=nowarn "$GITHUB_WORKSPACE/nap-6.12-v0.6.5.patch"
+          git -C "$RUNNER_TEMP/linux-neptune-73-worktree" apply --whitespace=nowarn "$GITHUB_WORKSPACE/nap-6.12-v0.6.5.patch"
+          python3 automation/fix-nap-kernel-api.py "$RUNNER_TEMP/linux-neptune-73-worktree/drivers/cpuidle/governors/nap/nap.c"
+          git -C "$RUNNER_TEMP/linux-neptune-73-worktree" diff --check
