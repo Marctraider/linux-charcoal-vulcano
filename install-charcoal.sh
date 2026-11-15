@@ -145,8 +145,17 @@ cleanup() {
 
 download_file() {
   local url=$1 destination=$2
+  # GitHub release downloads redirect to short-lived signed asset URLs.
+  # A unique query and no-cache headers prevent stale cached redirects,
+  # which can otherwise produce HTTP 401 from the asset host.
+  case "$url" in
+    https://github.com/*/releases/download/*)
+      url="${url}?download=1&cachebust=$(date +%s)"
+      ;;
+  esac
   curl --fail --silent --show-error --location \
     --proto '=https' --proto-redir '=https' --retry 3 --connect-timeout 15 \
+    -H 'Cache-Control: no-cache' -H 'Pragma: no-cache' \
     --output "$destination" "$url"
 }
 
@@ -382,7 +391,7 @@ main() {
     if pacman -Qq linux-neptune-73-headers >/dev/null 2>&1; then stock_packages+=(linux-neptune-73-headers); fi
   fi
 
-  confirm_transaction "NAP build #${run_number} (${build_commit:0:12})" "${previous_packages[@]}"
+  confirm_transaction "NAP release ${RELEASE_TAG} (${RELEASE_ARCHIVE})" "${previous_packages[@]}"
 
   info "Making SteamOS writable for the package transaction..."
   run_privileged steamos-readonly disable
@@ -440,7 +449,7 @@ main() {
     fi
     die "Charcoal GRUB validation failed and automatic rollback was unsuccessful; do not reboot"
   fi
-  info "Charcoal SteamOS 3.10 / Linux 7.3 NAP build #${run_number} (${build_commit:0:12}) installed; kernel, initramfs and GRUB references verified."
+  info "Charcoal SteamOS 3.10 / Linux 7.3 NAP release ${RELEASE_TAG} installed; kernel, initramfs and GRUB references verified."
   info "Reboot only after the installer reports all three boot checks passed."
 }
 
