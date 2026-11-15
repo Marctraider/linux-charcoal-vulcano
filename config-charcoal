@@ -26,7 +26,7 @@ CONFIG_LRU_CAST=y
 # Disable ZSWAP to avoid its additional page-compression CPU overhead.
 # ZRAM remains enabled below, with LZ4 as its primary compressor.
 # CONFIG_ZSWAP is not set
-CONFIG_ZSMALLOC=y
+CONFIG_ZSMALLOC=m
 
 CONFIG_ZRAM=m
 
