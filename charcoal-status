@@ -162,18 +162,14 @@ else
 fi
 
 if [[ -n "$CONFIG_FILE" ]]; then
-  cpu_targets=()
-  for symbol in CONFIG_MZEN2 CONFIG_MZEN3 CONFIG_MZEN4 CONFIG_MZEN5 CONFIG_X86_NATIVE_CPU CONFIG_GENERIC_CPU; do
-    config_enabled "$symbol" && cpu_targets+=("$symbol")
-  done
-  if (( ${#cpu_targets[@]} > 0 )); then
-    info "CPU target config: ${cpu_targets[*]}"
+  if config_enabled CONFIG_CPU_SUP_AMD; then
+    info "CPU build target: Steam Deck Zen 2 (znver2), selected by -march=znver2 in the Charcoal 7.3 build flags; Valve 7.3 has no MZEN2 Kconfig selector"
   else
-    info "No generic/native CPU selector symbol found; not treating CONFIG_GENERIC_CPU absence as a failure"
+    info "CPU build target: this kernel config does not identify an AMD CPU target"
   fi
 fi
 printf '  Architecture reported by uname: %s\n' "$(uname -m)"
-printf '  Exact -march/-mtune flags are not encoded in the kernel .config.\n'
+printf '  The .config does not encode compiler -march/-mtune flags.\n'
 
 compiler=""
 if [[ -n "$BUILD_DIR" && -r "$BUILD_DIR/include/generated/compile.h" ]]; then
@@ -279,7 +275,9 @@ else
 fi
 
 section "DRM scheduler Round Robin"
-drm_policy_file=/sys/module/drm/parameters/sched_policy
+# CONFIG_DRM_SCHED=m in this build, so its module parameter is under
+# /sys/module/drm_sched/, not /sys/module/drm/.
+drm_policy_file=/sys/module/drm_sched/parameters/sched_policy
 if [[ -r "$drm_policy_file" ]]; then
   drm_policy=$(<"$drm_policy_file")
   case "$drm_policy" in
@@ -287,7 +285,7 @@ if [[ -r "$drm_policy_file" ]]; then
     *) fail "DRM scheduler policy is $drm_policy (expected Round Robin / 1)" ;;
   esac
 else
-  info "DRM scheduler policy parameter is not exposed by this running kernel; Round Robin runtime state cannot be verified"
+  info "DRM scheduler policy parameter is not exposed by this running kernel; the build sets the scheduler's compiled default to Round Robin, but runtime state cannot be read here"
 fi
 
 section "NAP userspace integration"
@@ -341,15 +339,24 @@ elif compgen -G '/sys/block/zram[0-9]*' >/dev/null; then
 else
   warn "ZRAM kernel module is not loaded and no zram device exists"
 fi
-if [[ -r /sys/module/zswap/parameters/enabled ]]; then
+if config_disabled CONFIG_ZSWAP; then
+  pass "ZSWAP is disabled in the kernel build (CONFIG_ZSWAP=n); it is compiled out and cannot be active"
+elif config_enabled CONFIG_ZSWAP; then
+  if [[ -r /sys/module/zswap/parameters/enabled ]]; then
+    zswap_enabled=$(</sys/module/zswap/parameters/enabled)
+    case "$zswap_enabled" in
+      N|0) pass "ZSWAP is compiled in but disabled at runtime (intended; ZRAM-IR remains available)" ;;
+      Y|1) fail "ZSWAP is enabled at runtime (expected disabled for the CPU-focused profile)" ;;
+      *) warn "Unrecognized ZSWAP runtime state: $zswap_enabled" ;;
+    esac
+  else
+    warn "ZSWAP is compiled in, but its runtime enabled parameter is not exposed; active state cannot be verified"
+  fi
+elif [[ -r /sys/module/zswap/parameters/enabled ]]; then
   zswap_enabled=$(</sys/module/zswap/parameters/enabled)
-  case "$zswap_enabled" in
-    N|0) pass "ZSWAP is disabled at runtime (intended; ZRAM-IR remains available)" ;;
-    Y|1) fail "ZSWAP is enabled at runtime (expected disabled for the CPU-focused profile)" ;;
-    *) warn "Unrecognized ZSWAP runtime state: $zswap_enabled" ;;
-  esac
+  info "ZSWAP runtime parameter is exposed with value $zswap_enabled, but the selected kernel config is unavailable"
 else
-  info "ZSWAP runtime control is unavailable; build configuration determines whether support is present"
+  warn "ZSWAP build configuration and runtime control are both unavailable; cannot determine whether it is active"
 fi
 
 section "ZRAM-IR (runtime)"
