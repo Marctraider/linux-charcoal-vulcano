@@ -39,11 +39,21 @@ jobs:
         run: |
           set -Eeuo pipefail
           git clone --filter=blob:none --depth=1 --branch v7.3 https://github.com/torvalds/linux.git "$RUNNER_TEMP/linux-7.3"
-          git -C "$RUNNER_TEMP/linux-7.3" sparse-checkout set drivers/cpuidle
+          git -C "$RUNNER_TEMP/linux-7.3" sparse-checkout set drivers/cpuidle include/linux/cpuidle.h include/linux/sysfs.h include/linux/kernel_stat.h arch/x86/include/asm/hardirq.h
           git -C "$RUNNER_TEMP/linux-7.3" apply --check --whitespace=nowarn "$GITHUB_WORKSPACE/nap-6.12-v0.6.5.patch"
           git -C "$RUNNER_TEMP/linux-7.3" apply --whitespace=nowarn "$GITHUB_WORKSPACE/nap-6.12-v0.6.5.patch"
           python3 automation/fix-nap-kernel-api.py "$RUNNER_TEMP/linux-7.3/drivers/cpuidle/governors/nap/nap.c"
           grep -q 'config CPU_IDLE_GOV_NAP' "$RUNNER_TEMP/linux-7.3/drivers/cpuidle/Kconfig"
+          grep -q 'poll_limit_ns' "$RUNNER_TEMP/linux-7.3/include/linux/cpuidle.h"
+          grep -q 'last_residency_ns' "$RUNNER_TEMP/linux-7.3/include/linux/cpuidle.h"
+          grep -q 'target_residency_ns' "$RUNNER_TEMP/linux-7.3/include/linux/cpuidle.h"
+          grep -q 'exit_latency_ns' "$RUNNER_TEMP/linux-7.3/include/linux/cpuidle.h"
+          grep -q 'cpuidle_governor_latency_req' "$RUNNER_TEMP/linux-7.3/include/linux/cpuidle.h"
+          grep -q 'IRQ_COUNT_APIC_TIMER' "$RUNNER_TEMP/linux-7.3/arch/x86/include/asm/hardirq.h"
+          grep -q 'counts\[NR_IRQ_COUNTS\]' "$RUNNER_TEMP/linux-7.3/arch/x86/include/asm/hardirq.h"
+          grep -q 'irqs_sum' "$RUNNER_TEMP/linux-7.3/include/linux/kernel_stat.h"
+          grep -q 'const struct bin_attribute \*attr' "$RUNNER_TEMP/linux-7.3/include/linux/sysfs.h"
+          grep -q 'const struct bin_attribute.*bin_attrs' "$RUNNER_TEMP/linux-7.3/include/linux/sysfs.h"
       - name: Check availability of the pinned Valve source archive
         run: |
           set -Eeuo pipefail
