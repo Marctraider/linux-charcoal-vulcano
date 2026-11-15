@@ -232,7 +232,7 @@ verify_kernel_package_identity() {
   }
 
   local -a config_entries=()
-  mapfile -t config_entries < <(bsdtar -tf "$headers_pkg" | grep -E '^(\./)?usr/lib/modules/[^/]+/build/\.config
+  mapfile -t config_entries < <(bsdtar -tf "$headers_pkg" | grep -E '^(\./)?usr/lib/modules/[^/]+/build/\.config$' || true)
 
   [[ ${#config_entries[@]} -eq 1 ]] || { info "error: headers package must contain exactly one resolved kernel .config"; return 1; }
   local config_data expected
