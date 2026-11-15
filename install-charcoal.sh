@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Install the latest Charcoal kernel release for SteamOS with Linux 7.3.
+# Install the latest successful NAP experiment build for SteamOS 3.10 / Linux 7.3.
 
 set -Eeuo pipefail
 
@@ -153,145 +153,6 @@ download_file() {
     --output "$destination" "$url"
 }
 
-parse_release_metadata() {
-  local releases_json=$1
-  python3 - "$releases_json" "$REPOSITORY" "$RELEASE_DOWNLOAD_PREFIX" "$RELEASE_TAG_PREFIX" "$RELEASE_ZIP_PREFIX" <<'PY'
-import json
-import re
-import sys
-from pathlib import PurePosixPath
-
-releases_json, repository, download_prefix, tag_prefix, zip_prefix = sys.argv[1:]
-with open(releases_json, encoding="utf-8") as handle:
-    releases = json.load(handle)
-if not isinstance(releases, list):
-    raise SystemExit("GitHub did not return a release list")
-
-def text(value, label):
-    if not isinstance(value, str) or not value or any(c in value for c in "\x00\r\n"):
-        raise SystemExit(f"Invalid {label} in GitHub release response")
-    return value
-
-def checked_asset(asset, expected, tag):
-    name = text(asset.get("name"), "asset name")
-    url = text(asset.get("browser_download_url"), "asset URL")
-    if name != expected:
-        raise SystemExit(f"Unexpected asset name: {name}")
-    if not url.startswith(f"{download_prefix}{tag}/"):
-        raise SystemExit(f"Refusing asset outside {repository} release {tag}: {url}")
-    return url
-
-candidates = []
-tag_pattern = re.compile(
-    re.escape(tag_prefix)
-    + r"([0-9]+)\.([0-9]+)\.([0-9]+)\.valve([0-9]+)\.cc([0-9]+)-r([0-9]+)"
-)
-for release in releases:
-    if not isinstance(release, dict):
-        continue
-    tag = release.get("tag_name")
-    if release.get("draft") is not False or release.get("prerelease") is not False:
-        continue
-    match = tag_pattern.fullmatch(tag) if isinstance(tag, str) else None
-    if match is None:
-        continue
-    version = tuple(map(int, match.groups()))
-    if version[:2] != (7, 3):
-        continue
-    # r1 is accepted only after the downloaded kernel archive is normalized
-    # and its pkgbase/.MTREE pair is verified before pacman sees the package.
-    candidates.append((version, str(release.get("published_at") or ""), release))
-if not candidates:
-    raise SystemExit("No published Charcoal SteamOS 7.3 release was found")
-
-# Pick the highest 7.3 package/release revision, regardless of newer 7.2 releases.
-selected = max(candidates, key=lambda item: (item[0], item[1]))[2]
-tag = text(selected.get("tag_name"), "release tag")
-assets = selected.get("assets")
-if not isinstance(assets, list):
-    raise SystemExit("GitHub 7.3 release has no assets")
-archives = [a for a in assets if isinstance(a, dict) and str(a.get("name", "")).startswith(zip_prefix) and str(a.get("name", "")).endswith(".zip")]
-checksums = [a for a in assets if isinstance(a, dict) and a.get("name") == "RELEASE-ZIP-SHA256SUM"]
-if len(archives) != 1 or len(checksums) != 1:
-    raise SystemExit("7.3 release assets are incomplete or ambiguous")
-archive_name = text(archives[0].get("name"), "archive name")
-if PurePosixPath(archive_name).name != archive_name:
-    raise SystemExit("Invalid release ZIP filename")
-print(tag)
-print(archive_name)
-print(checked_asset(archives[0], archive_name, tag))
-print("RELEASE-ZIP-SHA256SUM")
-print(checked_asset(checksums[0], "RELEASE-ZIP-SHA256SUM", tag))
-PY
-}
-
-verify_release_archive() {
-  local archive=$1 checksum_file=$2 archive_name=$3
-  python3 - "$archive" "$checksum_file" "$archive_name" <<'PY'
-import hashlib, re, sys
-archive, checksum_file, archive_name = sys.argv[1:]
-lines = open(checksum_file, encoding="utf-8").read().splitlines()
-entries = []
-for line in lines:
-    m = re.fullmatch(r"([0-9a-fA-F]{64}) [ *](.+)", line)
-    if not m:
-        raise SystemExit("Invalid RELEASE-ZIP-SHA256SUM format")
-    entries.append((m.group(1).lower(), m.group(2)))
-if len(entries) != 1 or entries[0][1] != archive_name:
-    raise SystemExit("Release checksum does not match selected ZIP")
-h = hashlib.sha256()
-with open(archive, "rb") as f:
-    for block in iter(lambda: f.read(1024 * 1024), b""):
-        h.update(block)
-if h.hexdigest() != entries[0][0]:
-    raise SystemExit("Release ZIP SHA-256 verification failed")
-PY
-}
-
-extract_and_verify_packages() {
-  local archive=$1 destination=$2
-  python3 - "$archive" "$destination" <<'PY'
-import hashlib, re, stat, sys, zipfile
-from pathlib import Path, PurePosixPath
-archive, destination = map(Path, sys.argv[1:])
-package_re = re.compile(r"^linux-charcoal-[0-9]+(?:-headers)?-[^/\\\x00\r\n]+\.pkg\.tar\.zst$")
-sum_re = re.compile(r"([0-9a-fA-F]{64}) [ *](linux-charcoal-[0-9]+(?:-headers)?-[^/\\\x00\r\n]+\.pkg\.tar\.zst)")
-with zipfile.ZipFile(archive) as zf:
-    infos = zf.infolist()
-    names = [i.filename for i in infos]
-    if len(names) != len(set(names)) or "SHA256SUMS" not in names:
-        raise SystemExit("Invalid release ZIP structure")
-    package_infos = [i for i in infos if package_re.fullmatch(i.filename)]
-    package_names = {i.filename for i in package_infos}
-    if len(package_infos) != 2 or sum("-headers-" in n for n in package_names) != 1:
-        raise SystemExit("Release ZIP must contain exactly kernel and headers packages")
-    stems = {re.fullmatch(r"(linux-charcoal-[0-9]+)(?:-headers)?-[0-9].*", n).group(1) for n in package_names}
-    if len(stems) != 1:
-        raise SystemExit("Kernel and headers belong to different series")
-    for info in package_infos:
-        if PurePosixPath(info.filename).name != info.filename or stat.S_ISLNK(info.external_attr >> 16):
-            raise SystemExit(f"Unsafe ZIP entry: {info.filename}")
-    checksums = {}
-    for line in zf.read("SHA256SUMS").decode("utf-8").splitlines():
-        m = sum_re.fullmatch(line)
-        if not m or m.group(2) in checksums:
-            raise SystemExit("Invalid package SHA256SUMS")
-        checksums[m.group(2)] = m.group(1).lower()
-    if set(checksums) != package_names:
-        raise SystemExit("Package list does not match SHA256SUMS")
-    destination.mkdir(mode=0o700)
-    for info in package_infos:
-        target = destination / info.filename
-        h = hashlib.sha256()
-        with zf.open(info) as source, target.open("xb") as out:
-            for block in iter(lambda: source.read(1024 * 1024), b""):
-                h.update(block); out.write(block)
-        if h.hexdigest() != checksums[info.filename]:
-            target.unlink(missing_ok=True)
-            raise SystemExit(f"Package SHA-256 verification failed: {info.filename}")
-PY
-}
-
 select_latest_nap_run() {
   python3 - "$1" "$NAP_BRANCH" <<'PY'
 import json, sys
@@ -433,7 +294,7 @@ confirm_transaction() {
   local release_tag=$1
   shift
   local -a previous=("$@")
-  info "Verified 7.3 release: ${release_tag}"
+  info "Verified 7.3 build: ${release_tag}"
   if (( ${#previous[@]} )); then
     info "The following old kernel packages will be removed:"
     printf '  - %s\n' "${previous[@]}"
@@ -533,9 +394,9 @@ main() {
 
   local -a packages
   mapfile -d '' -t packages < <(find "$package_dir" -maxdepth 1 -type f -name 'linux-charcoal-*.pkg.tar.zst' -print0 | sort -z)
-  (( ${#packages[@]} == 2 )) || die "Verified release does not contain exactly kernel and headers"
+  (( ${#packages[@]} == 2 )) || die "Verified build artifact does not contain exactly kernel and headers"
 
-  info "Checking package metadata without starting a transaction..."
+  info "Checking downloaded build package metadata without starting a transaction..."
   local pkg pkgname pkgbase=""
   for pkg in "${packages[@]}"; do
     pkgname="$(pacman -Qp "$pkg" | awk '{print $1}')" || die "pacman could not read package metadata: $pkg"
@@ -544,7 +405,7 @@ main() {
     pkgbase=${pkgname%-headers}
   done
 
-  verify_kernel_package_identity packages || die "Release package contents do not match the required linux-neptune-73 boot identity"
+  verify_kernel_package_identity packages || die "Build artifact package contents do not match the required linux-neptune-73 boot identity"
 
   local installed_file="$WORKDIR/installed-packages.txt"
   list_installed_packages > "$installed_file"
