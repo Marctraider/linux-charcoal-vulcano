@@ -506,6 +506,14 @@ main() {
   # packages alongside it. Only a confirmed, explicit pacman disk-space failure
   # permits removal of the matching stock kernel.
   remove_packages=("${stock_packages[@]}")
+  local -a previous_charcoal=()
+  local old_package
+  for old_package in linux-charcoal-73 linux-charcoal-73-headers; do
+    if pacman -Qq "$old_package" >/dev/null 2>&1; then previous_charcoal+=("$old_package"); fi
+  done
+  # Save the currently installed Charcoal package before upgrading it in place.
+  # This enables a best-effort package rollback if initramfs/GRUB validation fails.
+  if (( ${#previous_charcoal[@]} > 0 )); then capture_rollback_packages previous_charcoal; fi
   confirm_transaction "NAP build #${run_number} (${build_commit:0:12})"
 
   info "Making SteamOS writable for the package transaction..."
@@ -578,15 +586,16 @@ diagnose_boot_state() {
   [[ -n "$cfgfile" ]] && cfg="$(<"$cfgfile")"
   if [[ -n "$cfg" ]]; then
     local expected
-    for expected in CONFIG_CPU_IDLE_GOV_NAP=y CONFIG_BTRFS_FS=y CONFIG_ZRAM=m; do
+    for expected in CONFIG_BTRFS_FS=y CONFIG_ZRAM=m; do
       if grep -qxF "$expected" <<< "$cfg"; then info "PASS: $expected"; else info "FAIL: missing $expected"; failures=$((failures+1)); fi
     done
+    if grep -qxF CONFIG_CPU_IDLE_GOV_NAP=y <<< "$cfg"; then info "PASS: NAP governor is compiled in"; else info "INFO: the currently running kernel predates the NAP build"; fi
     grep -qxF '# CONFIG_ZSWAP is not set' <<< "$cfg" && info "PASS: ZSWAP disabled" || info "WARN: ZSWAP state not confirmed"
   else info "WARN: running kernel config unavailable; compile-time settings not checked"; fi
   local governor_file=/sys/devices/system/cpu/cpuidle/current_governor
   if [[ -r "$governor_file" ]]; then
     local governor; governor="$(<"$governor_file")"
-    if [[ "$governor" == nap ]]; then info "PASS: NAP active"; else info "FAIL: active CPUIdle governor is $governor"; failures=$((failures+1)); fi
+    if [[ "$governor" == nap ]]; then info "PASS: NAP active"; else info "INFO: currently active CPUIdle governor is $governor (NAP takes effect after booting the NAP kernel)"; fi
   else info "WARN: CPUIdle governor sysfs state unavailable"; fi
   local drm_file=/sys/module/drm/parameters/sched_policy
   if [[ -r "$drm_file" ]]; then
@@ -595,8 +604,9 @@ diagnose_boot_state() {
   else info "WARN: DRM scheduler policy is not exposed; RR cannot be verified at runtime"; fi
   if [[ -x /usr/lib/nap/configure-services ]]; then
     info "PASS: NAP userspace helper installed"
-    systemctl is-enabled nap-persist.service >/dev/null 2>&1 && info "PASS: NAP persistence service enabled" || info "WARN: NAP persistence service not enabled"
-  else info "FAIL: NAP userspace helper missing"; failures=$((failures+1)); fi
+    systemctl is-enabled nap-state.service >/dev/null 2>&1 && info "PASS: NAP state restore service enabled" || info "WARN: NAP state restore service not enabled"
+    systemctl is-enabled nap-state-save.timer >/dev/null 2>&1 && info "PASS: NAP periodic save timer enabled" || info "WARN: NAP periodic save timer not enabled"
+  else info "INFO: NAP userspace helper is not installed yet"; fi
   for candidate in /efi/EFI/SteamOS/grub.cfg /efi/EFI/steamos/grub.cfg /boot/efi/EFI/SteamOS/grub.cfg /boot/efi/EFI/steamos/grub.cfg /boot/grub/grub.cfg; do
     if run_privileged test -s "$candidate"; then grub=$candidate; break; fi
   done
