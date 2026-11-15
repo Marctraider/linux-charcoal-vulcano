@@ -36,7 +36,7 @@ The selected upstream patch candidates are pinned to immutable revisions and che
 - **No Ryzen SMU DKMS bundle.** Van Gogh kernel frequency/power changes are separate kernel-source patches; no third-party SMU module is installed.
 - Gaming sysctl profiles, forced gaming environment variables, swapfile migration and gaming swap services/hooks are not part of this kernel package.
 
-Steam Input and Valve's in-tree Steam Deck/controller support remain inherited from the stock SteamOS configuration. The 7.3 installer is series-specific: after confirmation, it removes only the matching `linux-neptune-73` stock kernel and headers to free system space. It does not remove existing Charcoal packages; `pacman -U` upgrades those packages in place. It does not target `linux-neptune-72` or any 7.2 Charcoal packages. The stock-kernel removal removes the matching stock-kernel fallback.
+Steam Input and Valve's in-tree Steam Deck/controller support remain inherited from the stock SteamOS configuration. The 7.3 installer is series-specific. Before making package changes, it now verifies that the existing SteamOS 3.10 kernel image, initramfs, mkinitcpio preset and GRUB references are present. If the existing boot chain is already incomplete, it aborts before changing packages. The installer still removes only the matching `linux-neptune-73` stock kernel and headers to free system space; this removes the stock-kernel fallback, so installation remains a controlled validation step rather than a proven safe upgrade. It does not target `linux-neptune-72` or any 7.2 Charcoal packages.
 
 
 ## Install the latest 7.3 release
@@ -49,7 +49,7 @@ Run on SteamOS 3.10:
 curl -fsSL https://raw.githubusercontent.com/Marctraider/linux-charcoal-vulcano/validation/steamos-3.10-linux-7.3/install-charcoal.sh -o install-charcoal-73.sh && bash install-charcoal-73.sh
 ```
 
-Read the installer's confirmation prompts before accepting package changes. It removes only the matching SteamOS 7.3 stock kernel and headers; existing Charcoal packages are upgraded in place. Keep a recovery route available because removing the stock kernel also removes that fallback.
+Read the installer's confirmation prompts before accepting package changes. The installer checks the existing boot chain first and aborts if any expected boot file or GRUB reference is missing. It then removes the matching SteamOS 7.3 stock kernel and headers; this also removes the stock-kernel fallback. Do not treat this as safe for routine use until a corrected package has passed a full install and boot test on a Steam Deck.
 
 ### CPU vulnerability mitigations
 
