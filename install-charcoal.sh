@@ -350,8 +350,26 @@ confirm_stock_removal() {
   local -n stock_ref=$1
   (( ${#stock_ref[@]} > 0 )) || return 0
 
-  info "The matching SteamOS 7.3 stock kernel will be removed before Charcoal is installed to free system space."
-  info "This removes the stock-kernel fallback; the installer will ask for confirmation before changing packages."
+  info "The initial Charcoal install was rejected by pacman because there is not enough free disk space."
+  info "Removing the matching SteamOS 7.3 stock kernel is the fallback and removes the stock-kernel package fallback."
+  printf 'The following stock packages must be removed to free space:\n'
+  printf '  - %s\n' "${stock_ref[@]}"
+  if (( ! ROLLBACK_READY )); then
+    info "WARNING: exact cached stock packages are unavailable; automatic package rollback may not be possible."
+  fi
+  [[ -t 0 ]] || die "Interactive y/n confirmation is required before removing the stock kernel"
+  local answer
+  read -r -p "Remove the stock kernel packages and continue? [y/N] " answer
+  case "$answer" in
+    y|Y|yes|YES) ;;
+    *) die "Installation cancelled; the stock kernel was not removed" ;;
+  esac
+}
+
+is_pacman_disk_space_error() {
+  local log_file=$1
+  # Force C locale for pacman so this safety decision is based on stable text.
+  grep -Eiq 'error: not enough free disk space|error: Partition .+ too full' "$log_file"
 }
 
 confirm_transaction() {
@@ -492,12 +510,11 @@ main() {
 
   verify_existing_boot_state || die "Existing SteamOS boot state is not healthy; no package changes were made"
 
-  confirm_stock_removal stock_packages
-  # Only the matching SteamOS stock 7.3 kernel may be removed. Existing
-  # Charcoal packages are left in place; pacman -U upgrades them in-place.
+  # Keep the Valve stock kernel installed whenever pacman can fit the Charcoal
+  # packages alongside it. Only a confirmed, explicit pacman disk-space failure
+  # permits removal of the matching stock kernel.
   remove_packages=("${stock_packages[@]}")
-  capture_rollback_packages remove_packages
-  confirm_transaction "$release_tag" "${remove_packages[@]}"
+  confirm_transaction "$release_tag"
 
   info "Making SteamOS writable for the package transaction..."
   run_privileged steamos-readonly disable
@@ -505,17 +522,26 @@ main() {
   info "Enabling SteamOS developer mode..."
   run_privileged steamos-devmode enable --no-prompt
 
-  if (( ${#remove_packages[@]} )); then
-    info "Removing conflicting/previous kernel packages without cascading dependency removal..."
-    run_privileged pacman -Rdd --noconfirm "${remove_packages[@]}"
-  fi
-
-  info "Installing verified Charcoal SteamOS 7.3 ${release_tag}..."
-  if ! run_privileged pacman -U --noconfirm "${packages[@]}"; then
-    if attempt_rollback; then
-      die "SteamOS 7.3 installation failed; previous kernel packages were restored"
+  info "Attempting to install Charcoal while preserving the stock kernel..."
+  local install_log="$WORKDIR/pacman-install.log"
+  if ! LC_ALL=C run_privileged pacman -U --noconfirm "${packages[@]}" >"$install_log" 2>&1; then
+    cat "$install_log" >&2
+    if ! is_pacman_disk_space_error "$install_log"; then
+      die "SteamOS 7.3 package installation failed; stock kernel packages were not removed"
     fi
-    die "SteamOS 7.3 installation failed after kernel removal; do not reboot until a working kernel is installed"
+
+    capture_rollback_packages remove_packages
+    confirm_stock_removal remove_packages
+    info "Removing only the matching SteamOS 7.3 stock kernel packages..."
+    run_privileged pacman -Rdd --noconfirm "${remove_packages[@]}"
+
+    info "Retrying the verified Charcoal package installation after freeing space..."
+    if ! run_privileged pacman -U --noconfirm "${packages[@]}"; then
+      if attempt_rollback; then
+        die "SteamOS 7.3 installation failed; previous kernel packages were restored"
+      fi
+      die "SteamOS 7.3 installation failed after stock-kernel removal; do not reboot until a working kernel is installed"
+    fi
   fi
 
 
