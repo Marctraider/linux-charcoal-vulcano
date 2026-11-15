@@ -1,0 +1,17 @@
+post_install() {
+  if [[ -x /usr/lib/nap/configure-services ]]; then
+    /usr/lib/nap/configure-services install || echo "WARNING: could not enable NAP persistence services" >&2
+  fi
+}
+
+post_upgrade() {
+  if [[ -x /usr/lib/nap/configure-services ]]; then
+    /usr/lib/nap/configure-services install || echo "WARNING: could not enable NAP persistence services" >&2
+  fi
+}
+
+pre_remove() {
+  if [[ -x /usr/lib/nap/configure-services ]]; then
+    /usr/lib/nap/configure-services remove || echo "WARNING: could not disable NAP persistence services" >&2
+  fi
+}
