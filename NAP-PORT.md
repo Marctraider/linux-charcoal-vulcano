@@ -30,6 +30,8 @@ Only the kernel package carries `linux-charcoal-73.install`: installation and up
 
 - PKGBUILD shell syntax and pinned NAP patch SHA-256: passed in GitHub Actions.
 - NAP API compatibility unit tests: passed (6 tests).
+- NAP persistence and refresh-tool suites: passed (13 and 10 tests); deterministic bootstrap archive SHA-256 passed.
+- PKGBUILD and package install-script syntax, plus NAP packaging wiring checks: passed.
 - Patch application and required API checks against upstream Linux v7.3: passed.
 - Valve source archive `linux-neptune-73-7.3.1.valve2-1.src.tar.gz`: downloaded and matched the PKGBUILD SHA-256.
 - Embedded Valve commit `0ed55b10a784a0a0b518ecd20551659fde1d59c9`: found and checked out successfully.
