@@ -471,6 +471,7 @@ main() {
     fi
   fi
 
+  rm -rf -- "$package_dir"
   info "Generating and checking the SteamOS 7.3 boot image and initramfs..."
   if ! run_privileged mkinitcpio -p linux-neptune-73 || ! verify_boot_artifacts; then
     if attempt_rollback; then
