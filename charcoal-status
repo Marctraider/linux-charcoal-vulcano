@@ -200,6 +200,14 @@ check_config CONFIG_LTO_CLANG_FULL "Full Clang LTO"
 check_config CONFIG_POLLY_CLANG "Clang Polly"
 
 section "Runtime feature activation"
+info "BORE and POC scheduler changes have no reliable standard sysfs switch/status; their presence is verified at build time only"
+info "LRU CAST has no reliable standard runtime status interface; build configuration is reported above"
+info "O3, Clang LTO and Polly are compile/link-time properties; Linux exposes no reliable runtime activation status"
+if [[ -r /etc/udev/rules.d/65-adios.rules ]]; then
+  pass "ADIOS udev rule is installed"
+else
+  warn "ADIOS udev rule is not installed; newly added block devices may not switch to ADIOS automatically"
+fi
 
 if [[ -n "$CONFIG_FILE" ]]; then
   if config_value CONFIG_X86_AMD_PSTATE_DEFAULT_MODE 3; then
@@ -300,6 +308,16 @@ if [[ -r /sys/module/zswap/parameters/compressor ]]; then
 else
   warn "ZSWAP compressor runtime parameter is unavailable"
 fi
+if [[ -r /sys/module/zswap/parameters/shrinker_enabled ]]; then
+  zswap_shrinker=$(</sys/module/zswap/parameters/shrinker_enabled)
+  case "$zswap_shrinker" in
+    Y|1) pass "ZSWAP shrinker is enabled at runtime" ;;
+    N|0) warn "ZSWAP shrinker is disabled at runtime" ;;
+    *) info "ZSWAP shrinker runtime state: $zswap_shrinker" ;;
+  esac
+else
+  info "ZSWAP shrinker runtime parameter is not exposed by this kernel"
+fi
 
 section "ZRAM-IR (runtime)"
 if [[ -r /proc/sys/vm/zram_recomp_immediate ]]; then
@@ -376,6 +394,16 @@ if grep -qw 'amd_pstate.epp_boost=1' /proc/cmdline 2>/dev/null; then
   pass "amd_pstate.epp_boost=1 is present on the running kernel command line"
 else
   warn "amd_pstate.epp_boost=1 not visible in /proc/cmdline (verify bootloader/built-in command line)"
+fi
+if [[ -r /sys/module/amd_pstate/parameters/epp_boost ]]; then
+  epp_boost=$(</sys/module/amd_pstate/parameters/epp_boost)
+  case "$epp_boost" in
+    Y|1) pass "AMD P-State EPP boost is enabled at runtime" ;;
+    N|0) warn "AMD P-State EPP boost is disabled at runtime" ;;
+    *) info "AMD P-State EPP boost runtime value: $epp_boost" ;;
+  esac
+else
+  info "AMD P-State epp_boost runtime parameter is not exposed; boot argument and per-CPU EPP values are shown above"
 fi
 
 section "Summary"
