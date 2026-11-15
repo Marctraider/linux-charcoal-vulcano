@@ -145,7 +145,7 @@ _validate_kernel_config() {
     'CONFIG_NTSYNC=y' \
     'CONFIG_IO_DELAY_NONE=y' \
     'CONFIG_CPU_IDLE=y' \
-    'CONFIG_CPU_IDLE_GOV_NAP=y' \\
+    'CONFIG_CPU_IDLE_GOV_NAP=y' \
     'CONFIG_CPU_IDLE_GOV_TEO=y'; do
     if ! grep -qxF "$expected" .config; then
       echo "ERROR: Linux 7.3 configuration requires $expected after olddefconfig" >&2
