@@ -8,6 +8,8 @@ on:
       - 'install-charcoal.sh'
       - 'PKGBUILD'
       - 'tests/test-install-charcoal.sh'
+      - 'charcoal-status'
+      - 'tests/test-charcoal-status.py'
 
 permissions:
   contents: read
@@ -24,4 +26,6 @@ jobs:
         run: |
           set -Eeuo pipefail
           bash -n install-charcoal.sh
+          bash -n charcoal-status
           bash tests/test-install-charcoal.sh
+          python3 tests/test-charcoal-status.py
