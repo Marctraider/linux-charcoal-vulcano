@@ -1,0 +1,36 @@
+name: Validate SteamOS 3.10 NAP governor port
+
+on:
+  push:
+    branches:
+      - experiment/steamos-3.10-linux-7.3-nap
+    paths:
+      - 'PKGBUILD'
+      - 'config-charcoal'
+      - 'nap-6.12-v0.6.5.patch'
+      - 'automation/fix-nap-kernel-api.py'
+      - 'tests/test_nap_kernel_api.py'
+      - '.github/workflows/validate-nap-port-7.3.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  validate-nap-port:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: experiment/steamos-3.10-linux-7.3-nap
+      - name: Validate PKGBUILD syntax and pinned patch
+        run: |
+          set -Eeuo pipefail
+          bash -n PKGBUILD
+          echo '9baff430e13c423e06cb1edc85f74d297beeac5867b5863ab1cc769b2a168628  nap-6.12-v0.6.5.patch' | sha256sum --check
+          grep -q '^CONFIG_CPU_IDLE_GOV_NAP=y$' config-charcoal
+          grep -q "'CONFIG_CPU_IDLE_GOV_NAP=y'" PKGBUILD
+      - name: Test fail-closed NAP Linux API adaptation
+        run: |
+          set -Eeuo pipefail
+          python3 -m py_compile automation/fix-nap-kernel-api.py tests/test_nap_kernel_api.py
+          python3 tests/test_nap_kernel_api.py
