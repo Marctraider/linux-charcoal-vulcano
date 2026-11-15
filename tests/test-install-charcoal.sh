@@ -51,7 +51,8 @@ cat > "$tmp/bin/bsdtar" <<'EOF'
 #!/usr/bin/env bash
 case "$1" in
  -tf)
-   if [[ "$2" == *headers* ]]; then echo 'usr/lib/modules/7.3.1-neptune-73/build/.config'
+   if [[ "$2" == *headers* ]]; then
+     printf '%s\n' 'usr/lib/modules/7.3.1-neptune-73/build/.config' 'usr/lib/modules/7.3.1-neptune-73/build/Kconfig' 'usr/lib/modules/7.3.1-neptune-73/build/scripts/Kconfig'
    else printf '%s\n' 'usr/lib/modules/7.3.1-neptune-73/pkgbase' 'usr/lib/modules/7.3.1-neptune-73/vmlinuz'; fi;;
  -xOf)
    if [[ "$2" == *headers* ]]; then cat "$CONFIG_FIXTURE"; else echo 'linux-neptune-73'; fi;;
