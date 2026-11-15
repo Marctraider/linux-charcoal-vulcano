@@ -115,24 +115,6 @@ verify_existing_boot_state() {
   }
 }
 
-ensure_zswap_disabled_boot_parameter() {
-  local grub_defaults=${CHARCOAL_GRUB_DEFAULTS_FILE:-/etc/default/grub}
-  [[ -f "$grub_defaults" ]] || { info "error: GRUB defaults file is missing: $grub_defaults"; return 1; }
-  run_privileged cp -n -- "$grub_defaults" "$grub_defaults.charcoal-backup"
-  run_privileged sed -i -E '/^GRUB_CMDLINE_LINUX(_DEFAULT)?=/ s/[[:space:]]zswap[.]enabled=[^ "]+//g' "$grub_defaults"
-  if grep -q '^GRUB_CMDLINE_LINUX_DEFAULT=' "$grub_defaults"; then
-    run_privileged sed -i -E '/^GRUB_CMDLINE_LINUX_DEFAULT=/ s/"$/ zswap.enabled=0"/' "$grub_defaults"
-  elif grep -q '^GRUB_CMDLINE_LINUX=' "$grub_defaults"; then
-    run_privileged sed -i -E '/^GRUB_CMDLINE_LINUX=/ s/"$/ zswap.enabled=0"/' "$grub_defaults"
-  else
-    info "error: no supported GRUB_CMDLINE_LINUX assignment found in $grub_defaults"
-    return 1
-  fi
-  grep -Eq '^GRUB_CMDLINE_LINUX(_DEFAULT)?=.*zswap[.]enabled=0' "$grub_defaults" || {
-    info "error: failed to persist zswap.enabled=0 in $grub_defaults"
-    return 1
-  }
-}
 verify_grub_entry() {
   [[ -n "$GRUB_CONFIG" && -s "$GRUB_CONFIG" ]] || {
     info "error: generated GRUB configuration is missing"
@@ -144,10 +126,6 @@ verify_grub_entry() {
   }
   grep -Fq '/boot/initramfs-linux-neptune-73.img' "$GRUB_CONFIG" || {
     info "error: GRUB configuration does not reference the SteamOS 7.3 initramfs"
-    return 1
-  }
-  grep -Eq '(^|[[:space:]])zswap[.]enabled=0([[:space:]]|$)' "$GRUB_CONFIG" || {
-    info "error: generated GRUB configuration does not disable ZSWAP at boot"
     return 1
   }
 }
@@ -575,9 +553,8 @@ main() {
     die "Charcoal boot-image validation failed and automatic rollback was unsuccessful; do not reboot"
   fi
 
-  info "Persistently disabling kernel ZSWAP through the GRUB boot command line..."
-  info "Updating and verifying the SteamOS bootloader configuration..."
-  if ! ensure_zswap_disabled_boot_parameter || ! _update_grub || ! verify_grub_entry; then
+  info "Updating the SteamOS bootloader configuration..."
+  if ! _update_grub || ! verify_grub_entry; then
     if attempt_rollback; then
       die "Charcoal GRUB validation failed; the previous SteamOS kernel was restored"
     fi
