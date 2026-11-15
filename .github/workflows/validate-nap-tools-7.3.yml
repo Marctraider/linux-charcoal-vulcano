@@ -1,0 +1,34 @@
+name: Validate NAP tools integration
+
+on:
+  push:
+    branches:
+      - experiment/steamos-3.10-linux-7.3-nap
+    paths:
+      - 'nap-tools/**'
+      - 'nap-tools.tar.gz'
+      - 'tests/test_nap_tools.py'
+      - 'tests/test_nap_tools_refresh.py'
+      - '.github/workflows/validate-nap-tools-7.3.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  validate-nap-tools:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: experiment/steamos-3.10-linux-7.3-nap
+      - name: Run NAP persistence and packaging tests
+        run: |
+          set -Eeuo pipefail
+          python3 -m py_compile nap-tools/*.py tests/test_nap_tools.py tests/test_nap_tools_refresh.py
+          python3 tests/test_nap_tools.py
+          python3 tests/test_nap_tools_refresh.py
+      - name: Verify deterministic bootstrap archive
+        run: |
+          set -Eeuo pipefail
+          python3 nap-tools/make-archive.py
+          sha256sum nap-tools.tar.gz
