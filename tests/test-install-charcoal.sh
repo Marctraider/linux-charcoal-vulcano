@@ -184,6 +184,12 @@ grep -Fq 'verify_host_platform || die' "$INSTALLER" \
   || fail "installer does not enforce the SteamOS 3.10 target"
 grep -Fq 'verify_existing_boot_state || die' "$INSTALLER" \
   || fail "installer does not validate the pre-existing SteamOS boot chain before package changes"
+grep -Fq 'diagnose_boot_state()' "$INSTALLER" \
+  || fail "installer does not provide a read-only diagnostic mode"
+grep -Fq '"${1:-}" == "--check-only"' "$INSTALLER" \
+  || fail "installer does not expose the read-only --check-only option"
+grep -Fq 'diagnose_boot_state' "$INSTALLER" \
+  || fail "installer does not call its diagnostic routine"
 grep -Fq "verify_boot_artifacts || {" "$INSTALLER" \
   || fail "installer does not reject missing pre-install kernel/initramfs artifacts"
 grep -Fq "current GRUB config does not reference the SteamOS 7.3 kernel" "$INSTALLER" \
