@@ -59,8 +59,8 @@ class CharcoalStatusTests(unittest.TestCase):
     def test_build_config_is_not_misreported_as_runtime_activation(self):
         self.assertIn("build configuration only; not proof of runtime activation", SCRIPT)
         self.assertIn("compiled in; runtime activation is checked separately", SCRIPT)
-        self.assertIn("BORE and POC scheduler changes have no reliable standard sysfs", SCRIPT)
-        self.assertIn("LRU CAST has no reliable standard runtime status interface", SCRIPT)
+        self.assertIn("bore_sysctl=/proc/sys/kernel/sched_bore", SCRIPT)
+        self.assertIn("POC scheduler selector and LRU CAST have no verified runtime status interface", SCRIPT)
         self.assertIn("O3, Clang LTO and Polly are compile/link-time properties", SCRIPT)
 
     def test_adios_is_checked_on_every_eligible_block_device(self):
@@ -71,7 +71,7 @@ class CharcoalStatusTests(unittest.TestCase):
 
     def test_zswap_is_disabled_and_zram_ir_is_retained(self):
         self.assertIn("N|0) pass \"ZSWAP is disabled at runtime", SCRIPT)
-        self.assertIn("Y|1) fail \"ZSWAP is enabled at runtime (expected disabled)", SCRIPT)
+        self.assertIn("Y|1) fail \"ZSWAP is enabled at runtime (expected disabled for the CPU-focused profile)", SCRIPT)
         self.assertNotIn("/sys/module/zswap/parameters/compressor", SCRIPT)
         self.assertIn("/sys/module/zram", SCRIPT)
         self.assertIn("/proc/sys/vm/zram_recomp_immediate", SCRIPT)
