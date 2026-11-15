@@ -12,9 +12,6 @@ on:
       - '*.patch'
       - automation/**
       - nap-tools/**
-      - install-charcoal.sh
-      - README.md
-      - tests/test-install-charcoal.sh
       - .github/workflows/build-kernel-7.3.yml
 
 permissions:
