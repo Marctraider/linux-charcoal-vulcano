@@ -497,9 +497,6 @@ main() {
   # Charcoal packages are left in place; pacman -U upgrades them in-place.
   remove_packages=("${stock_packages[@]}")
   capture_rollback_packages remove_packages
-  if (( ${#remove_packages[@]} > 0 && ! ROLLBACK_READY )); then
-    die "Refusing to remove the stock kernel: exact rollback packages are not available in pacman's cache"
-  fi
   confirm_transaction "$release_tag" "${remove_packages[@]}"
 
   info "Making SteamOS writable for the package transaction..."
