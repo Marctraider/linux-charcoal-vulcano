@@ -3,7 +3,10 @@
 from pathlib import Path
 import unittest
 
-SCRIPT = (Path(__file__).resolve().parents[1] / "charcoal-status").read_text()
+ROOT = Path(__file__).resolve().parents[1]
+SCRIPT = (ROOT / "charcoal-status").read_text()
+PKGBUILD = (ROOT / "PKGBUILD").read_text()
+KERNEL_CONFIG = (ROOT / "config").read_text()
 
 
 class CharcoalStatusTests(unittest.TestCase):
@@ -66,12 +69,17 @@ class CharcoalStatusTests(unittest.TestCase):
         self.assertIn('grep -q \'\\[adios\\]\'', section)
         self.assertIn('adios_missing == 0', section)
 
-    def test_zswap_and_zram_are_checked_at_runtime(self):
-        self.assertIn('/sys/module/zswap/parameters/enabled', SCRIPT)
-        self.assertIn('/sys/module/zswap/parameters/compressor', SCRIPT)
-        self.assertIn('/sys/module/zram', SCRIPT)
-        self.assertIn('/proc/sys/vm/zram_recomp_immediate', SCRIPT)
-        self.assertIn('grep -Eq', SCRIPT)
+    def test_zswap_is_disabled_and_zram_ir_is_retained(self):
+        self.assertIn("N|0) pass \"ZSWAP is disabled at runtime", SCRIPT)
+        self.assertIn("Y|1) fail \"ZSWAP is enabled at runtime (expected disabled)", SCRIPT)
+        self.assertNotIn("/sys/module/zswap/parameters/compressor", SCRIPT)
+        self.assertIn("/sys/module/zram", SCRIPT)
+        self.assertIn("/proc/sys/vm/zram_recomp_immediate", SCRIPT)
+        self.assertIn("'# CONFIG_ZSWAP is not set'", PKGBUILD)
+        self.assertNotIn("'CONFIG_ZSWAP=y'", PKGBUILD)
+        self.assertIn("# CONFIG_ZSWAP is not set", KERNEL_CONFIG)
+        self.assertIn("CONFIG_ZRAM=m", KERNEL_CONFIG)
+        self.assertIn("CONFIG_ZRAM_MULTI_COMP=y", KERNEL_CONFIG)
 
     def test_amd_pstate_checks_runtime_epp_values_and_boost(self):
         self.assertIn('/sys/devices/system/cpu/amd_pstate/status', SCRIPT)
