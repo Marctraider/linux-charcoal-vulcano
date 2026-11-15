@@ -182,6 +182,14 @@ fi
 
 grep -Fq 'verify_host_platform || die' "$INSTALLER" \
   || fail "installer does not enforce the SteamOS 3.10 target"
+grep -Fq 'verify_existing_boot_state || die' "$INSTALLER" \
+  || fail "installer does not validate the pre-existing SteamOS boot chain before package changes"
+grep -Fq "verify_boot_artifacts || {" "$INSTALLER" \
+  || fail "installer does not reject missing pre-install kernel/initramfs artifacts"
+grep -Fq "current GRUB config does not reference the SteamOS 7.3 kernel" "$INSTALLER" \
+  || fail "installer does not check the pre-install GRUB kernel reference"
+grep -Fq "current GRUB config does not reference the SteamOS 7.3 initramfs" "$INSTALLER" \
+  || fail "installer does not check the pre-install GRUB initramfs reference"
 grep -Fq 'verify_kernel_package_identity packages' "$INSTALLER" \
   || fail "installer does not inspect the downloaded kernel package boot identity"
 grep -Fq 'package_base" == linux-neptune-73' "$INSTALLER" \
