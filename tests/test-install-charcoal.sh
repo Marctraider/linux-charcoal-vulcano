@@ -89,6 +89,9 @@ grep -Fq 'github.com/Marctraider/linux-charcoal-vulcano/releases/download/' "$IN
 grep -Fq 'RELEASE_TAG="steamos-3.10-linux-7.3-nap"' "$INSTALLER" || fail "NAP release tag"
 grep -Fq 'RELEASE_ARCHIVE="charcoal-steamos-3.10-linux-7.3-nap-build-77.zip"' "$INSTALLER" || fail "published release archive name"
 grep -Fq '395cf9671e6149f26695e69eeed2fb4c1ae59a63ab35ee005f9519ca8d8e0680' "$INSTALLER" || fail "published release ZIP checksum"
+grep -Fq 'cachebust=$(date +%s)' "$INSTALLER" || fail "release download must bypass cached signed redirects"
+grep -Fq "Cache-Control: no-cache" "$INSTALLER" || fail "release download must disable redirect caching"
+if grep -Eq '\\$\\{run_number\\}|\\$\\{build_commit' "$INSTALLER"; then fail "installer must not reference Actions-only build metadata"; fi
 if grep -Fq 'actions/artifacts/' "$INSTALLER"; then fail "installer must not use authenticated Actions artifact endpoint"; fi
 grep -Fq 'current_governor' "$INSTALLER" || fail "NAP runtime check"
 grep -Fq 'nap-state.service' "$INSTALLER" || fail "NAP restore service check"
