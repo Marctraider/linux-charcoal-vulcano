@@ -50,7 +50,7 @@ verify_host_platform() {
 }
 
 _update_grub() {
-  local steamos_efi_dir=${1:-/efi/EFI/steamos}
+  local steamos_efi_dir=${1:-/efi/EFI/SteamOS}
   # Prefer Valve's SteamOS wrapper so its EFI/GRUB integration is respected.
   if command -v steamos-update-grub >/dev/null 2>&1; then
     run_privileged steamos-update-grub
@@ -94,7 +94,7 @@ verify_existing_boot_state() {
     return 1
   }
   local grub=""
-  for candidate in /efi/EFI/steamos/grub.cfg /boot/grub/grub.cfg; do
+  for candidate in /efi/EFI/SteamOS/grub.cfg /efi/EFI/steamos/grub.cfg /boot/efi/EFI/SteamOS/grub.cfg /boot/efi/EFI/steamos/grub.cfg /boot/grub/grub.cfg; do
     if [[ -s "$candidate" ]]; then
       grub=$candidate
       break
@@ -547,7 +547,7 @@ diagnose_boot_state() {
     info "FAIL: Valve linux-neptune-73 package is missing"
     failures=$((failures + 1))
   fi
-  if pacman -Q linux-charcoal-73; then
+  if pacman -Q linux-charcoal-73 2>/dev/null; then
     info "INFO: Charcoal Linux 7.3 package is installed"
   else
     info "INFO: Charcoal Linux 7.3 package is not installed"
