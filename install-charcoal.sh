@@ -4,12 +4,12 @@
 set -Eeuo pipefail
 
 readonly REPOSITORY="Marctraider/linux-charcoal-vulcano"
-readonly RELEASES_API="https://api.github.com/repos/${REPOSITORY}/releases?per_page=100"
-readonly RELEASE_DOWNLOAD_PREFIX="https://github.com/${REPOSITORY}/releases/download/"
-readonly RELEASE_TAG_PREFIX="charcoal-"
-readonly NORMALIZER_URL="https://raw.githubusercontent.com/Marctraider/linux-charcoal-vulcano/4fe6d52a9589ef6dd0534c6ea6ac80e14418d893/automation/normalize-legacy-73-package.py"
-readonly RELEASE_ZIP_PREFIX="linux-charcoal-"
-readonly USER_AGENT="charcoal-73-installer"
+readonly WORKFLOW_RUNS_API="https://api.github.com/repos/${REPOSITORY}/actions/workflows/build-kernel-7.3.yml/runs?branch=experiment%2Fsteamos-3.10-linux-7.3-nap&status=success&per_page=30"
+readonly WORKFLOW_ARTIFACTS_API_PREFIX="https://api.github.com/repos/${REPOSITORY}/actions/runs/"
+readonly ARTIFACT_DOWNLOAD_PREFIX="https://api.github.com/repos/${REPOSITORY}/actions/artifacts/"
+readonly NAP_BRANCH="experiment/steamos-3.10-linux-7.3-nap"
+readonly ARTIFACT_NAME_PREFIX="charcoal-steamos-3.10-linux-7.3-nap-build-"
+readonly USER_AGENT="charcoal-73-nap-installer"
 
 WORKDIR=""
 MADE_ROOT_WRITABLE=0
@@ -449,40 +449,30 @@ main() {
   WORKDIR="$(mktemp -d "${TMPDIR:-/tmp}/charcoal-73-installer.XXXXXX")"
   trap cleanup EXIT
 
-  info "Fetching published Charcoal SteamOS 7.3 releases..."
-  curl --fail --silent --show-error --location --proto '=https' --proto-redir '=https' \
-    --retry 3 --connect-timeout 15 --header 'Accept: application/vnd.github+json' \
-    --header 'X-GitHub-Api-Version: 2022-11-28' --user-agent "$USER_AGENT" \
-    --output "$WORKDIR/releases.json" "$RELEASES_API"
-
-  local metadata
-  metadata="$(parse_release_metadata "$WORKDIR/releases.json")" || die "Could not identify a valid SteamOS 7.3 release"
-  local -a fields
-  mapfile -t fields <<< "$metadata"
-  (( ${#fields[@]} == 5 )) || die "Incomplete GitHub 7.3 release metadata"
-
-  local release_tag=${fields[0]} archive_name=${fields[1]} archive_url=${fields[2]}
-  local checksum_name=${fields[3]} checksum_url=${fields[4]}
-  local archive_path="$WORKDIR/$archive_name" checksum_path="$WORKDIR/$checksum_name" package_dir="$WORKDIR/packages"
-
-  info "Downloading ${release_tag}..."
-  download_file "$archive_url" "$archive_path"
-  download_file "$checksum_url" "$checksum_path"
-  info "Verifying release ZIP SHA-256..."
-  verify_release_archive "$archive_path" "$checksum_path" "$archive_name"
-  info "Extracting and verifying SteamOS 7.3 packages..."
-  extract_and_verify_packages "$archive_path" "$package_dir"
-
-  # r1 has the right 7.3 kernel payload but the wrong mkinitcpio pkgbase.
-  # Normalize only the marker and its package .MTREE record; kernel bytes remain untouched.
-  local normalizer="$WORKDIR/normalize-legacy-73-package.py"
-  download_file "$NORMALIZER_URL" "$normalizer"
-  local package
-  for package in "$package_dir"/linux-charcoal-73-*.pkg.tar.zst; do
-    [[ "$package" == *-headers-* ]] && continue
-    info "Correcting and verifying the r1 SteamOS boot identity in the local package copy..."
-    python3 "$normalizer" "$package" || die "Could not safely normalize the downloaded 7.3 kernel package"
-  done
+  info "Finding latest successful NAP-branch Linux 7.3 build..."
+  curl --fail --silent --show-error --location --proto '=https' --proto-redir '=https' --retry 3 --connect-timeout 15 \
+    --header 'Accept: application/vnd.github+json' --header 'X-GitHub-Api-Version: 2022-11-28' --user-agent "$USER_AGENT" \
+    --output "$WORKDIR/workflow-runs.json" "$WORKFLOW_RUNS_API"
+  local run_metadata
+  run_metadata="$(select_latest_nap_run "$WORKDIR/workflow-runs.json")" || die "No successful NAP build found"
+  local -a run_fields
+  mapfile -t run_fields <<< "$run_metadata"
+  (( ${#run_fields[@]} == 3 )) || die "Incomplete NAP workflow metadata"
+  local run_id=${run_fields[0]} run_number=${run_fields[1]} build_commit=${run_fields[2]}
+  curl --fail --silent --show-error --location --proto '=https' --proto-redir '=https' --retry 3 --connect-timeout 15 \
+    --header 'Accept: application/vnd.github+json' --header 'X-GitHub-Api-Version: 2022-11-28' --user-agent "$USER_AGENT" \
+    --output "$WORKDIR/artifacts.json" "${WORKFLOW_ARTIFACTS_API_PREFIX}${run_id}/artifacts"
+  local artifact_metadata
+  artifact_metadata="$(select_nap_artifact "$WORKDIR/artifacts.json" "$run_number")" || die "NAP build artifact not found"
+  local -a artifact_fields
+  mapfile -t artifact_fields <<< "$artifact_metadata"
+  (( ${#artifact_fields[@]} == 2 )) || die "Incomplete NAP artifact metadata"
+  local artifact_url=${artifact_fields[1]}
+  local archive_path="$WORKDIR/nap-build.zip" package_dir="$WORKDIR/packages"
+  info "Downloading NAP build #${run_number} (${build_commit:0:12})..."
+  download_file "$artifact_url" "$archive_path"
+  info "Verifying NAP package checksums..."
+  extract_and_verify_nap_artifact "$archive_path" "$package_dir"
 
   local -a packages
   mapfile -d '' -t packages < <(find "$package_dir" -maxdepth 1 -type f -name 'linux-charcoal-*.pkg.tar.zst' -print0 | sort -z)
@@ -504,8 +494,10 @@ main() {
   local -a stock_packages remove_packages
   mapfile -t stock_packages < <(select_stock_kernel "$installed_file" "$pkgbase")
 
-  if ! grep -Fxq 'linux-neptune-73' "$installed_file"; then
-    die "The Valve linux-neptune-73 stock kernel is not installed; refusing to replace an unknown or already-broken boot setup"
+  local charcoal_installed=0
+  if grep -Fxq 'linux-charcoal-73' "$installed_file"; then charcoal_installed=1; fi
+  if ! grep -Fxq 'linux-neptune-73' "$installed_file" && (( ! charcoal_installed )); then
+    die "Neither Valve linux-neptune-73 nor an existing Charcoal 7.3 kernel is installed; refusing an unknown boot setup"
   fi
 
   verify_existing_boot_state || die "Existing SteamOS boot state is not healthy; no package changes were made"
@@ -514,7 +506,7 @@ main() {
   # packages alongside it. Only a confirmed, explicit pacman disk-space failure
   # permits removal of the matching stock kernel.
   remove_packages=("${stock_packages[@]}")
-  confirm_transaction "$release_tag"
+  confirm_transaction "NAP build #${run_number} (${build_commit:0:12})"
 
   info "Making SteamOS writable for the package transaction..."
   run_privileged steamos-readonly disable
@@ -560,7 +552,7 @@ main() {
     fi
     die "Charcoal GRUB validation failed and automatic rollback was unsuccessful; do not reboot"
   fi
-  info "Charcoal SteamOS 7.3 ${release_tag} installed; kernel, initramfs and GRUB references verified."
+  info "Charcoal SteamOS 3.10 / Linux 7.3 NAP build #${run_number} (${build_commit:0:12}) installed; kernel, initramfs and GRUB references verified."
   info "Reboot only after the installer reports all three boot checks passed."
 }
 
