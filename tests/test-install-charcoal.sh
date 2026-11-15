@@ -36,8 +36,16 @@ EOF
 mkdir -p "$tmp/bin"
 cat > "$tmp/bin/pacman" <<'EOF'
 #!/usr/bin/env bash
-[[ "$1" == "-Qp" ]] || exit 2
-case "$2" in *headers*) echo 'linux-charcoal-73-headers 7.3.1.valve2.cc1-1';; *) echo 'linux-charcoal-73 7.3.1.valve2.cc1-1';; esac
+case "$1" in
+ -Qp)
+   case "$2" in
+     *headers*) echo 'linux-charcoal-73-headers 7.3.1.valve2.cc1-1';;
+     *) echo 'linux-charcoal-73 7.3.1.valve2.cc1-1';;
+   esac;;
+ -Qq)
+   [[ "${CHARCOAL_TEST_INSTALLED:-0}" == "1" && "$2" == "linux-charcoal-73" ]];;
+ *) exit 2;;
+esac
 EOF
 cat > "$tmp/bin/bsdtar" <<'EOF'
 #!/usr/bin/env bash
@@ -53,6 +61,8 @@ EOF
 chmod +x "$tmp/bin/pacman" "$tmp/bin/bsdtar"
 touch "$tmp/linux-charcoal-73.pkg.tar.zst" "$tmp/linux-charcoal-73-headers.pkg.tar.zst"
 package_files=("$tmp/linux-charcoal-73.pkg.tar.zst" "$tmp/linux-charcoal-73-headers.pkg.tar.zst")
+if PATH="$tmp/bin:$PATH" charcoal_upgrade_installed; then fail "missing Charcoal package treated as an upgrade"; fi
+CHARCOAL_TEST_INSTALLED=1 PATH="$tmp/bin:$PATH" charcoal_upgrade_installed || fail "installed Charcoal package not detected for in-place upgrade"
 PATH="$tmp/bin:$PATH" CONFIG_FIXTURE="$tmp/kernel.config" verify_kernel_package_identity package_files || fail "valid NAP package identity/config rejected"
 if PATH="$tmp/bin:$PATH" charcoal_upgrade_installed; then fail "missing Charcoal package treated as an upgrade"; fi
 CHARCOAL_TEST_INSTALLED=1 PATH="$tmp/bin:$PATH" charcoal_upgrade_installed || fail "installed Charcoal package not detected for in-place upgrade"
