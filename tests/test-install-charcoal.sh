@@ -16,6 +16,46 @@ printf 'ID=steamos\nVERSION_ID=3.10\n' > "$tmp/os-release"
 verify_host_platform "$tmp/os-release" || fail "SteamOS 3.10 host"
 sed 's/3.10/3.9.5/' "$tmp/os-release" > "$tmp/old"
 if verify_host_platform "$tmp/old" >/dev/null 2>&1; then fail "unsupported SteamOS accepted"; fi
+
+cat > "$tmp/kernel.config" <<'EOF'
+CONFIG_CPU_IDLE_GOV_NAP=y
+CONFIG_CPU_IDLE_GOV_TEO=y
+CONFIG_CMDLINE="amd_pstate.epp_boost=1 mitigations=off cpuidle.governor=nap"
+CONFIG_BTRFS_FS=y
+CONFIG_ZRAM=m
+CONFIG_ZSMALLOC=m
+CONFIG_ZRAM_DEF_COMP_LZ4=y
+CONFIG_ZRAM_MULTI_COMP=y
+CONFIG_ZRAM_DEF_COMP="lz4"
+CONFIG_SCHED_BORE=y
+CONFIG_SCHED_POC_SELECTOR=y
+CONFIG_LRU_CAST=y
+CONFIG_NTSYNC=y
+# CONFIG_ZSWAP is not set
+EOF
+mkdir -p "$tmp/bin"
+cat > "$tmp/bin/pacman" <<'EOF'
+#!/usr/bin/env bash
+[[ "$1" == "-Qp" ]] || exit 2
+case "$2" in *headers*) echo 'linux-charcoal-73-headers 7.3.1.valve2.cc1-1';; *) echo 'linux-charcoal-73 7.3.1.valve2.cc1-1';; esac
+EOF
+cat > "$tmp/bin/bsdtar" <<'EOF'
+#!/usr/bin/env bash
+case "$1" in
+ -tf)
+   if [[ "$2" == *headers* ]]; then echo 'usr/lib/modules/7.3.1-neptune-73/build/.config'
+   else printf '%s\n' 'usr/lib/modules/7.3.1-neptune-73/pkgbase' 'usr/lib/modules/7.3.1-neptune-73/vmlinuz'; fi;;
+ -xOf)
+   if [[ "$2" == *headers* ]]; then cat "$CONFIG_FIXTURE"; else echo 'linux-neptune-73'; fi;;
+ *) exit 2;;
+esac
+EOF
+chmod +x "$tmp/bin/pacman" "$tmp/bin/bsdtar"
+touch "$tmp/linux-charcoal-73.pkg.tar.zst" "$tmp/linux-charcoal-73-headers.pkg.tar.zst"
+package_files=("$tmp/linux-charcoal-73.pkg.tar.zst" "$tmp/linux-charcoal-73-headers.pkg.tar.zst")
+PATH="$tmp/bin:$PATH" CONFIG_FIXTURE="$tmp/kernel.config" verify_kernel_package_identity package_files || fail "valid NAP package identity/config rejected"
+grep -v 'CONFIG_CPU_IDLE_GOV_NAP=y' "$tmp/kernel.config" > "$tmp/kernel-bad.config"
+if ( PATH="$tmp/bin:$PATH" CONFIG_FIXTURE="$tmp/kernel-bad.config" verify_kernel_package_identity package_files >/dev/null 2>&1 ); then fail "package without NAP governor accepted"; fi
 cat > "$tmp/runs.json" <<'EOF'
 {"workflow_runs":[
 {"id":1,"run_number":1,"head_branch":"validation/steamos-3.10-linux-7.3","status":"completed","conclusion":"success","path":".github/workflows/build-kernel-7.3.yml","head_sha":"bad"},
@@ -40,6 +80,7 @@ with zipfile.ZipFile(sys.argv[1], "w", zipfile.ZIP_DEFLATED) as z:
     for name, value in files.items(): z.writestr(name, value)
     z.writestr("logs/SHA256SUMS-73", manifest)
     z.writestr("logs/makepkg-73.log", "build log")
+    z.writestr("logs/prepare-73.log", "Applying nap-6.12-v0.6.5.patch\nint drm_sched_policy = DRM_SCHED_POLICY_RR;\n")
     z.writestr("logs/nap-tools-upstream.json", "{}")
 PY
 extract_and_verify_nap_artifact "$tmp/nap-artifact.zip" "$tmp/unpacked" || fail "verified artifact extraction"
