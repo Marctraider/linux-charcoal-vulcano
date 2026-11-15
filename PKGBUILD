@@ -37,7 +37,6 @@ makedepends=(
   # Charcoal: We build on LLVM
   llvm
   clang
-  ccache
   lld
 )
 options=(
@@ -45,19 +44,15 @@ options=(
   !strip
 )
 
-# Charcoal: use ccache when available without making it mandatory for local builds.
-_ccache_prefix=
-if command -v ccache >/dev/null 2>&1; then
-  _ccache_prefix='ccache '
-fi
-
+# Use Clang directly for both target and host tools. ccache is intentionally
+# omitted: the sandboxed build user may not have a writable cache directory.
 _make_llvm() {
   # Valve 7.3 no longer exposes the old x86-64 MZEN2 Kconfig selector.
   # Apply the Steam Deck's Zen 2 target directly to kernel compilation.
   make LLVM=1 KCFLAGS="${KCFLAGS:+$KCFLAGS }-march=znver2" \
-    CC="${_ccache_prefix}clang" \
-    HOSTCC="${_ccache_prefix}clang" \
-    HOSTCXX="${_ccache_prefix}clang++" \
+    CC=clang \
+    HOSTCC=clang \
+    HOSTCXX=clang++ \
     "$@"
 }
 _srcname=archlinux-linux-charcoal
@@ -131,7 +126,7 @@ _validate_kernel_config() {
     'CONFIG_SCHED_BORE=y' \
     'CONFIG_SCHED_POC_SELECTOR=y' \
     '# CONFIG_ZSWAP is not set' \
-    'CONFIG_ZSMALLOC=y' \
+    'CONFIG_ZSMALLOC=m' \
     'CONFIG_ZRAM=m' \
     'CONFIG_ZRAM_DEF_COMP_LZ4=y' \
     'CONFIG_ZRAM_MULTI_COMP=y' \
