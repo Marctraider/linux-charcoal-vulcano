@@ -233,9 +233,9 @@ for scheduler_file in /sys/block/*/queue/scheduler; do
   [[ -r "$scheduler_file" ]] || continue
   scheduler_devices=$((scheduler_devices + 1))
   schedulers=$(<"$scheduler_file")
-  if grep -qw adios <<< "$schedulers"; then
+    grep -q '\[adios\]' <<< "$schedulers" && adios_selected=$((adios_selected + 1))
     adios_available=$((adios_available + 1))
-    grep -q '\[adios\\]' <<< "$schedulers" && adios_selected=$((adios_selected + 1))
+    grep -q '\[adios\]' <<< "$schedulers" && adios_selected=$((adios_selected + 1))
   fi
 done
 if (( adios_selected > 0 )); then
@@ -278,7 +278,7 @@ for zram_dir in /sys/block/zram[0-9]*; do
   recomp=""
   [[ -r "$zram_dir/comp_algorithm" ]] && comp=$(<"$zram_dir/comp_algorithm")
   [[ -r "$zram_dir/recomp_algorithm" ]] && recomp=$(<"$zram_dir/recomp_algorithm")
-  if grep -q '\[lz4\\]' <<< "$comp" && grep -Eq '\[algo=zstd\\]|\[zstd\\]|algo=zstd' <<< "$recomp"; then
+  if grep -q '\[lz4\]' <<< "$comp" && grep -Eq '\[algo=zstd\]|\[zstd\]|algo=zstd' <<< "$recomp"; then
     zram_ready=$((zram_ready + 1))
     pass "$(basename "$zram_dir") uses LZ4 primary compression and ZSTD recompression"
   else
