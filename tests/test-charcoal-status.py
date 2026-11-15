@@ -23,7 +23,7 @@ class CharcoalStatusTests(unittest.TestCase):
         self.assertIn('BUILD_DIR="$CHARCOAL_MODULE_DIR/build"', SCRIPT)
 
     def test_nap_disabled_is_informational_not_a_failure(self):
-        nap_section = SCRIPT.split('section "NAP cpuidle governor"', 1)[1].split('section "ADIOS I/O scheduler"', 1)[0]
+        nap_section = SCRIPT.split('section "NAP cpuidle governor"', 1)[1].split('section "ADIOS I/O scheduler (runtime)"', 1)[0]
         self.assertIn('info "NAP cpuidle governor is disabled in this build', nap_section)
         self.assertIn('info "NAP is not exposed by the running kernel', nap_section)
         self.assertNotIn('fail "NAP', nap_section)
@@ -37,7 +37,7 @@ class CharcoalStatusTests(unittest.TestCase):
         self.assertIn("generated compile.h unavailable", SCRIPT)
 
     def test_scheduler_patterns_match_bracketed_active_values(self):
-        self.assertIn('if grep -qw adios <<< "$schedulers"; then', SCRIPT)
+        self.assertIn('grep -qw adios <<< "$schedulers"', SCRIPT)
         self.assertIn("grep -q '\\[adios\\]'", SCRIPT)
         self.assertIn("grep -q '\\[lz4\\]'", SCRIPT)
 
