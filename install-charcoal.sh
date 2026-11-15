@@ -95,7 +95,7 @@ verify_existing_boot_state() {
   }
   local grub=""
   for candidate in /efi/EFI/SteamOS/grub.cfg /efi/EFI/steamos/grub.cfg /boot/efi/EFI/SteamOS/grub.cfg /boot/efi/EFI/steamos/grub.cfg /boot/grub/grub.cfg; do
-    if [[ -s "$candidate" ]]; then
+    if run_privileged test -s "$candidate"; then
       grub=$candidate
       break
     fi
@@ -104,11 +104,11 @@ verify_existing_boot_state() {
     info "error: no existing SteamOS GRUB configuration found; installation aborted without changes"
     return 1
   }
-  grep -Fq '/boot/vmlinuz-linux-neptune-73' "$grub" || {
+  run_privileged grep -Fq '/boot/vmlinuz-linux-neptune-73' "$grub" || {
     info "error: current GRUB config does not reference the SteamOS 7.3 kernel; installation aborted"
     return 1
   }
-  grep -Fq '/boot/initramfs-linux-neptune-73.img' "$grub" || {
+  run_privileged grep -Fq '/boot/initramfs-linux-neptune-73.img' "$grub" || {
     info "error: current GRUB config does not reference the SteamOS 7.3 initramfs; installation aborted"
     return 1
   }
@@ -576,8 +576,8 @@ diagnose_boot_state() {
     failures=$((failures + 1))
   fi
 
-  for candidate in /efi/EFI/steamos/grub.cfg /boot/grub/grub.cfg; do
-    if [[ -s "$candidate" ]]; then
+  for candidate in /efi/EFI/SteamOS/grub.cfg /efi/EFI/steamos/grub.cfg /boot/efi/EFI/SteamOS/grub.cfg /boot/efi/EFI/steamos/grub.cfg /boot/grub/grub.cfg; do
+    if run_privileged test -s "$candidate"; then
       grub=$candidate
       break
     fi
@@ -587,8 +587,8 @@ diagnose_boot_state() {
     failures=$((failures + 1))
   else
     info "GRUB config: $grub"
-    if grep -Fq '/boot/vmlinuz-linux-neptune-73' "$grub" &&
-       grep -Fq '/boot/initramfs-linux-neptune-73.img' "$grub"; then
+    if run_privileged grep -Fq '/boot/vmlinuz-linux-neptune-73' "$grub" &&
+       run_privileged grep -Fq '/boot/initramfs-linux-neptune-73.img' "$grub"; then
       info "PASS: GRUB references both expected SteamOS 7.3 boot artifacts"
     else
       info "FAIL: GRUB is missing one or both expected SteamOS 7.3 boot references"
