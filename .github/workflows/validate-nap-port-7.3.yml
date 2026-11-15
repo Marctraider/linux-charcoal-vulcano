@@ -48,7 +48,7 @@ jobs:
         run: |
           set -Eeuo pipefail
           curl --fail --silent --show-error --location --head \
-            https://steamdeck-packages.steamos.cloud/archlinux-mirror/sources/jupiter-3.10/valve-source.tar.gz \
+            https://steamdeck-packages.steamos.cloud/archlinux-mirror/sources/jupiter-3.10/linux-neptune-73-7.3.1.valve2-1.src.tar.gz \
             | tee "$RUNNER_TEMP/valve-source-headers.txt"
           grep -qi '^HTTP/.* 200' "$RUNNER_TEMP/valve-source-headers.txt"
           grep -qi '^content-length:' "$RUNNER_TEMP/valve-source-headers.txt"
