@@ -530,6 +530,87 @@ main() {
   info "Reboot only after the installer reports all three boot checks passed."
 }
 
+diagnose_boot_state() {
+  local failures=0 grub="" module_marker="" marker_found=0
+
+  info "Read-only SteamOS 3.10 / Charcoal 7.3 diagnostic"
+  if verify_host_platform; then
+    info "PASS: host is SteamOS 3.10"
+  else
+    info "FAIL: host is not supported"
+    failures=$((failures + 1))
+  fi
+
+  if pacman -Q linux-neptune-73; then
+    info "PASS: Valve linux-neptune-73 package is installed"
+  else
+    info "FAIL: Valve linux-neptune-73 package is missing"
+    failures=$((failures + 1))
+  fi
+  if pacman -Q linux-charcoal-73; then
+    info "INFO: Charcoal Linux 7.3 package is installed"
+  else
+    info "INFO: Charcoal Linux 7.3 package is not installed"
+  fi
+
+  if verify_boot_artifacts; then
+    info "PASS: mkinitcpio preset, kernel image and initramfs are present"
+  else
+    info "FAIL: one or more expected SteamOS 7.3 boot artifacts are missing"
+    failures=$((failures + 1))
+  fi
+
+  while IFS= read -r module_marker; do
+    [[ -r "$module_marker" ]] || continue
+    local marker_value
+    marker_value="$(<"$module_marker")"
+    info "Module marker: $module_marker = $marker_value"
+    if [[ "$marker_value" == linux-neptune-73 ]]; then
+      marker_found=1
+    fi
+  done < <(find /usr/lib/modules -mindepth 2 -maxdepth 2 -type f -name pkgbase -print 2>/dev/null)
+  if (( marker_found )); then
+    info "PASS: installed module pkgbase matches linux-neptune-73"
+  else
+    info "FAIL: no installed module pkgbase matches linux-neptune-73"
+    failures=$((failures + 1))
+  fi
+
+  for candidate in /efi/EFI/steamos/grub.cfg /boot/grub/grub.cfg; do
+    if [[ -s "$candidate" ]]; then
+      grub=$candidate
+      break
+    fi
+  done
+  if [[ -z "$grub" ]]; then
+    info "FAIL: no standard SteamOS GRUB config was found"
+    failures=$((failures + 1))
+  else
+    info "GRUB config: $grub"
+    if grep -Fq '/boot/vmlinuz-linux-neptune-73' "$grub" &&
+       grep -Fq '/boot/initramfs-linux-neptune-73.img' "$grub"; then
+      info "PASS: GRUB references both expected SteamOS 7.3 boot artifacts"
+    else
+      info "FAIL: GRUB is missing one or both expected SteamOS 7.3 boot references"
+      failures=$((failures + 1))
+    fi
+  fi
+
+  info "Boot filesystem space:"
+  df -h /boot / 2>/dev/null || true
+  if (( failures > 0 )); then
+    info "Diagnostic result: $failures check(s) failed. No changes were made."
+    return 1
+  fi
+  info "Diagnostic result: all required checks passed. No changes were made."
+}
+
 if [[ "${BASH_SOURCE[0]}" == "$0" ]]; then
-  main "$@"
+  if [[ "${1:-}" == "--check-only" ]]; then
+    diagnose_boot_state
+  elif (( $# > 0 )); then
+    die "Unknown option: $1 (supported: --check-only)"
+  else
+    main
+  fi
 fi
