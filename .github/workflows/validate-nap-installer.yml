@@ -1,0 +1,30 @@
+name: Validate SteamOS 3.10 Charcoal NAP installer
+
+on:
+  push:
+    branches:
+      - experiment/steamos-3.10-linux-7.3-nap
+    paths:
+      - 'install-charcoal.sh'
+      - 'PKGBUILD'
+      - 'tests/test-install-charcoal.sh'
+      - '.github/workflows/validate-nap-installer.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  validate-nap-installer:
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Check out NAP experiment branch
+        uses: actions/checkout@v4
+        with:
+          ref: experiment/steamos-3.10-linux-7.3-nap
+      - name: Validate installer syntax and regression tests
+        run: |
+          set -Eeuo pipefail
+          bash -n install-charcoal.sh
+          bash -n linux-charcoal-73.install
+          bash tests/test-install-charcoal.sh
