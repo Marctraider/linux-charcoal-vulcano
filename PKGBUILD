@@ -69,7 +69,6 @@ source=(
   90-charcoal-zram.conf
   90-charcoal-zram-ir.conf
   vangogh_allow_higher_cpu_freq.patch
-  re-swappiness-v1.2_backported.patch
   latest-lru_cast.patch
   latest-zram-ir.patch
   latest-amd-pstate-epp-02-cache-order.patch
@@ -95,7 +94,6 @@ sha256sums=(
   'b59543c9aac43412e8b90b050380f482214ab33c4703d621ff0ea91ea39c6761'
   '07068c432fd7e80689f44a28346f1909de9ee77aa3e72dfaa6a4ea89d9921afd'
   '1a6f9d691612c4a729032273199d17756dd6666d85019655bd95ea24eff59cac'
-  '35dd98092d6900962dd98fa28fbccbdff07e67eafed5088fecac67b1cbfdfdd8' # Re-swappiness v1.2 upstream patch
   'f13ac591211d3af128f55f91658a98173472e5866d0cfcf7c730bd887cbf8271'
   '1620f45f0fbab1173c8693a2afc0ada37920c78fdde2d0cbff6afe28545128f4'
   '454f353669c81b5e214e5b71327ed5735733e6bd9f5671e710520a2c3e455cb6'
@@ -185,12 +183,6 @@ prepare() {
         ;;
       latest-zen-02.patch)
         python3 "$startdir/automation/port-zen-cpufreq-7.3.py" "../$src" drivers/cpufreq/Kconfig.x86
-        ;;
-      re-swappiness-v1.2_backported.patch)
-        # Upstream distributes this as diff -Nru rather than git-format.
-        sed '/^Binärdateien /d; /^Binary files /d' "../$src" > "$srcdir/re-swappiness.normalized.patch"
-        patch --dry-run --batch --forward -p1 < "$srcdir/re-swappiness.normalized.patch"
-        patch --batch --forward -p1 < "$srcdir/re-swappiness.normalized.patch"
         ;;
       nap-6.12-v0.6.5.patch)
         git apply --check --whitespace=nowarn "../$src"
