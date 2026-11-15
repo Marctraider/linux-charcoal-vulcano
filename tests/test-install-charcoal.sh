@@ -186,6 +186,12 @@ grep -Fq 'verify_existing_boot_state || die' "$INSTALLER" \
   || fail "installer does not validate the pre-existing SteamOS boot chain before package changes"
 grep -Fq 'diagnose_boot_state()' "$INSTALLER" \
   || fail "installer does not provide a read-only diagnostic mode"
+grep -Fq 'pacman -Q linux-charcoal-73 2>/dev/null' "$INSTALLER" \
+  || fail "diagnostic leaks pacman not-installed errors for the optional Charcoal package"
+grep -Fq '/efi/EFI/SteamOS/grub.cfg' "$INSTALLER" \
+  || fail "installer does not check SteamOS's canonical uppercase EFI GRUB path"
+grep -Fq '/boot/efi/EFI/SteamOS/grub.cfg' "$INSTALLER" \
+  || fail "installer does not check the mounted-EFI SteamOS GRUB path"
 grep -Fq '"${1:-}" == "--check-only"' "$INSTALLER" \
   || fail "installer does not expose the read-only --check-only option"
 grep -Fq 'diagnose_boot_state' "$INSTALLER" \
