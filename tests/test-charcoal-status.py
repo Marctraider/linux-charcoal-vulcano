@@ -1,7 +1,6 @@
 #!/usr/bin/env python3
 """Regression checks for the Charcoal status script's series and optional-feature handling."""
 from pathlib import Path
-import re
 import unittest
 
 SCRIPT = (Path(__file__).resolve().parents[1] / "charcoal-status").read_text()
@@ -38,6 +37,7 @@ class CharcoalStatusTests(unittest.TestCase):
         self.assertIn("generated compile.h unavailable", SCRIPT)
 
     def test_scheduler_patterns_match_bracketed_active_values(self):
+        self.assertIn('if grep -qw adios <<< "$schedulers"; then', SCRIPT)
         self.assertIn("grep -q '\\[adios\\]'", SCRIPT)
         self.assertIn("grep -q '\\[lz4\\]'", SCRIPT)
 
