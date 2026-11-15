@@ -43,13 +43,16 @@ Steam Input and Valve's in-tree Steam Deck/controller support remain inherited f
 
 **Important:** this command downloads and executes the 7.3 installer from this validation branch. It does not compile the kernel on the Steam Deck. The installer selects the newest published, non-draft, non-prerelease Linux 7.3 release at revision r2 or newer. It deliberately rejects the known-broken r1 package. It does not use the repository-wide latest release, which could belong to another kernel series.
 
-Run on SteamOS 3.10:
+First run the read-only diagnostic on SteamOS 3.10:
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/Marctraider/linux-charcoal-vulcano/validation/steamos-3.10-linux-7.3/install-charcoal.sh -o install-charcoal-73.sh && bash install-charcoal-73.sh
+curl -fsSL https://raw.githubusercontent.com/Marctraider/linux-charcoal-vulcano/validation/steamos-3.10-linux-7.3/install-charcoal.sh -o install-charcoal-73.sh
+bash install-charcoal-73.sh --check-only
 ```
 
-Read the installer's confirmation prompts before accepting package changes. The installer checks the existing boot chain first and aborts if any expected boot file or GRUB reference is missing. It then removes the matching SteamOS 7.3 stock kernel and headers; this also removes the stock-kernel fallback. Do not treat this as safe for routine use until a corrected package has passed a full install and boot test on a Steam Deck.
+The `--check-only` mode checks the SteamOS version, installed kernel packages, mkinitcpio preset, kernel image, initramfs, module `pkgbase`, GRUB references and free space. It does not install/remove packages, write files, regenerate initramfs, change GRUB, or reboot. Share its complete output before attempting installation.
+
+**Do not run the installer without `--check-only` yet.** The current install transaction still removes the stock SteamOS 7.3 kernel and therefore removes the stock-kernel fallback. That destructive step has not been replaced with a verified dual-boot/recovery arrangement, and no corrected r2 package has been built or boot-tested.
 
 ### CPU vulnerability mitigations
 
