@@ -557,78 +557,55 @@ main() {
 }
 
 diagnose_boot_state() {
-  local failures=0 grub="" module_marker="" marker_found=0
-
-  info "Read-only SteamOS 3.10 / Charcoal 7.3 diagnostic"
-  if verify_host_platform; then
-    info "PASS: host is SteamOS 3.10"
-  else
-    info "FAIL: host is not supported"
-    failures=$((failures + 1))
-  fi
-
-  if pacman -Q linux-neptune-73; then
-    info "PASS: Valve linux-neptune-73 package is installed"
-  else
-    info "FAIL: Valve linux-neptune-73 package is missing"
-    failures=$((failures + 1))
-  fi
-  if pacman -Q linux-charcoal-73 2>/dev/null; then
-    info "INFO: Charcoal Linux 7.3 package is installed"
-  else
-    info "INFO: Charcoal Linux 7.3 package is not installed"
-  fi
-
-  if verify_boot_artifacts; then
-    info "PASS: mkinitcpio preset, kernel image and initramfs are present"
-  else
-    info "FAIL: one or more expected SteamOS 7.3 boot artifacts are missing"
-    failures=$((failures + 1))
-  fi
-
-  while IFS= read -r module_marker; do
-    [[ -r "$module_marker" ]] || continue
-    local marker_value
-    marker_value="$(<"$module_marker")"
-    info "Module marker: $module_marker = $marker_value"
-    if [[ "$marker_value" == linux-neptune-73 ]]; then
-      marker_found=1
-    fi
+  local failures=0 grub="" marker_found=0
+  info "Read-only SteamOS 3.10 / Charcoal Linux 7.3 NAP diagnostic"
+  if verify_host_platform; then info "PASS: SteamOS 3.10"; else info "FAIL: unsupported host"; failures=$((failures+1)); fi
+  if pacman -Q linux-charcoal-73 2>/dev/null; then info "PASS: Charcoal 7.3 installed"
+  elif pacman -Q linux-neptune-73 2>/dev/null; then info "INFO: Valve 7.3 installed; Charcoal not installed"
+  else info "FAIL: neither Valve nor Charcoal 7.3 installed"; failures=$((failures+1)); fi
+  if verify_boot_artifacts; then info "PASS: preset, kernel and initramfs present"; else info "FAIL: expected boot artifacts missing"; failures=$((failures+1)); fi
+  local marker marker_value
+  while IFS= read -r marker; do
+    [[ -r "$marker" ]] || continue
+    marker_value="$(<"$marker")"
+    [[ "$marker_value" == linux-neptune-73 ]] && marker_found=1
   done < <(find /usr/lib/modules -mindepth 2 -maxdepth 2 -type f -name pkgbase -print 2>/dev/null)
-  if (( marker_found )); then
-    info "PASS: installed module pkgbase matches linux-neptune-73"
-  else
-    info "FAIL: no installed module pkgbase matches linux-neptune-73"
-    failures=$((failures + 1))
-  fi
-
+  if (( marker_found )); then info "PASS: module pkgbase linux-neptune-73"; else info "FAIL: module pkgbase mismatch"; failures=$((failures+1)); fi
+  local cfg="" cfgfile=""
+  if [[ -r /proc/config.gz ]] && command -v zcat >/dev/null 2>&1; then cfg="$(zcat /proc/config.gz 2>/dev/null || true)"
+  elif [[ -r "/boot/config-$(uname -r)" ]]; then cfgfile="/boot/config-$(uname -r)"
+  elif [[ -r "/usr/lib/modules/$(uname -r)/build/.config" ]]; then cfgfile="/usr/lib/modules/$(uname -r)/build/.config"; fi
+  [[ -n "$cfgfile" ]] && cfg="$(<"$cfgfile")"
+  if [[ -n "$cfg" ]]; then
+    local expected
+    for expected in CONFIG_CPU_IDLE_GOV_NAP=y CONFIG_BTRFS_FS=y CONFIG_ZRAM=m; do
+      if grep -qxF "$expected" <<< "$cfg"; then info "PASS: $expected"; else info "FAIL: missing $expected"; failures=$((failures+1)); fi
+    done
+    grep -qxF '# CONFIG_ZSWAP is not set' <<< "$cfg" && info "PASS: ZSWAP disabled" || info "WARN: ZSWAP state not confirmed"
+  else info "WARN: running kernel config unavailable; compile-time settings not checked"; fi
+  local governor_file=/sys/devices/system/cpu/cpuidle/current_governor
+  if [[ -r "$governor_file" ]]; then
+    local governor; governor="$(<"$governor_file")"
+    if [[ "$governor" == nap ]]; then info "PASS: NAP active"; else info "FAIL: active CPUIdle governor is $governor"; failures=$((failures+1)); fi
+  else info "WARN: CPUIdle governor sysfs state unavailable"; fi
+  local drm_file=/sys/module/drm/parameters/sched_policy
+  if [[ -r "$drm_file" ]]; then
+    local policy; policy="$(<"$drm_file")"
+    if [[ "$policy" == 1 || "$policy" == RR || "$policy" == rr ]]; then info "PASS: DRM Round Robin policy"; else info "FAIL: DRM policy is $policy"; failures=$((failures+1)); fi
+  else info "WARN: DRM scheduler policy is not exposed; RR cannot be verified at runtime"; fi
+  if [[ -x /usr/lib/nap/configure-services ]]; then
+    info "PASS: NAP userspace helper installed"
+    systemctl is-enabled nap-persist.service >/dev/null 2>&1 && info "PASS: NAP persistence service enabled" || info "WARN: NAP persistence service not enabled"
+  else info "FAIL: NAP userspace helper missing"; failures=$((failures+1)); fi
   for candidate in /efi/EFI/SteamOS/grub.cfg /efi/EFI/steamos/grub.cfg /boot/efi/EFI/SteamOS/grub.cfg /boot/efi/EFI/steamos/grub.cfg /boot/grub/grub.cfg; do
-    if run_privileged test -s "$candidate"; then
-      grub=$candidate
-      break
-    fi
+    if run_privileged test -s "$candidate"; then grub=$candidate; break; fi
   done
-  if [[ -z "$grub" ]]; then
-    info "FAIL: no standard SteamOS GRUB config was found"
-    failures=$((failures + 1))
-  else
-    info "GRUB config: $grub"
-    if run_privileged grep -Fq '/boot/vmlinuz-linux-neptune-73' "$grub" &&
-       run_privileged grep -Fq '/boot/initramfs-linux-neptune-73.img' "$grub"; then
-      info "PASS: GRUB references both expected SteamOS 7.3 boot artifacts"
-    else
-      info "FAIL: GRUB is missing one or both expected SteamOS 7.3 boot references"
-      failures=$((failures + 1))
-    fi
-  fi
-
-  info "Boot filesystem space:"
+  if [[ -z "$grub" ]]; then info "FAIL: no standard GRUB config"; failures=$((failures+1))
+  elif run_privileged grep -Fq '/boot/vmlinuz-linux-neptune-73' "$grub" && run_privileged grep -Fq '/boot/initramfs-linux-neptune-73.img' "$grub"; then info "PASS: GRUB references 7.3 kernel and initramfs"
+  else info "FAIL: GRUB references missing 7.3 boot files"; failures=$((failures+1)); fi
   df -h /boot / 2>/dev/null || true
-  if (( failures > 0 )); then
-    info "Diagnostic result: $failures check(s) failed. No changes were made."
-    return 1
-  fi
-  info "Diagnostic result: all required checks passed. No changes were made."
+  if (( failures )); then info "Diagnostic result: $failures failure(s); no changes made"; return 1; fi
+  info "Diagnostic result: checks passed; review WARN lines. No changes made"
 }
 
 if [[ "${BASH_SOURCE[0]}" == "$0" ]]; then
