@@ -192,6 +192,10 @@ grep -Fq '/efi/EFI/SteamOS/grub.cfg' "$INSTALLER" \
   || fail "installer does not check SteamOS's canonical uppercase EFI GRUB path"
 grep -Fq '/boot/efi/EFI/SteamOS/grub.cfg' "$INSTALLER" \
   || fail "installer does not check the mounted-EFI SteamOS GRUB path"
+grep -Fq 'if run_privileged test -s "$candidate"; then' "$INSTALLER" \
+  || fail "installer does not check root-owned EFI GRUB configs with privileges"
+grep -Fq "run_privileged grep -Fq '/boot/vmlinuz-linux-neptune-73' \"\$grub\"" "$INSTALLER" \
+  || fail "installer does not read root-owned GRUB config with privileges"
 grep -Fq '"${1:-}" == "--check-only"' "$INSTALLER" \
   || fail "installer does not expose the read-only --check-only option"
 grep -Fq 'diagnose_boot_state' "$INSTALLER" \
