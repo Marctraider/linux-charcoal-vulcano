@@ -30,7 +30,7 @@ NAP changes CPU idle-state selection. It is not a scheduler or GPU-frequency boo
 
 GitHub Actions builds this branch only. The workflow downloads and verifies the exact Valve source archive, checks out the pinned Valve source commit, applies the NAP and DRM RR changes, resolves the kernel config, compiles with Clang/LLVM and packages kernel plus headers.
 
-The successful build is published as the [SteamOS 3.10 – Linux 7.3 NAP GitHub Release](https://github.com/Marctraider/linux-charcoal-vulcano/releases/tag/steamos-3.10-linux-7.3-nap). The release contains the complete build ZIP and its `RELEASE-ZIP-SHA256SUM` checksum file. Verify the ZIP against that checksum before extracting it; the ZIP contains the kernel and headers packages, package SHA-256 manifest, build log and NAP upstream provenance. The published ZIP SHA-256 is `395cf9671e6149f26695e69eeed2fb4c1ae59a63ab35ee005f9519ca8d8e0680`. The installer continues to select the latest successful run of this branch's dedicated workflow and verify package checksums before pacman runs; it does not download from GitHub Releases.
+The successful build is published as the [SteamOS 3.10 – Linux 7.3 NAP GitHub Release](https://github.com/Marctraider/linux-charcoal-vulcano/releases/tag/steamos-3.10-linux-7.3-nap). The release contains the complete build ZIP and its `RELEASE-ZIP-SHA256SUM` checksum file. Verify the ZIP against that checksum before extracting it; the ZIP contains the kernel and headers packages, package SHA-256 manifest, build log and NAP upstream provenance. The published ZIP SHA-256 is `395cf9671e6149f26695e69eeed2fb4c1ae59a63ab35ee005f9519ca8d8e0680`. The installer downloads the published build-77 ZIP directly from the public GitHub Release asset URL, verifies the published ZIP SHA-256 and then verifies the individual package checksums before pacman runs. It does not use the GitHub Actions artifact API, so the Steam Deck does not need a GitHub login or token.
 
 A green build proves compilation and packaging only. It does not prove Steam Deck boot, Btrfs root mounting on a particular installation, or performance benefit.
 
@@ -51,7 +51,7 @@ If the checks pass, run the installer interactively:
 bash install-charcoal.sh
 ```
 
-The installer finds the latest successful NAP build artifact and verifies its package checksums, linux-neptune-73 boot identity, required kernel configuration (NAP, TEO fallback, Btrfs, ZRAM/LZ4, BORE, POC Selector, LRU CAST and NTSYNC), and build-log evidence for the DRM Round Robin default.
+The installer downloads the published NAP release bundle (currently build 77) and verifies its ZIP checksum, package checksums, linux-neptune-73 boot identity, required kernel configuration (NAP, TEO fallback, Btrfs, ZRAM/LZ4, BORE, POC Selector, LRU CAST and NTSYNC), and build-log evidence for the DRM Round Robin default. It uses the public release download URL, not the authenticated GitHub Actions artifact endpoint.
 
 For an existing linux-charcoal-73 installation, it takes the short upgrade path: pacman replaces the kernel and headers together in one transaction. It does not run the fresh-install boot-chain preflight, calculate free space, or remove the stock kernel during this upgrade. It then regenerates initramfs and GRUB and checks the expected boot references.
 
