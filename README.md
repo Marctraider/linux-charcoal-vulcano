@@ -30,7 +30,7 @@ NAP changes CPU idle-state selection. It is not a scheduler or GPU-frequency boo
 
 GitHub Actions builds this branch only. The workflow downloads and verifies the exact Valve source archive, checks out the pinned Valve source commit, applies the NAP and DRM RR changes, resolves the kernel config, compiles with Clang/LLVM and packages kernel plus headers.
 
-The build artifact contains the two packages, a SHA-256 manifest, build log and NAP upstream provenance. The installer should select the latest successful run of this branch's dedicated workflow and verify package checksums before pacman runs. It does not use GitHub Releases.
+The build artifact contains the two packages, a SHA-256 manifest, build log and NAP upstream provenance. The installer selects the latest successful run of this branch's dedicated workflow and verifies package checksums before pacman runs. It does not use GitHub Releases.
 
 A green build proves compilation and packaging only. It does not prove Steam Deck boot, Btrfs root mounting on a particular installation, or performance benefit.
 
@@ -51,7 +51,7 @@ If the checks pass, run the installer interactively:
 bash install-charcoal-73-nap.sh
 ```
 
-The intended NAP installer workflow is to find the latest successful NAP build artifact, verify package checksums and linux-neptune-73 package identity, check the existing boot chain, install the packages, regenerate initramfs and GRUB, and verify boot references. It should preserve the Valve stock kernel where possible and only consider removing matching stock 7.3 packages after a pacman disk-space failure and explicit confirmation. It must not reboot automatically.
+The installer finds the latest successful NAP build artifact, verifies package checksums and linux-neptune-73 package identity, checks the existing boot chain, installs the packages, regenerates initramfs and GRUB, and verifies boot references. It supports upgrading an existing linux-charcoal-73 package and saves its cached package for best-effort rollback. It preserves the Valve stock kernel where possible and only considers removing matching stock 7.3 packages after a pacman disk-space failure and explicit confirmation. It does not reboot automatically.
 
 Rollback after a failed post-install check depends on exact previous packages being available in pacman's cache; it is not guaranteed. Do not reboot unless the installer reports that kernel image, initramfs and GRUB checks passed.
 
