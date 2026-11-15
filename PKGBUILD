@@ -83,6 +83,7 @@ source=(
   latest-zen-02.patch
   zstd-crypto-default-level-1.patch
   nap-6.12-v0.6.5.patch
+  nap-tools.tar.gz
 )
 sha256sums=(
   'a6316acc22954d0685ac923248995246789a1f3b5ee6890d378ce2c3efa25af8' # Valve linux-neptune-73 7.3.1.valve2-1 source archive
@@ -106,6 +107,7 @@ sha256sums=(
   '5059762e54c8dbe4262d48eafb8d486a54244eec71da5d7b61fc0f5f1c5c2ea7'
   '8c35a18407440f543518e383a96f8098438c3cbe4ea034241fb9a7fe8f7be129'
   '4d4ac50ba014de33638a2efe9c6adc507b888c6d090aa29ea17b2a4686de4e07' # firelzrd/nap v0.6.5, pinned upstream commit 5092cfdbc615f2e1626e68ab03d3d9730364bcbd
+  '2f8c55a6ab9edb5ca08db326cd6aad1de8819f25352aec5247ea84827d305186' # deterministic NAP tools integration bootstrap
 )
 export KBUILD_BUILD_HOST=archlinux
 export KBUILD_BUILD_USER=$pkgbase
@@ -190,6 +192,11 @@ prepare() {
         ;;
     esac
   done
+
+  echo "Refreshing NAP userspace tools..."
+  python3 "$srcdir/nap-tools/refresh-tools.py" \
+    --output "$srcdir/nap-tools-latest" \
+    --record "$srcdir/nap-tools-upstream.json"
 
   python3 "$startdir/automation/configure-zen-interactive.py" "$PWD"
   python3 "$startdir/automation/fix-gud-tv-mode-fortify.py" \
@@ -320,6 +327,13 @@ _package() {
   install -D -m 0644 ../90-charcoal-zram-ir.conf \
     "$pkgdir/usr/lib/systemd/system/systemd-zram-setup@.service.d/90-charcoal-zram-ir.conf"
 
+  echo "Installing NAP learning persistence tools..."
+  python3 "$srcdir/nap-tools-latest/install-tools.py" \
+    --source-dir "$srcdir/nap-tools-latest" \
+    --destdir "$pkgdir" \
+    --kernel-dir "$PWD/drivers/cpuidle/governors/nap" \
+    --require-resolved
+
   # remove build link
   rm "$modulesdir"/build
 }
@@ -439,12 +453,15 @@ _package-docs() {
 #  "$pkgbase-docs"
 #)
 pkgname=("$pkgbase" "$pkgbase-headers")
-for _p in "${pkgname[@]}"; do
-  eval "package_$_p() {
-    $(declare -f "_package${_p#$pkgbase}")
-    _package${_p#$pkgbase}
-  }"
-done
+package_linux-charcoal-73() {
+  install=linux-charcoal-73.install
+  _package
+}
+
+package_linux-charcoal-73-headers() {
+  install=
+  _package-headers
+}
 
 # vim:set ts=8 sts=2 sw=2 et:
 
