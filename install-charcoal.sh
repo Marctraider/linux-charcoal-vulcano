@@ -324,8 +324,8 @@ extract_and_verify_nap_artifact() {
 import hashlib,re,stat,sys,zipfile
 from pathlib import Path,PurePosixPath
 archive,dest=Path(sys.argv[1]),Path(sys.argv[2])
-pkg=re.compile(r"linux-charcoal-73(?:-headers)?-[^/\\\\\\x00\\r\\n]+\\.pkg\\.tar\\.zst")
-sum_re=re.compile(r"([0-9a-fA-F]{64}) [ *](linux-charcoal-73(?:-headers)?-[^/\\\\\\x00\\r\\n]+\\.pkg\\.tar\\.zst)")
+pkg=re.compile(r"linux-charcoal-73(?:-headers)?-[A-Za-z0-9._+-]+\.pkg\.tar\.zst")
+sum_re=re.compile(r"([0-9a-fA-F]{64}) [ *](linux-charcoal-73(?:-headers)?-[A-Za-z0-9._+-]+\.pkg\.tar\.zst)")
 with zipfile.ZipFile(archive) as z:
  infos=z.infolist(); names=[x.filename for x in infos]
  if len(names)!=len(set(names)): raise SystemExit("Duplicate artifact paths")
