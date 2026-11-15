@@ -35,7 +35,7 @@ EOF
 ensure_zswap_disabled_boot_parameter || fail "could not set the persistent ZSWAP boot parameter"
 [[ "$(grep -c 'zswap.enabled=0' "$CHARCOAL_GRUB_DEFAULTS_FILE")" -eq 1 ]] || fail "ZSWAP-off parameter was not written exactly once"
 ! grep -q 'zswap.enabled=1' "$CHARCOAL_GRUB_DEFAULTS_FILE" || fail "conflicting ZSWAP-on parameter remains"
-grep -q 'zswap.enabled=0' "$CHARCOAL_GRUB_DEFAULTS_FILE.charcoal-backup" || fail "original GRUB defaults were not backed up"
+grep -q 'zswap.enabled=1' "$CHARCOAL_GRUB_DEFAULTS_FILE.charcoal-backup" || fail "original GRUB defaults were not backed up"
 ensure_zswap_disabled_boot_parameter || fail "second ZSWAP configuration pass failed"
 [[ "$(grep -c 'zswap.enabled=0' "$CHARCOAL_GRUB_DEFAULTS_FILE")" -eq 1 ]] || fail "ZSWAP boot parameter is not idempotent"
 unset CHARCOAL_GRUB_DEFAULTS_FILE
