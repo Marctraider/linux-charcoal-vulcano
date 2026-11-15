@@ -11,8 +11,8 @@ import tarfile
 import tempfile
 from pathlib import Path
 
-OLD = b"linux-charcoal-73\\n"
-NEW = b"linux-neptune-73\\n"
+OLD = b"linux-charcoal-73\n"
+NEW = b"linux-neptune-73\n"
 
 
 def main(path):
@@ -32,7 +32,7 @@ def main(path):
             if len(names) != len(set(names)):
                 raise SystemExit("normalizer: duplicate package paths")
             info = src.extractfile(".PKGINFO")
-            if info is None or b"pkgname = linux-charcoal-73\\n" not in info.read():
+            if info is None or b"pkgname = linux-charcoal-73\n" not in info.read():
                 raise SystemExit("normalizer: unexpected package identity")
             markers = [m for m in members if m.name.startswith("usr/lib/modules/") and m.name.endswith("/pkgbase")]
             if len(markers) != 1 or ".MTREE" not in names:
@@ -51,16 +51,16 @@ def main(path):
                 raise SystemExit("normalizer: missing or duplicate pkgbase .MTREE record")
             i = matches[0]
             line = lines[i]
-            if not re.search(r"\\bsize=18\\b", line) or not re.search(r"\\bsha256digest=[0-9a-f]{64}\\b", line):
+            if not re.search(r"\bsize=18\b", line) or not re.search(r"\bsha256digest=[0-9a-f]{64}\b", line):
                 raise SystemExit("normalizer: unexpected pkgbase .MTREE format")
-            line = re.sub(r"\\bsize=18\\b", "size=17", line, count=1)
-            line = re.sub(r"\\bsha256digest=[0-9a-f]{64}\\b",
+            line = re.sub(r"\bsize=18\b", "size=17", line, count=1)
+            line = re.sub(r"\bsha256digest=[0-9a-f]{64}\b",
                           "sha256digest=" + hashlib.sha256(NEW).hexdigest(), line, count=1)
             if "md5digest=" in line:
-                line = re.sub(r"\\bmd5digest=[0-9a-f]{32}\\b",
+                line = re.sub(r"\bmd5digest=[0-9a-f]{32}\b",
                               "md5digest=" + hashlib.md5(NEW).hexdigest(), line, count=1)
             lines[i] = line
-            new_mtree = gzip.compress(("\\n".join(lines) + "\\n").encode(), mtime=0)
+            new_mtree = gzip.compress(("\n".join(lines) + "\n").encode(), mtime=0)
             with tarfile.open(rewritten, "w:", format=tarfile.GNU_FORMAT) as dst:
                 for member in members:
                     if member.name == marker.name:
