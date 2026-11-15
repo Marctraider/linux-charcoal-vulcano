@@ -39,7 +39,7 @@ jobs:
         run: |
           set -Eeuo pipefail
           git clone --filter=blob:none --depth=1 --branch v7.3 https://github.com/torvalds/linux.git "$RUNNER_TEMP/linux-7.3"
-          git -C "$RUNNER_TEMP/linux-7.3" sparse-checkout set drivers/cpuidle include/linux/cpuidle.h include/linux/sysfs.h include/linux/kernel_stat.h arch/x86/include/asm/hardirq.h
+          git -C "$RUNNER_TEMP/linux-7.3" sparse-checkout set drivers/cpuidle include/linux arch/x86/include/asm
           git -C "$RUNNER_TEMP/linux-7.3" apply --check --whitespace=nowarn "$GITHUB_WORKSPACE/nap-6.12-v0.6.5.patch"
           git -C "$RUNNER_TEMP/linux-7.3" apply --whitespace=nowarn "$GITHUB_WORKSPACE/nap-6.12-v0.6.5.patch"
           python3 automation/fix-nap-kernel-api.py "$RUNNER_TEMP/linux-7.3/drivers/cpuidle/governors/nap/nap.c"
