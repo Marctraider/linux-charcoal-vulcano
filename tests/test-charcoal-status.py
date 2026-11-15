@@ -53,6 +53,31 @@ class CharcoalStatusTests(unittest.TestCase):
         self.assertIn('if (( MITIGATIONS_OFF )); then', security)
         self.assertNotIn('fail "CPU mitigation framework is compiled in (CONFIG_CPU_MITIGATIONS=y)', security)
 
+    def test_build_config_is_not_misreported_as_runtime_activation(self):
+        self.assertIn("build configuration only; not proof of runtime activation", SCRIPT)
+        self.assertIn("compiled in; runtime activation is checked separately", SCRIPT)
+        self.assertIn("BORE and POC scheduler changes have no reliable standard sysfs", SCRIPT)
+        self.assertIn("LRU CAST has no reliable standard runtime status interface", SCRIPT)
+        self.assertIn("O3, Clang LTO and Polly are compile/link-time properties", SCRIPT)
+
+    def test_adios_is_checked_on_every_eligible_block_device(self):
+        section = SCRIPT.split('section "ADIOS I/O scheduler (runtime)"', 1)[1].split('section "ZRAM / ZSWAP runtime activation"', 1)[0]
+        self.assertIn('[[ "$block_name" == loop* || "$block_name" == zram* ]] && continue', section)
+        self.assertIn('grep -q \'\\[adios\\]\'', section)
+        self.assertIn('adios_missing == 0', section)
+
+    def test_zswap_and_zram_are_checked_at_runtime(self):
+        self.assertIn('/sys/module/zswap/parameters/enabled', SCRIPT)
+        self.assertIn('/sys/module/zswap/parameters/compressor', SCRIPT)
+        self.assertIn('/sys/module/zram', SCRIPT)
+        self.assertIn('/proc/sys/vm/zram_recomp_immediate', SCRIPT)
+        self.assertIn('grep -Eq', SCRIPT)
+
+    def test_amd_pstate_checks_runtime_epp_values_and_boost(self):
+        self.assertIn('/sys/devices/system/cpu/amd_pstate/status', SCRIPT)
+        self.assertIn('energy_performance_preference', SCRIPT)
+        self.assertIn('/sys/module/amd_pstate/parameters/epp_boost', SCRIPT)
+
 
 if __name__ == "__main__":
     unittest.main(verbosity=2)
