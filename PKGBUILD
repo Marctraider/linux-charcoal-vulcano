@@ -118,7 +118,7 @@ _validate_kernel_config() {
     'CONFIG_X86_AMD_PSTATE=y' \
     'CONFIG_X86_AMD_PSTATE_DEFAULT_MODE=3' \
     'CONFIG_CMDLINE_BOOL=y' \
-    'CONFIG_CMDLINE="amd_pstate.epp_boost=1 mitigations=off"' \
+    'CONFIG_CMDLINE="amd_pstate.epp_boost=1 mitigations=off cpuidle.governor=nap"' \
     'CONFIG_CC_OPTIMIZE_FOR_PERFORMANCE_O3=y' \
     'CONFIG_LTO_CLANG_FULL=y' \
     'CONFIG_POLLY_CLANG=y' \
