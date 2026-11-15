@@ -48,7 +48,7 @@ bash install-charcoal.sh --check-only
 If the checks pass, run the installer interactively:
 
 ```bash
-bash install-charcoal-73-nap.sh
+bash install-charcoal.sh
 ```
 
 The installer finds the latest successful NAP build artifact and verifies its package checksums, linux-neptune-73 boot identity, required kernel configuration (NAP, TEO fallback, Btrfs, ZRAM/LZ4, BORE, POC Selector, LRU CAST and NTSYNC), and build-log evidence for the DRM Round Robin default.
