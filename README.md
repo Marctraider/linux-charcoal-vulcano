@@ -30,7 +30,7 @@ The intended kernel-side features retained in this port are:
 
 ### Memory compression policy
 
-For an already-installed kernel that was built with ZSWAP default-on, add `zswap.enabled=0` to the kernel command line to disable it at boot without rebuilding; this boot parameter overrides `CONFIG_ZSWAP_DEFAULT_ON`. Verify after reboot with `cat /sys/module/zswap/parameters/enabled` (expected: `N`).
+The 7.3 installer automatically adds `zswap.enabled=0` to `/etc/default/grub` before regenerating GRUB, so an already-built kernel is configured to start with ZSWAP disabled without rebuilding. The installer backs up the original file as `/etc/default/grub.charcoal-backup`, removes conflicting `zswap.enabled` values, and verifies that the generated GRUB entry contains the setting. For a kernel already installed before this installer change, add `zswap.enabled=0` to the GRUB kernel command line manually or rerun the updated installer. Verify after reboot with `cat /sys/module/zswap/parameters/enabled` (expected: `N`).
 
 ZRAM-IR remains enabled as the swap device for memory-pressure protection. Kernel ZSWAP is disabled in the 7.3 build configuration: it adds a second compressed-swap cache path, while the Steam Deck configuration prioritizes ZRAM and CPU time for games. ZSWAP's ZSTD compressor selection is therefore removed rather than retained as an inactive backend. ZRAM still performs compression when pages are actually swapped; this is not a guarantee of higher FPS, and the aim is to avoid ZSWAP's additional work rather than eliminate all compression overhead.
 
