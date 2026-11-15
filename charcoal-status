@@ -319,32 +319,12 @@ fi
 if [[ -r /sys/module/zswap/parameters/enabled ]]; then
   zswap_enabled=$(</sys/module/zswap/parameters/enabled)
   case "$zswap_enabled" in
-    Y|1) pass "ZSWAP is enabled at runtime" ;;
-    N|0) fail "ZSWAP is disabled at runtime (expected enabled)" ;;
+    N|0) pass "ZSWAP is disabled at runtime (intended; ZRAM-IR remains available)" ;;
+    Y|1) fail "ZSWAP is enabled at runtime (expected disabled for the CPU-focused profile)" ;;
     *) warn "Unrecognized ZSWAP runtime state: $zswap_enabled" ;;
   esac
 else
-  warn "ZSWAP runtime enabled parameter is unavailable"
-fi
-if [[ -r /sys/module/zswap/parameters/compressor ]]; then
-  zswap_compressor=$(</sys/module/zswap/parameters/compressor)
-  if [[ "$zswap_compressor" == "zstd" ]]; then
-    pass "ZSWAP runtime compressor is zstd"
-  else
-    warn "ZSWAP runtime compressor is $zswap_compressor (expected zstd)"
-  fi
-else
-  warn "ZSWAP compressor runtime parameter is unavailable"
-fi
-if [[ -r /sys/module/zswap/parameters/shrinker_enabled ]]; then
-  zswap_shrinker=$(</sys/module/zswap/parameters/shrinker_enabled)
-  case "$zswap_shrinker" in
-    Y|1) pass "ZSWAP shrinker is enabled at runtime" ;;
-    N|0) warn "ZSWAP shrinker is disabled at runtime" ;;
-    *) info "ZSWAP shrinker runtime state: $zswap_shrinker" ;;
-  esac
-else
-  info "ZSWAP shrinker runtime parameter is not exposed by this kernel"
+  info "ZSWAP runtime control is unavailable; build configuration determines whether support is present"
 fi
 
 section "ZRAM-IR (runtime)"
