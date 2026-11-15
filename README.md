@@ -51,7 +51,7 @@ If the checks pass, run the installer interactively:
 bash install-charcoal-73-nap.sh
 ```
 
-The installer finds the latest successful NAP build artifact, verifies package checksums and linux-neptune-73 package identity, checks the existing boot chain, installs the packages, regenerates initramfs and GRUB, and verifies boot references. It supports upgrading an existing linux-charcoal-73 package and saves its cached package for best-effort rollback. It preserves the Valve stock kernel where possible and only considers removing matching stock 7.3 packages after a pacman disk-space failure and explicit confirmation. It does not reboot automatically.
+The installer finds the latest successful NAP build artifact, verifies package checksums, the linux-neptune-73 package identity, the packaged kernel configuration (NAP, TEO fallback, Btrfs, ZRAM/LZ4, BORE, POC Selector, LRU CAST and NTSYNC), and the build log evidence for the DRM Round Robin source default, then checks the existing boot chain, installs the packages, regenerates initramfs and GRUB, and verifies boot references. It supports upgrading an existing linux-charcoal-73 package and saves its cached package for best-effort rollback. It preserves the Valve stock kernel where possible and only considers removing matching stock 7.3 packages after a pacman disk-space failure and explicit confirmation. It does not reboot automatically.
 
 Rollback after a failed post-install check depends on exact previous packages being available in pacman's cache; it is not guaranteed. Do not reboot unless the installer reports that kernel image, initramfs and GRUB checks passed.
 
