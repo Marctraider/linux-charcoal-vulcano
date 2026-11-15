@@ -26,7 +26,7 @@ jobs:
         run: |
           set -Eeuo pipefail
           bash -n PKGBUILD
-          sha256sum nap-6.12-v0.6.5.patch
+          echo '4d4ac50ba014de33638a2efe9c6adc507b888c6d090aa29ea17b2a4686de4e07  nap-6.12-v0.6.5.patch' | sha256sum --check
           grep -q '^CONFIG_CPU_IDLE_GOV_NAP=y$' config-charcoal
           grep -q "'CONFIG_CPU_IDLE_GOV_NAP=y'" PKGBUILD
       - name: Test fail-closed NAP Linux API adaptation
@@ -34,3 +34,12 @@ jobs:
           set -Eeuo pipefail
           python3 -m py_compile automation/fix-nap-kernel-api.py tests/test_nap_kernel_api.py
           python3 tests/test_nap_kernel_api.py
+      - name: Check patch application against upstream Linux 7.3 sources
+        run: |
+          set -Eeuo pipefail
+          git clone --filter=blob:none --depth=1 --branch v7.3 https://github.com/torvalds/linux.git "$RUNNER_TEMP/linux-7.3"
+          git -C "$RUNNER_TEMP/linux-7.3" sparse-checkout set drivers/cpuidle
+          git -C "$RUNNER_TEMP/linux-7.3" apply --check --whitespace=nowarn "$GITHUB_WORKSPACE/nap-6.12-v0.6.5.patch"
+          git -C "$RUNNER_TEMP/linux-7.3" apply --whitespace=nowarn "$GITHUB_WORKSPACE/nap-6.12-v0.6.5.patch"
+          python3 automation/fix-nap-kernel-api.py "$RUNNER_TEMP/linux-7.3/drivers/cpuidle/governors/nap/nap.c"
+          grep -q 'config CPU_IDLE_GOV_NAP' "$RUNNER_TEMP/linux-7.3/drivers/cpuidle/Kconfig"
