@@ -250,15 +250,19 @@ if [[ -n "$CONFIG_FILE" ]]; then
   fi
 fi
 
-section "NAP cpuidle governor"
+section "NAP cpuidle governor and TEO fallback"
 if [[ -z "$CONFIG_FILE" ]]; then
-  warn "NAP governor build option cannot be checked without the kernel .config"
-elif config_enabled CONFIG_CPU_IDLE_GOV_NAP; then
-  info "NAP cpuidle governor is built into the kernel; actual availability/selection is checked below"
-elif config_disabled CONFIG_CPU_IDLE_GOV_NAP; then
-  info "NAP cpuidle governor is disabled in this build (expected for the current 7.3 configuration)"
+  warn "NAP and TEO build options cannot be checked without the kernel .config"
 else
-  info "NAP cpuidle governor option is absent from this kernel config"
+  for symbol in CONFIG_CPU_IDLE_GOV_NAP CONFIG_CPU_IDLE_GOV_TEO; do
+    if config_enabled "$symbol"; then
+      pass "$symbol is enabled in the kernel config"
+    elif config_disabled "$symbol"; then
+      fail "$symbol is disabled; the NAP build requires both NAP and TEO fallback"
+    else
+      warn "$symbol is absent from the selected kernel config"
+    fi
+  done
 fi
 governor_file=/sys/devices/system/cpu/cpuidle/current_governor
 available_file=/sys/devices/system/cpu/cpuidle/available_governors
@@ -266,12 +270,33 @@ if [[ -r "$available_file" ]] && grep -qw nap "$available_file"; then
   if [[ -r "$governor_file" && "$(<"$governor_file")" == "nap" ]]; then
     pass "NAP is the active cpuidle governor"
   else
-    info "NAP is available but not selected"
+    warn "NAP is available but not selected (active: $(<"$governor_file" 2>/dev/null || echo unknown))"
   fi
 elif [[ -r "$governor_file" ]]; then
-  info "NAP is not exposed by the running kernel (expected because the governor was removed)"
+  warn "NAP is not available in the running kernel (active governor: $(<"$governor_file")); boot the NAP kernel to activate it"
 else
-  info "cpuidle governor sysfs interface is unavailable"
+  warn "cpuidle governor sysfs interface is unavailable; NAP runtime state cannot be verified"
+fi
+
+section "DRM scheduler Round Robin"
+drm_policy_file=/sys/module/drm/parameters/sched_policy
+if [[ -r "$drm_policy_file" ]]; then
+  drm_policy=$(<"$drm_policy_file")
+  case "$drm_policy" in
+    1|RR|rr) pass "DRM scheduler Round Robin policy is active ($drm_policy)" ;;
+    *) fail "DRM scheduler policy is $drm_policy (expected Round Robin / 1)" ;;
+  esac
+else
+  info "DRM scheduler policy parameter is not exposed by this running kernel; Round Robin runtime state cannot be verified"
+fi
+
+section "NAP userspace integration"
+if [[ -x /usr/lib/nap/configure-services ]]; then
+  pass "NAP userspace service configuration helper is installed"
+  systemctl is-enabled nap-state.service >/dev/null 2>&1 && pass "NAP state restore service is enabled" || warn "NAP state restore service is not enabled"
+  systemctl is-enabled nap-state-save.timer >/dev/null 2>&1 && pass "NAP periodic state-save timer is enabled" || warn "NAP periodic state-save timer is not enabled"
+else
+  warn "NAP userspace helper is not installed"
 fi
 
 section "ADIOS I/O scheduler (runtime)"
