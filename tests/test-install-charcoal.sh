@@ -68,19 +68,6 @@ if PATH="$tmp/bin:$PATH" charcoal_upgrade_installed; then fail "missing Charcoal
 CHARCOAL_TEST_INSTALLED=1 PATH="$tmp/bin:$PATH" charcoal_upgrade_installed || fail "installed Charcoal package not detected for in-place upgrade"
 grep -v 'CONFIG_CPU_IDLE_GOV_NAP=y' "$tmp/kernel.config" > "$tmp/kernel-bad.config"
 if ( PATH="$tmp/bin:$PATH" CONFIG_FIXTURE="$tmp/kernel-bad.config" verify_kernel_package_identity package_files >/dev/null 2>&1 ); then fail "package without NAP governor accepted"; fi
-cat > "$tmp/runs.json" <<'EOF'
-{"workflow_runs":[
-{"id":1,"run_number":1,"head_branch":"validation/steamos-3.10-linux-7.3","status":"completed","conclusion":"success","path":".github/workflows/build-kernel-7.3.yml","head_sha":"bad"},
-{"id":2,"run_number":2,"head_branch":"experiment/steamos-3.10-linux-7.3-nap","status":"completed","conclusion":"failure","path":".github/workflows/build-kernel-7.3.yml","head_sha":"bad"},
-{"id":3,"run_number":3,"head_branch":"experiment/steamos-3.10-linux-7.3-nap","status":"completed","conclusion":"success","path":".github/workflows/build-kernel-7.3.yml","head_sha":"abc123"}]}
-EOF
-mapfile -t run < <(select_latest_nap_run "$tmp/runs.json")
-[[ "${run[0]}" == 3 && "${run[1]}" == 3 && "${run[2]}" == abc123 ]] || fail "successful NAP workflow selection"
-cat > "$tmp/artifacts.json" <<'EOF'
-{"artifacts":[{"id":10,"name":"charcoal-steamos-3.10-linux-7.3-nap-build-3","expired":false,"archive_download_url":"https://api.github.com/repos/Marctraider/linux-charcoal-vulcano/actions/artifacts/10/zip"}]}
-EOF
-mapfile -t artifact < <(select_nap_artifact "$tmp/artifacts.json" 3)
-[[ "${artifact[0]}" == 10 ]] || fail "matching build artifact selection"
 python3 - "$tmp/nap-artifact.zip" <<'PY'
 import hashlib, sys, zipfile
 files = {
@@ -98,6 +85,9 @@ PY
 extract_and_verify_nap_artifact "$tmp/nap-artifact.zip" "$tmp/unpacked" || fail "verified artifact extraction"
 [[ -f "$tmp/unpacked/linux-charcoal-73-7.3.1.valve2.cc1-1-x86_64.pkg.tar.zst" ]] || fail "kernel package not extracted"
 [[ -f "$tmp/unpacked/linux-charcoal-73-headers-7.3.1.valve2.cc1-1-x86_64.pkg.tar.zst" ]] || fail "headers package not extracted"
+grep -Fq 'https://github.com/Marctraider/linux-charcoal-vulcano/releases/download/\${RELEASE_TAG}/\${RELEASE_ARCHIVE}' "$INSTALLER" || fail "public release download URL"
+grep -Fq '395cf9671e6149f26695e69eeed2fb4c1ae59a63ab35ee005f9519ca8d8e0680' "$INSTALLER" || fail "published release ZIP checksum"
+if grep -Fq 'actions/artifacts/' "$INSTALLER"; then fail "installer must not use authenticated Actions artifact endpoint"; fi
 grep -Fq 'current_governor' "$INSTALLER" || fail "NAP runtime check"
 grep -Fq 'nap-state.service' "$INSTALLER" || fail "NAP restore service check"
 grep -Fq 'nap-state-save.timer' "$INSTALLER" || fail "NAP save timer check"
