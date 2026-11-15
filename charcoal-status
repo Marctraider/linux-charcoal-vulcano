@@ -211,7 +211,7 @@ fi
 
 if [[ -n "$CONFIG_FILE" ]]; then
   if config_value CONFIG_X86_AMD_PSTATE_DEFAULT_MODE 3; then
-    pass "AMD P-State default mode: active (EPP)"
+    info "AMD P-State default mode is configured as active (EPP); runtime status is checked below"
   else
     warn "AMD P-State default mode is not configured as active (EPP)"
   fi
@@ -226,7 +226,7 @@ section "NAP cpuidle governor"
 if [[ -z "$CONFIG_FILE" ]]; then
   warn "NAP governor build option cannot be checked without the kernel .config"
 elif config_enabled CONFIG_CPU_IDLE_GOV_NAP; then
-  pass "NAP cpuidle governor is built into the kernel"
+  info "NAP cpuidle governor is built into the kernel; actual availability/selection is checked below"
 elif config_disabled CONFIG_CPU_IDLE_GOV_NAP; then
   info "NAP cpuidle governor is disabled in this build (expected for the current 7.3 configuration)"
 else
@@ -342,6 +342,7 @@ else
 fi
 zram_count=0
 zram_ready=0
+zram_bad=0
 for zram_dir in /sys/block/zram[0-9]*; do
   [[ -d "$zram_dir" ]] || continue
   zram_count=$((zram_count + 1))
@@ -353,13 +354,16 @@ for zram_dir in /sys/block/zram[0-9]*; do
     zram_ready=$((zram_ready + 1))
     pass "$(basename "$zram_dir") uses LZ4 primary compression and ZSTD recompression"
   else
-    warn "$(basename "$zram_dir") compressor setup does not show LZ4 + ZSTD (primary: ${comp:-unknown}; recompress: ${recomp:-unavailable})"
+    zram_bad=$((zram_bad + 1))
+    fail "$(basename "$zram_dir") compressor setup does not show LZ4 + ZSTD (primary: ${comp:-unknown}; recompress: ${recomp:-unavailable})"
   fi
 done
 if (( zram_count == 0 )); then
   warn "No active zram device found; ZRAM runtime settings will be checked after zram is created"
 elif (( zram_ready == zram_count )); then
   pass "ZRAM-IR compressor configuration verified on all $zram_count device(s)"
+else
+  fail "ZRAM-IR compressor configuration is incorrect on $zram_bad/$zram_count active device(s)"
 fi
 
 section "AMD P-State EPP (runtime)"
@@ -386,7 +390,7 @@ for epp_file in /sys/devices/system/cpu/cpu[0-9]*/cpufreq/energy_performance_pre
 done
 if (( epp_count > 0 && epp_empty == 0 )); then
   pass "EPP runtime interface is readable for $epp_count CPU(s)"
-  info "Per-CPU EPP values: \${epp_values[*]}"
+  info "Per-CPU EPP values: ${epp_values[*]}"
 else
   warn "No readable per-CPU EPP interfaces found (or some returned empty values)"
 fi
