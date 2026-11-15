@@ -113,4 +113,11 @@ grep -Fq 'ln -s -- "$found" "$rollback_dir/' "$INSTALLER" || fail "rollback cach
 if grep -Fq 'cp -- "$found" "$rollback_dir/"' "$INSTALLER"; then fail "rollback package must not be duplicated"; fi
 grep -Fq 'mkinitcpio -p linux-neptune-73' "$INSTALLER" || fail "initramfs generation"
 grep -Fq 'verify_grub_entry' "$INSTALLER" || fail "GRUB verification"
+STATUS="$ROOT/charcoal-status"
+grep -Fq 'CONFIG_CPU_IDLE_GOV_NAP CONFIG_CPU_IDLE_GOV_TEO' "$STATUS" || fail "status checks NAP and TEO fallback"
+grep -Fq '/sys/module/drm/parameters/sched_policy' "$STATUS" || fail "status checks DRM RR runtime policy"
+grep -Fq 'NAP userspace service configuration helper' "$STATUS" || fail "status checks NAP userspace integration"
+grep -Fq 'install-charcoal.sh --check-only' "$ROOT/README.md" || fail "README documents installer diagnostic command"
+grep -Fq 'bash install-charcoal.sh' "$ROOT/README.md" || fail "README documents installer command"
+if grep -Fq 'install-charcoal-73-nap.sh' "$ROOT/README.md"; then fail "README retains inconsistent installer filename"; fi
 printf 'NAP Linux 7.3 installer tests passed\n'
