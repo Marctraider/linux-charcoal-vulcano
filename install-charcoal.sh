@@ -292,6 +292,63 @@ with zipfile.ZipFile(archive) as zf:
 PY
 }
 
+select_latest_nap_run() {
+  python3 - "$1" "$NAP_BRANCH" <<'PY'
+import json, sys
+data=json.load(open(sys.argv[1],encoding="utf-8"))
+runs=data.get("workflow_runs",[]) if isinstance(data,dict) else []
+valid=[r for r in runs if isinstance(r,dict) and r.get("head_branch")==sys.argv[2]
+ and r.get("status")=="completed" and r.get("conclusion")=="success"
+ and r.get("path")==".github/workflows/build-kernel-7.3.yml"
+ and isinstance(r.get("id"),int) and isinstance(r.get("run_number"),int)
+ and isinstance(r.get("head_sha"),str)]
+if not valid: raise SystemExit("No successful NAP-branch build found")
+r=max(valid,key=lambda x:(x["run_number"],x["id"]))
+print(r["id"]); print(r["run_number"]); print(r["head_sha"])
+PY
+}
+select_nap_artifact() {
+  python3 - "$1" "$ARTIFACT_NAME_PREFIX" "$2" "$ARTIFACT_DOWNLOAD_PREFIX" <<'PY'
+import json,sys
+data=json.load(open(sys.argv[1],encoding="utf-8"))
+items=data.get("artifacts",[]) if isinstance(data,dict) else []
+found=[x for x in items if isinstance(x,dict) and x.get("name")==sys.argv[2]+sys.argv[3] and x.get("expired") is False and isinstance(x.get("id"),int)]
+if len(found)!=1: raise SystemExit("NAP build artifact missing, expired, or ambiguous")
+url=found[0].get("archive_download_url")
+if not isinstance(url,str) or not url.startswith(sys.argv[4]): raise SystemExit("Untrusted artifact URL")
+print(found[0]["id"]); print(url)
+PY
+}
+extract_and_verify_nap_artifact() {
+  python3 - "$1" "$2" <<'PY'
+import hashlib,re,stat,sys,zipfile
+from pathlib import Path,PurePosixPath
+archive,dest=Path(sys.argv[1]),Path(sys.argv[2])
+pkg=re.compile(r"linux-charcoal-73(?:-headers)?-[^/\\\\\\x00\\r\\n]+\\.pkg\\.tar\\.zst")
+sum_re=re.compile(r"([0-9a-fA-F]{64}) [ *](linux-charcoal-73(?:-headers)?-[^/\\\\\\x00\\r\\n]+\\.pkg\\.tar\\.zst)")
+with zipfile.ZipFile(archive) as z:
+ infos=z.infolist(); names=[x.filename for x in infos]
+ if len(names)!=len(set(names)): raise SystemExit("Duplicate artifact paths")
+ ps=[x for x in infos if "/" not in x.filename and pkg.fullmatch(x.filename)]
+ if len(ps)!=2 or sum("-headers-" in x.filename for x in ps)!=1: raise SystemExit("Artifact must contain kernel and headers packages")
+ required={"logs/SHA256SUMS-73","logs/makepkg-73.log","logs/nap-tools-upstream.json"}
+ if not required.issubset(names): raise SystemExit("Artifact missing build provenance")
+ sums={}
+ for line in z.read("logs/SHA256SUMS-73").decode().splitlines():
+  m=sum_re.fullmatch(line)
+  if not m or m.group(2) in sums: raise SystemExit("Invalid artifact checksum manifest")
+  sums[m.group(2)]=m.group(1).lower()
+ if set(sums)!={x.filename for x in ps}: raise SystemExit("Artifact manifest/package mismatch")
+ dest.mkdir(mode=0o700)
+ for x in ps:
+  if PurePosixPath(x.filename).name!=x.filename or stat.S_ISLNK(x.external_attr>>16): raise SystemExit("Unsafe package path")
+  target=dest/x.filename; h=hashlib.sha256()
+  with z.open(x) as src,target.open("xb") as out:
+   for b in iter(lambda:src.read(1048576),b""): h.update(b); out.write(b)
+  if h.hexdigest()!=sums[x.filename]: target.unlink(missing_ok=True); raise SystemExit("Package checksum failed")
+PY
+}
+
 verify_kernel_package_identity() {
   local -n package_files=$1
   local pkg pkgname="" pkgver="" kernel_pkg="" headers_pkg="" kernel_pkgver="" headers_pkgver=""
