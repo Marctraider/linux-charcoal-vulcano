@@ -29,7 +29,25 @@ cat > "$tmp/artifacts.json" <<'EOF'
 EOF
 mapfile -t artifact < <(select_nap_artifact "$tmp/artifacts.json" 3)
 [[ "${artifact[0]}" == 10 ]] || fail "matching build artifact selection"
+python3 - "$tmp/nap-artifact.zip" <<'PY'
+import hashlib, sys, zipfile
+files = {
+ "linux-charcoal-73-7.3.1.valve2.cc1-1-x86_64.pkg.tar.zst": b"kernel-package-fixture",
+ "linux-charcoal-73-headers-7.3.1.valve2.cc1-1-x86_64.pkg.tar.zst": b"headers-package-fixture",
+}
+manifest = "".join(hashlib.sha256(value).hexdigest() + "  " + name + "\n" for name, value in files.items())
+with zipfile.ZipFile(sys.argv[1], "w", zipfile.ZIP_DEFLATED) as z:
+    for name, value in files.items(): z.writestr(name, value)
+    z.writestr("logs/SHA256SUMS-73", manifest)
+    z.writestr("logs/makepkg-73.log", "build log")
+    z.writestr("logs/nap-tools-upstream.json", "{}")
+PY
+extract_and_verify_nap_artifact "$tmp/nap-artifact.zip" "$tmp/unpacked" || fail "verified artifact extraction"
+[[ -f "$tmp/unpacked/linux-charcoal-73-7.3.1.valve2.cc1-1-x86_64.pkg.tar.zst" ]] || fail "kernel package not extracted"
+[[ -f "$tmp/unpacked/linux-charcoal-73-headers-7.3.1.valve2.cc1-1-x86_64.pkg.tar.zst" ]] || fail "headers package not extracted"
 grep -Fq 'current_governor' "$INSTALLER" || fail "NAP runtime check"
+grep -Fq 'nap-state.service' "$INSTALLER" || fail "NAP restore service check"
+grep -Fq 'nap-state-save.timer' "$INSTALLER" || fail "NAP save timer check"
 grep -Fq 'sched_policy' "$INSTALLER" || fail "DRM RR runtime check"
 grep -Fq 'CONFIG_BTRFS_FS=y' "$INSTALLER" || fail "Btrfs config check"
 grep -Fq 'Neither Valve linux-neptune-73 nor an existing Charcoal 7.3 kernel is installed' "$INSTALLER" || fail "existing 7.3 upgrade guard"
