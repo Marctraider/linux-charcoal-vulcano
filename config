@@ -1201,6 +1201,7 @@ CONFIG_ZSMALLOC=y
 
 #
 # ZSWAP is intentionally disabled; ZRAM remains enabled for swap.
+# CONFIG_ZSWAP is not set
 # Zsmalloc is a common backend allocator for zswap & zram
 #
 CONFIG_ZSMALLOC_STAT=y
