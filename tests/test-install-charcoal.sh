@@ -92,12 +92,22 @@ if declare -F select_installed_charcoal >/dev/null; then
   fail "installer must not select or remove any installed Charcoal package"
 fi
 
-# The matching stock SteamOS 7.3 kernel is always selected for removal.
-CHARCOAL_73_ASSUME_YES=1 confirm_stock_removal stock
-[[ ${#stock[@]} -eq 2 ]] || fail "stock 7.3 kernel was not retained in the removal list"
-
+# Stock kernel packages are identified as a possible space-recovery option,
+# but are not removed unless pacman reports its explicit disk-space error.
+[[ ${#stock[@]} -eq 2 ]] || fail "expected stock 7.3 kernel and headers as optional space-recovery packages"
 empty_stock=()
 confirm_stock_removal empty_stock
+
+grep -Fq 'Remove the stock kernel packages and continue? [y/N]' "$INSTALLER" \
+  || fail "stock-kernel removal does not require explicit y/n confirmation"
+grep -Fq 'Installation cancelled; the stock kernel was not removed' "$INSTALLER" \
+  || fail "declining stock-kernel removal does not cancel safely"
+grep -Fq 'is_pacman_disk_space_error' "$INSTALLER" \
+  || fail "installer does not restrict stock removal to a detected pacman disk-space failure"
+grep -Fq 'Attempting to install Charcoal while preserving the stock kernel' "$INSTALLER" \
+  || fail "installer does not first attempt installation with the stock kernel retained"
+grep -Fq 'error: not enough free disk space' "$INSTALLER" \
+  || fail "installer does not recognize pacman insufficient-space failures"
 
 if grep -Fq -- '--print-format' "$INSTALLER"; then
   fail "installer uses unsupported pacman --print-format option"
@@ -105,12 +115,10 @@ fi
 grep -Fq 'pacman -Qp "$pkg" | awk '\''{print $1}'\''' "$INSTALLER" \
   || fail "installer does not use SteamOS-compatible package metadata query"
 
-grep -Fq 'stock kernel will be removed before Charcoal is installed to free system space' "$INSTALLER" \
-  || fail "installer does not remove the matching stock kernel to free space"
 grep -Fq 'local stock="linux-neptune-${pkgbase#linux-charcoal-}"' "$INSTALLER" \
   || fail "installer is not limited to the matching stock kernel series"
 grep -Fq 'remove_packages=("${stock_packages[@]}")' "$INSTALLER" \
-  || fail "only the matching SteamOS 7.3 stock packages may be removed"
+  || fail "only the matching SteamOS 7.3 stock packages may be considered for removal"
 if grep -Fq 'previous_charcoal' "$INSTALLER"; then
   fail "installer must not remove existing Charcoal packages"
 fi
@@ -119,10 +127,11 @@ grep -Fq 'run_privileged pacman -Rdd --noconfirm "${remove_packages[@]}"' "$INST
 grep -Fq 'run_privileged pacman -U --noconfirm "${packages[@]}"' "$INSTALLER" \
   || fail "installer does not install verified Charcoal packages"
 
+first_install_line="$(grep -n -F 'Attempting to install Charcoal while preserving the stock kernel' "$INSTALLER" | head -n1 | cut -d: -f1)"
 remove_line="$(grep -n -F 'run_privileged pacman -Rdd --noconfirm "${remove_packages[@]}"' "$INSTALLER" | head -n1 | cut -d: -f1)"
-install_line="$(grep -n -F 'run_privileged pacman -U --noconfirm "${packages[@]}"' "$INSTALLER" | head -n1 | cut -d: -f1)"
-[[ -n "$remove_line" && -n "$install_line" && $remove_line -lt $install_line ]] \
-  || fail "approved stock removal must occur before Charcoal installation"
+retry_line="$(grep -n -F 'Retrying the verified Charcoal package installation after freeing space' "$INSTALLER" | head -n1 | cut -d: -f1)"
+[[ -n "$first_install_line" && -n "$remove_line" && -n "$retry_line" && $first_install_line -lt $remove_line && $remove_line -lt $retry_line ]] \
+  || fail "stock removal must happen only after the first install attempt and confirmation, then retry installation"
 
 grep -Fq 'RELEASE_TAG_PREFIX="charcoal-"' "$INSTALLER" \
   || fail "installer release tag prefix is incorrect"
