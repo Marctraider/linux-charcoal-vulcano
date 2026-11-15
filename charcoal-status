@@ -102,7 +102,7 @@ check_config() {
   if [[ -z "$CONFIG_FILE" ]]; then
     warn "$description: kernel .config unavailable; cannot verify build option"
   elif config_enabled "$symbol"; then
-    pass "$description: enabled in kernel config"
+    info "$description: compiled in; runtime activation is checked separately where the kernel exposes it"
   else
     fail "$description: $symbol is not enabled in the installed Charcoal kernel config"
   fi
@@ -188,7 +188,7 @@ else
   warn "Compiler version unavailable; no embedded build metadata found"
 fi
 
-section "Kernel features (selected Charcoal kernel configuration)"
+section "Kernel features (build configuration only; not proof of runtime activation)"
 check_config CONFIG_SCHED_BORE "BORE scheduler"
 check_config CONFIG_SCHED_POC_SELECTOR "POC CPU selector"
 check_config CONFIG_LRU_CAST "LRU CAST page reclaim"
@@ -198,6 +198,8 @@ check_config CONFIG_X86_AMD_PSTATE "AMD P-State"
 check_config CONFIG_CC_OPTIMIZE_FOR_PERFORMANCE_O3 "O3 optimization"
 check_config CONFIG_LTO_CLANG_FULL "Full Clang LTO"
 check_config CONFIG_POLLY_CLANG "Clang Polly"
+
+section "Runtime feature activation"
 
 if [[ -n "$CONFIG_FILE" ]]; then
   if config_value CONFIG_X86_AMD_PSTATE_DEFAULT_MODE 3; then
@@ -236,32 +238,70 @@ else
   info "cpuidle governor sysfs interface is unavailable"
 fi
 
-section "ADIOS I/O scheduler"
+section "ADIOS I/O scheduler (runtime)"
 adios_selected=0
-adios_available=0
+adios_missing=0
 scheduler_devices=0
-for scheduler_file in /sys/block/*/queue/scheduler; do
-  [[ -r "$scheduler_file" ]] || continue
+scheduler_unexposed=0
+for block_dir in /sys/block/*; do
+  [[ -e "$block_dir" ]] || continue
+  block_name=$(basename "$block_dir")
+  [[ "$block_name" == loop* || "$block_name" == zram* ]] && continue
+  scheduler_file="$block_dir/queue/scheduler"
+  if [[ ! -r "$scheduler_file" ]]; then
+    scheduler_unexposed=$((scheduler_unexposed + 1))
+    continue
+  fi
   scheduler_devices=$((scheduler_devices + 1))
   schedulers=$(<"$scheduler_file")
-  if grep -qw adios <<< "$schedulers"; then
-    adios_available=$((adios_available + 1))
-    if grep -q '\[adios\]' <<< "$schedulers"; then
-      adios_selected=$((adios_selected + 1))
-    fi
+  if grep -qw adios <<< "$schedulers" && grep -q '\[adios\]' <<< "$schedulers"; then
+    adios_selected=$((adios_selected + 1))
+  else
+    adios_missing=$((adios_missing + 1))
+    warn "ADIOS is not active for $block_name (available/active: $schedulers)"
   fi
 done
-if (( adios_selected > 0 )); then
-  pass "ADIOS selected on $adios_selected block device(s) ($adios_available expose it)"
-elif (( adios_available > 0 )); then
-  warn "ADIOS available on $adios_available block device(s), but not selected"
-elif (( scheduler_devices > 0 )); then
-  fail "ADIOS is not available on any detected block device"
+if (( scheduler_devices == 0 )); then
+  warn "No eligible block devices expose a scheduler interface"
+elif (( adios_missing == 0 )); then
+  pass "ADIOS is selected on all $adios_selected eligible block device(s)"
 else
-  warn "No block-device scheduler interfaces found"
+  fail "ADIOS is not active on every eligible block device ($adios_selected/$scheduler_devices selected)"
+fi
+if (( scheduler_unexposed > 0 )); then
+  info "$scheduler_unexposed eligible block device(s) do not expose a scheduler interface and cannot be checked"
 fi
 
-section "ZRAM-IR"
+section "ZRAM / ZSWAP runtime activation"
+if [[ -d /sys/module/zram ]]; then
+  pass "ZRAM kernel module is loaded"
+elif compgen -G '/sys/block/zram[0-9]*' >/dev/null; then
+  pass "ZRAM devices exist (driver is active)"
+else
+  warn "ZRAM kernel module is not loaded and no zram device exists"
+fi
+if [[ -r /sys/module/zswap/parameters/enabled ]]; then
+  zswap_enabled=$(</sys/module/zswap/parameters/enabled)
+  case "$zswap_enabled" in
+    Y|1) pass "ZSWAP is enabled at runtime" ;;
+    N|0) fail "ZSWAP is disabled at runtime (expected enabled)" ;;
+    *) warn "Unrecognized ZSWAP runtime state: $zswap_enabled" ;;
+  esac
+else
+  warn "ZSWAP runtime enabled parameter is unavailable"
+fi
+if [[ -r /sys/module/zswap/parameters/compressor ]]; then
+  zswap_compressor=$(</sys/module/zswap/parameters/compressor)
+  if [[ "$zswap_compressor" == "zstd" ]]; then
+    pass "ZSWAP runtime compressor is zstd"
+  else
+    warn "ZSWAP runtime compressor is $zswap_compressor (expected zstd)"
+  fi
+else
+  warn "ZSWAP compressor runtime parameter is unavailable"
+fi
+
+section "ZRAM-IR (runtime)"
 if [[ -r /proc/sys/vm/zram_recomp_immediate ]]; then
   immediate=$(</proc/sys/vm/zram_recomp_immediate)
   if [[ "$immediate" == "1" ]]; then
@@ -291,7 +331,7 @@ for zram_dir in /sys/block/zram[0-9]*; do
   recomp=""
   [[ -r "$zram_dir/comp_algorithm" ]] && comp=$(<"$zram_dir/comp_algorithm")
   [[ -r "$zram_dir/recomp_algorithm" ]] && recomp=$(<"$zram_dir/recomp_algorithm")
-  if grep -q '\[lz4\]' <<< "$comp" && grep -Eq '\[algo=zstd\]|\[zstd\]|algo=zstd' <<< "$recomp"; then
+  if grep -q '\[lz4\]' <<< "$comp" && grep -Eq '\[algo=zstd([[:space:]]|\])|\[zstd\]|(^|[[:space:]])algo=zstd([[:space:]]|$)' <<< "$recomp"; then
     zram_ready=$((zram_ready + 1))
     pass "$(basename "$zram_dir") uses LZ4 primary compression and ZSTD recompression"
   else
@@ -304,27 +344,33 @@ elif (( zram_ready == zram_count )); then
   pass "ZRAM-IR compressor configuration verified on all $zram_count device(s)"
 fi
 
-section "AMD P-State EPP"
+section "AMD P-State EPP (runtime)"
 pstate_status=/sys/devices/system/cpu/amd_pstate/status
 if [[ -r "$pstate_status" ]]; then
   pstate=$(<"$pstate_status")
   if [[ "$pstate" == "active" ]]; then
     pass "AMD P-State driver reports active mode"
   else
-    warn "AMD P-State status is $pstate (expected active)"
+    fail "AMD P-State status is $pstate (expected active)"
   fi
 else
   warn "AMD P-State status sysfs interface unavailable (hardware/driver dependent)"
 fi
 epp_count=0
+epp_empty=0
+epp_values=()
 for epp_file in /sys/devices/system/cpu/cpu[0-9]*/cpufreq/energy_performance_preference; do
   [[ -r "$epp_file" ]] || continue
   epp_count=$((epp_count + 1))
+  epp_value=$(<"$epp_file")
+  epp_values+=("$(basename "$(dirname "$(dirname "$epp_file")")")=$epp_value")
+  [[ -n "$epp_value" ]] || epp_empty=$((epp_empty + 1))
 done
-if (( epp_count > 0 )); then
-  pass "EPP preference interface exposed for $epp_count CPU(s)"
+if (( epp_count > 0 && epp_empty == 0 )); then
+  pass "EPP runtime interface is readable for $epp_count CPU(s)"
+  info "Per-CPU EPP values: \${epp_values[*]}"
 else
-  warn "No per-CPU EPP preference interfaces found"
+  warn "No readable per-CPU EPP interfaces found (or some returned empty values)"
 fi
 if grep -qw 'amd_pstate.epp_boost=1' /proc/cmdline 2>/dev/null; then
   pass "amd_pstate.epp_boost=1 is present on the running kernel command line"
