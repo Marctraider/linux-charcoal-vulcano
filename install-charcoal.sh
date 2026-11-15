@@ -232,7 +232,291 @@ verify_kernel_package_identity() {
   }
 
   local -a config_entries=()
-  mapfile -t config_entries < <(bsdtar -tf "$headers_pkg" | grep -E '^(./)?usr/lib/modules/[^/]+/build/.config' || true)
+  mapfile -t config_entries < <(bsdtar -tf "$headers_pkg" | grep -E '^(\./)?usr/lib/modules/[^/]+/build/\.config
+
+  [[ ${#config_entries[@]} -eq 1 ]] || { info "error: headers package must contain exactly one resolved kernel .config"; return 1; }
+  local config_data expected
+  config_data="$(bsdtar -xOf "$headers_pkg" "${config_entries[0]}")" || { info "error: cannot read packaged kernel configuration"; return 1; }
+  for expected in \
+    'CONFIG_CPU_IDLE_GOV_NAP=y' \
+    'CONFIG_CPU_IDLE_GOV_TEO=y' \
+    'CONFIG_CMDLINE="amd_pstate.epp_boost=1 mitigations=off cpuidle.governor=nap"' \
+    'CONFIG_BTRFS_FS=y' \
+    'CONFIG_ZRAM=m' \
+    'CONFIG_ZSMALLOC=m' \
+    'CONFIG_ZRAM_DEF_COMP_LZ4=y' \
+    'CONFIG_ZRAM_MULTI_COMP=y' \
+    'CONFIG_ZRAM_DEF_COMP="lz4"' \
+    'CONFIG_SCHED_BORE=y' \
+    'CONFIG_SCHED_POC_SELECTOR=y' \
+    'CONFIG_LRU_CAST=y' \
+    'CONFIG_NTSYNC=y'; do
+    if ! grep -qxF "$expected" <<< "$config_data"; then
+      info "error: build package configuration is missing $expected"
+      return 1
+    fi
+  done
+  grep -qxF '# CONFIG_ZSWAP is not set' <<< "$config_data" || { info "error: build package has not disabled ZSWAP"; return 1; }
+}
+
+charcoal_upgrade_installed() {
+  pacman -Qq linux-charcoal-73 >/dev/null 2>&1
+}
+
+confirm_transaction() {
+  local release_tag=$1
+  shift
+  local -a previous=("$@")
+  info "Verified 7.3 build: ${release_tag}"
+  if (( ${#previous[@]} )); then
+    info "The following old kernel packages will be removed:"
+    printf '  - %s\n' "${previous[@]}"
+  fi
+  info "The new kernel and headers are already downloaded and SHA-256 verified. The installer never reboots automatically."
+  [[ "${CHARCOAL_73_ASSUME_YES:-0}" == "1" ]] && return 0
+  [[ -t 0 ]] || die "Interactive confirmation is required; rerun in a terminal"
+  local answer
+  read -r -p "Continue with the Charcoal SteamOS 7.3 installation? [s/N] " answer
+  case "$answer" in
+    s|S|y|Y|yes|YES|sim|SIM) ;;
+    *) die "Installation cancelled before any package was changed" ;;
+  esac
+}
+
+capture_rollback_packages() {
+  local -n package_names=$1
+  (( ${#package_names[@]} > 0 )) || return 0
+  local rollback_dir="$WORKDIR/rollback" name version candidate found missing=0
+  mkdir -p "$rollback_dir"
+  for name in "${package_names[@]}"; do
+    version="$(pacman -Q "$name" 2>/dev/null | awk '{print $2}')" || true
+    [[ -n "$version" ]] || { missing=1; continue; }
+    found=""
+    for candidate in /var/cache/pacman/pkg/"${name}-${version}"-*.pkg.tar.zst; do
+      [[ -f "$candidate" ]] && { found=$candidate; break; }
+    done
+    if [[ -n "$found" ]]; then
+      ln -s -- "$found" "$rollback_dir/${found##*/}"
+    else
+      missing=1
+    fi
+  done
+  if (( missing == 0 )); then
+    ROLLBACK_READY=1
+  else
+    info "warning: not every removed kernel package is present in pacman's cache; automatic rollback may be unavailable."
+  fi
+}
+
+attempt_rollback() {
+  (( ROLLBACK_READY )) || return 1
+  local -a rollback_packages
+  mapfile -d '' -t rollback_packages < <(find "$WORKDIR/rollback" -maxdepth 1 \( -type f -o -type l \) -name '*.pkg.tar.zst' -print0 | sort -z)
+  (( ${#rollback_packages[@]} > 0 )) || return 1
+  info "Installation failed; attempting to restore the previous SteamOS kernel..."
+  local -a installed_charcoal=()
+  local package_name
+  for package_name in linux-charcoal-73 linux-charcoal-73-headers; do
+    if pacman -Qq "$package_name" >/dev/null 2>&1; then
+      installed_charcoal+=("$package_name")
+    fi
+  done
+  if (( ${#installed_charcoal[@]} > 0 )); then
+    run_privileged pacman -Rdd --noconfirm "${installed_charcoal[@]}" || return 1
+  fi
+  if ! run_privileged pacman -U --noconfirm "${rollback_packages[@]}"; then
+    return 1
+  fi
+  run_privileged mkinitcpio -p linux-neptune-73 || return 1
+  verify_boot_artifacts || return 1
+  _update_grub || return 1
+  verify_grub_entry || return 1
+}
+
+main() {
+  for cmd in curl python3 zstd sha256sum mktemp pacman bsdtar awk grep tr find sort stat ln mkinitcpio steamos-readonly steamos-devmode; do require_command "$cmd"; done
+  (( EUID == 0 )) || require_command sudo
+  verify_host_platform || die "Unsupported SteamOS version; no packages were changed"
+  [[ -d /dev/shm && -w /dev/shm ]] || die "/dev/shm is unavailable; refusing to stage large packages on the root filesystem"
+  [[ "$(stat -f -c %T /dev/shm)" == tmpfs ]] || die "/dev/shm is not a tmpfs; refusing to consume root-filesystem space"
+  WORKDIR="$(mktemp -d /dev/shm/charcoal-73-installer.XXXXXX)"
+  trap cleanup EXIT
+
+  local archive_path="$WORKDIR/nap-build.zip" package_dir="$WORKDIR/packages"
+  info "Downloading the published NAP release bundle..."
+  download_file "$RELEASE_URL" "$archive_path"
+  printf '%s  %s\n' "$RELEASE_SHA256" "$archive_path" | sha256sum --check --status \
+    || die "Published NAP release ZIP checksum failed; no packages were changed"
+  info "Release ZIP checksum verified. Verifying package checksums..."
+  extract_and_verify_nap_artifact "$archive_path" "$package_dir"
+  rm -f -- "$archive_path"
+
+  local -a packages
+  mapfile -d '' -t packages < <(find "$package_dir" -maxdepth 1 -type f -name 'linux-charcoal-*.pkg.tar.zst' -print0 | sort -z)
+  (( ${#packages[@]} == 2 )) || die "Verified build artifact does not contain exactly kernel and headers"
+
+  info "Checking downloaded build package metadata without starting a transaction..."
+  local pkg pkgname pkgbase=""
+  for pkg in "${packages[@]}"; do
+    pkgname="$(pacman -Qp "$pkg" | awk '{print $1}')" || die "pacman could not read package metadata: $pkg"
+    [[ "$pkgname" =~ ^linux-charcoal-73(-headers)?$ ]] \
+      || die "Expected a Linux 7.3 Charcoal package, got: $pkgname"
+    pkgbase=${pkgname%-headers}
+  done
+
+  verify_kernel_package_identity packages || die "Build artifact package contents do not match the required linux-neptune-73 boot identity"
+
+  local charcoal_installed=0
+  if charcoal_upgrade_installed; then
+    charcoal_installed=1
+    info "Existing Charcoal 7.3 detected; replacing it directly with the NAP packages."
+  else
+    if ! pacman -Qq linux-neptune-73 >/dev/null 2>&1; then
+      die "Neither Valve linux-neptune-73 nor an existing Charcoal 7.3 kernel is installed; refusing an unknown boot setup"
+    fi
+    verify_existing_boot_state || die "Existing SteamOS boot state is not healthy; no package changes were made"
+  fi
+
+  local -a previous_packages=() stock_packages=()
+  local old_package
+  if (( charcoal_installed )); then
+    for old_package in linux-charcoal-73 linux-charcoal-73-headers; do
+      if pacman -Qq "$old_package" >/dev/null 2>&1; then previous_packages+=("$old_package"); fi
+    done
+    # Reuse cached old packages by symlink from /dev/shm; never duplicate
+    # rollback archives onto the SteamOS root filesystem.
+    if (( ${#previous_packages[@]} > 0 )); then capture_rollback_packages previous_packages; fi
+  else
+    stock_packages=(linux-neptune-73)
+    if pacman -Qq linux-neptune-73-headers >/dev/null 2>&1; then stock_packages+=(linux-neptune-73-headers); fi
+  fi
+
+  confirm_transaction "NAP release ${RELEASE_TAG} (${RELEASE_ARCHIVE})" "${previous_packages[@]}"
+
+  info "Making SteamOS writable for the package transaction..."
+  run_privileged steamos-readonly disable
+  MADE_ROOT_WRITABLE=1
+  info "Enabling SteamOS developer mode..."
+  run_privileged steamos-devmode enable --no-prompt
+
+  local install_log="$WORKDIR/pacman-install.log"
+  if (( charcoal_installed )); then
+    info "Replacing the existing Charcoal 7.3 kernel and headers in one pacman transaction..."
+    if ! LC_ALL=C run_privileged pacman -U --noconfirm "${packages[@]}" >"$install_log" 2>&1; then
+      cat "$install_log" >&2
+      if attempt_rollback; then
+        die "NAP upgrade failed; the previous Charcoal 7.3 packages and boot files were restored"
+      fi
+      die "NAP upgrade failed; pacman did not complete the replacement. Do not reboot until the existing kernel is confirmed."
+    fi
+  else
+    info "Installing Charcoal alongside the existing SteamOS 7.3 kernel..."
+    if ! LC_ALL=C run_privileged pacman -U --noconfirm "${packages[@]}" >"$install_log" 2>&1; then
+      cat "$install_log" >&2
+      if ! is_pacman_disk_space_error "$install_log"; then
+        die "SteamOS 7.3 package installation failed; the stock kernel was not removed"
+      fi
+      if (( ${#stock_packages[@]} == 0 )); then
+        die "Not enough disk space and no stock SteamOS 7.3 kernel package is available to remove"
+      fi
+      capture_rollback_packages stock_packages
+      confirm_stock_removal stock_packages
+      info "Removing only the matching SteamOS 7.3 stock kernel packages..."
+      run_privileged pacman -Rdd --noconfirm "${stock_packages[@]}"
+      info "Retrying the verified Charcoal packages after freeing space..."
+      if ! run_privileged pacman -U --noconfirm "${packages[@]}"; then
+        if attempt_rollback; then
+          die "SteamOS 7.3 installation failed; previous stock kernel packages were restored"
+        fi
+        die "SteamOS 3.10 / Linux 7.3 installation failed after stock-kernel removal; do not reboot"
+      fi
+    fi
+  fi
+
+  rm -rf -- "$package_dir"
+  info "Generating and checking the SteamOS 7.3 boot image and initramfs..."
+  if ! run_privileged mkinitcpio -p linux-neptune-73 || ! verify_boot_artifacts; then
+    if attempt_rollback; then
+      die "Charcoal boot-image validation failed; the previous SteamOS kernel was restored"
+    fi
+    die "Charcoal boot-image validation failed and automatic rollback was unsuccessful; do not reboot"
+  fi
+
+  info "Updating the SteamOS bootloader configuration..."
+  if ! _update_grub || ! verify_grub_entry; then
+    if attempt_rollback; then
+      die "Charcoal GRUB validation failed; the previous SteamOS kernel was restored"
+    fi
+    die "Charcoal GRUB validation failed and automatic rollback was unsuccessful; do not reboot"
+  fi
+  info "Charcoal SteamOS 3.10 / Linux 7.3 NAP release ${RELEASE_TAG} installed; kernel, initramfs and GRUB references verified."
+  info "Reboot only after the installer reports all three boot checks passed."
+}
+
+diagnose_boot_state() {
+  local failures=0 grub="" marker_found=0
+  info "Read-only SteamOS 3.10 / Charcoal Linux 7.3 NAP diagnostic"
+  if verify_host_platform; then info "PASS: SteamOS 3.10"; else info "FAIL: unsupported host"; failures=$((failures+1)); fi
+  if pacman -Q linux-charcoal-73 2>/dev/null; then info "PASS: Charcoal 7.3 installed"
+  elif pacman -Q linux-neptune-73 2>/dev/null; then info "INFO: Valve 7.3 installed; Charcoal not installed"
+  else info "FAIL: neither Valve nor Charcoal 7.3 installed"; failures=$((failures+1)); fi
+  if verify_boot_artifacts; then info "PASS: preset, kernel and initramfs present"; else info "FAIL: expected boot artifacts missing"; failures=$((failures+1)); fi
+  local marker marker_value
+  while IFS= read -r marker; do
+    [[ -r "$marker" ]] || continue
+    marker_value="$(<"$marker")"
+    [[ "$marker_value" == linux-neptune-73 ]] && marker_found=1
+  done < <(find /usr/lib/modules -mindepth 2 -maxdepth 2 -type f -name pkgbase -print 2>/dev/null)
+  if (( marker_found )); then info "PASS: module pkgbase linux-neptune-73"; else info "FAIL: module pkgbase mismatch"; failures=$((failures+1)); fi
+  local cfg="" cfgfile=""
+  if [[ -r /proc/config.gz ]] && command -v zcat >/dev/null 2>&1; then cfg="$(zcat /proc/config.gz 2>/dev/null || true)"
+  elif [[ -r "/boot/config-$(uname -r)" ]]; then cfgfile="/boot/config-$(uname -r)"
+  elif [[ -r "/usr/lib/modules/$(uname -r)/build/.config" ]]; then cfgfile="/usr/lib/modules/$(uname -r)/build/.config"; fi
+  [[ -n "$cfgfile" ]] && cfg="$(<"$cfgfile")"
+  if [[ -n "$cfg" ]]; then
+    local expected
+    for expected in CONFIG_BTRFS_FS=y CONFIG_ZRAM=m; do
+      if grep -qxF "$expected" <<< "$cfg"; then info "PASS: $expected"; else info "FAIL: missing $expected"; failures=$((failures+1)); fi
+    done
+    if grep -qxF CONFIG_CPU_IDLE_GOV_NAP=y <<< "$cfg"; then info "PASS: NAP governor is compiled in"; else info "INFO: the currently running kernel predates the NAP build"; fi
+    grep -qxF '# CONFIG_ZSWAP is not set' <<< "$cfg" && info "PASS: ZSWAP disabled" || info "WARN: ZSWAP state not confirmed"
+  else info "WARN: running kernel config unavailable; compile-time settings not checked"; fi
+  local governor_file=/sys/devices/system/cpu/cpuidle/current_governor
+  if [[ -r "$governor_file" ]]; then
+    local governor; governor="$(<"$governor_file")"
+    if [[ "$governor" == nap ]]; then info "PASS: NAP active"; else info "INFO: currently active CPUIdle governor is $governor (NAP takes effect after booting the NAP kernel)"; fi
+  else info "WARN: CPUIdle governor sysfs state unavailable"; fi
+  local drm_file=/sys/module/drm/parameters/sched_policy
+  if [[ -r "$drm_file" ]]; then
+    local policy; policy="$(<"$drm_file")"
+    if [[ "$policy" == 1 || "$policy" == RR || "$policy" == rr ]]; then info "PASS: DRM Round Robin policy"; else info "FAIL: DRM policy is $policy"; failures=$((failures+1)); fi
+  else info "WARN: DRM scheduler policy is not exposed; RR cannot be verified at runtime"; fi
+  if [[ -x /usr/lib/nap/configure-services ]]; then
+    info "PASS: NAP userspace helper installed"
+    systemctl is-enabled nap-state.service >/dev/null 2>&1 && info "PASS: NAP state restore service enabled" || info "WARN: NAP state restore service not enabled"
+    systemctl is-enabled nap-state-save.timer >/dev/null 2>&1 && info "PASS: NAP periodic save timer enabled" || info "WARN: NAP periodic save timer not enabled"
+  else info "INFO: NAP userspace helper is not installed yet"; fi
+  for candidate in /efi/EFI/SteamOS/grub.cfg /efi/EFI/steamos/grub.cfg /boot/efi/EFI/SteamOS/grub.cfg /boot/efi/EFI/steamos/grub.cfg /boot/grub/grub.cfg; do
+    if run_privileged test -s "$candidate"; then grub=$candidate; break; fi
+  done
+  if [[ -z "$grub" ]]; then info "FAIL: no standard GRUB config"; failures=$((failures+1))
+  elif run_privileged grep -Fq '/boot/vmlinuz-linux-neptune-73' "$grub" && run_privileged grep -Fq '/boot/initramfs-linux-neptune-73.img' "$grub"; then info "PASS: GRUB references 7.3 kernel and initramfs"
+  else info "FAIL: GRUB references missing 7.3 boot files"; failures=$((failures+1)); fi
+  df -h /boot / 2>/dev/null || true
+  if (( failures )); then info "Diagnostic result: $failures failure(s); no changes made"; return 1; fi
+  info "Diagnostic result: checks passed; review WARN lines. No changes made"
+}
+
+if [[ "${BASH_SOURCE[0]}" == "$0" ]]; then
+  if [[ "${1:-}" == "--check-only" ]]; then
+    diagnose_boot_state
+  elif (( $# > 0 )); then
+    die "Unknown option: $1 (supported: --check-only)"
+  else
+    main
+  fi
+fi
+ || true)
 
   [[ ${#config_entries[@]} -eq 1 ]] || { info "error: headers package must contain exactly one resolved kernel .config"; return 1; }
   local config_data expected
