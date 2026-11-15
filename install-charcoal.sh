@@ -1,15 +1,12 @@
 #!/usr/bin/env bash
-# Install the latest successful NAP experiment build for SteamOS 3.10 / Linux 7.3.
+# Install the published NAP release for SteamOS 3.10 / Linux 7.3.
 
 set -Eeuo pipefail
 
-readonly REPOSITORY="Marctraider/linux-charcoal-vulcano"
-readonly WORKFLOW_RUNS_API="https://api.github.com/repos/${REPOSITORY}/actions/workflows/build-kernel-7.3.yml/runs?branch=experiment%2Fsteamos-3.10-linux-7.3-nap&status=success&per_page=30"
-readonly WORKFLOW_ARTIFACTS_API_PREFIX="https://api.github.com/repos/${REPOSITORY}/actions/runs/"
-readonly ARTIFACT_DOWNLOAD_PREFIX="https://api.github.com/repos/${REPOSITORY}/actions/artifacts/"
-readonly NAP_BRANCH="experiment/steamos-3.10-linux-7.3-nap"
-readonly ARTIFACT_NAME_PREFIX="charcoal-steamos-3.10-linux-7.3-nap-build-"
-readonly USER_AGENT="charcoal-73-nap-installer"
+readonly RELEASE_TAG="steamos-3.10-linux-7.3-nap"
+readonly RELEASE_ARCHIVE="charcoal-steamos-3.10-linux-7.3-nap-build-77.zip"
+readonly RELEASE_URL="https://github.com/Marctraider/linux-charcoal-vulcano/releases/download/${RELEASE_TAG}/${RELEASE_ARCHIVE}"
+readonly RELEASE_SHA256="395cf9671e6149f26695e69eeed2fb4c1ae59a63ab35ee005f9519ca8d8e0680"
 
 WORKDIR=""
 MADE_ROOT_WRITABLE=0
@@ -153,33 +150,6 @@ download_file() {
     --output "$destination" "$url"
 }
 
-select_latest_nap_run() {
-  python3 - "$1" "$NAP_BRANCH" <<'PY'
-import json, sys
-data=json.load(open(sys.argv[1],encoding="utf-8"))
-runs=data.get("workflow_runs",[]) if isinstance(data,dict) else []
-valid=[r for r in runs if isinstance(r,dict) and r.get("head_branch")==sys.argv[2]
- and r.get("status")=="completed" and r.get("conclusion")=="success"
- and r.get("path")==".github/workflows/build-kernel-7.3.yml"
- and isinstance(r.get("id"),int) and isinstance(r.get("run_number"),int)
- and isinstance(r.get("head_sha"),str)]
-if not valid: raise SystemExit("No successful NAP-branch build found")
-r=max(valid,key=lambda x:(x["run_number"],x["id"]))
-print(r["id"]); print(r["run_number"]); print(r["head_sha"])
-PY
-}
-select_nap_artifact() {
-  python3 - "$1" "$ARTIFACT_NAME_PREFIX" "$2" "$ARTIFACT_DOWNLOAD_PREFIX" <<'PY'
-import json,sys
-data=json.load(open(sys.argv[1],encoding="utf-8"))
-items=data.get("artifacts",[]) if isinstance(data,dict) else []
-found=[x for x in items if isinstance(x,dict) and x.get("name")==sys.argv[2]+sys.argv[3] and x.get("expired") is False and isinstance(x.get("id"),int)]
-if len(found)!=1: raise SystemExit("NAP build artifact missing, expired, or ambiguous")
-url=found[0].get("archive_download_url")
-if not isinstance(url,str) or not url.startswith(sys.argv[4]): raise SystemExit("Untrusted artifact URL")
-print(found[0]["id"]); print(url)
-PY
-}
 extract_and_verify_nap_artifact() {
   python3 - "$1" "$2" <<'PY'
 import hashlib,re,stat,sys,zipfile
@@ -363,29 +333,12 @@ main() {
   WORKDIR="$(mktemp -d /dev/shm/charcoal-73-installer.XXXXXX)"
   trap cleanup EXIT
 
-  info "Finding latest successful NAP-branch Linux 7.3 build..."
-  curl --fail --silent --show-error --location --proto '=https' --proto-redir '=https' --retry 3 --connect-timeout 15 \
-    --header 'Accept: application/vnd.github+json' --header 'X-GitHub-Api-Version: 2022-11-28' --user-agent "$USER_AGENT" \
-    --output "$WORKDIR/workflow-runs.json" "$WORKFLOW_RUNS_API"
-  local run_metadata
-  run_metadata="$(select_latest_nap_run "$WORKDIR/workflow-runs.json")" || die "No successful NAP build found"
-  local -a run_fields
-  mapfile -t run_fields <<< "$run_metadata"
-  (( ${#run_fields[@]} == 3 )) || die "Incomplete NAP workflow metadata"
-  local run_id=${run_fields[0]} run_number=${run_fields[1]} build_commit=${run_fields[2]}
-  curl --fail --silent --show-error --location --proto '=https' --proto-redir '=https' --retry 3 --connect-timeout 15 \
-    --header 'Accept: application/vnd.github+json' --header 'X-GitHub-Api-Version: 2022-11-28' --user-agent "$USER_AGENT" \
-    --output "$WORKDIR/artifacts.json" "${WORKFLOW_ARTIFACTS_API_PREFIX}${run_id}/artifacts"
-  local artifact_metadata
-  artifact_metadata="$(select_nap_artifact "$WORKDIR/artifacts.json" "$run_number")" || die "NAP build artifact not found"
-  local -a artifact_fields
-  mapfile -t artifact_fields <<< "$artifact_metadata"
-  (( ${#artifact_fields[@]} == 2 )) || die "Incomplete NAP artifact metadata"
-  local artifact_url=${artifact_fields[1]}
   local archive_path="$WORKDIR/nap-build.zip" package_dir="$WORKDIR/packages"
-  info "Downloading NAP build #${run_number} (${build_commit:0:12})..."
-  download_file "$artifact_url" "$archive_path"
-  info "Verifying NAP package checksums..."
+  info "Downloading the published NAP release bundle..."
+  download_file "$RELEASE_URL" "$archive_path"
+  printf '%s  %s\n' "$RELEASE_SHA256" "$archive_path" | sha256sum --check --status \
+    || die "Published NAP release ZIP checksum failed; no packages were changed"
+  info "Release ZIP checksum verified. Verifying package checksums..."
   extract_and_verify_nap_artifact "$archive_path" "$package_dir"
   rm -f -- "$archive_path"
 
