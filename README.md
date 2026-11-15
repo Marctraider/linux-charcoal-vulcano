@@ -41,8 +41,8 @@ The NAP package uses the same package names and linux-neptune-73 boot identity a
 Run the read-only diagnostic:
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/Marctraider/linux-charcoal-vulcano/experiment/steamos-3.10-linux-7.3-nap/install-charcoal.sh -o install-charcoal-73-nap.sh
-bash install-charcoal-73-nap.sh --check-only
+curl -fsSL https://raw.githubusercontent.com/Marctraider/linux-charcoal-vulcano/experiment/steamos-3.10-linux-7.3-nap/install-charcoal.sh -o install-charcoal.sh
+bash install-charcoal.sh --check-only
 ```
 
 If the checks pass, run the installer interactively:
@@ -65,7 +65,7 @@ Rollback after a failed post-install check is best-effort and depends on the pre
 
 The NAP-aware --check-only mode should check SteamOS version, installed package identity, module pkgbase, boot files and GRUB references. It should check the running kernel config for NAP, Btrfs and ZRAM where that config is exposed; check whether NAP is the active CPUIdle governor; report NAP userspace helper/service state; and check DRM Round Robin only if the running kernel exposes a scheduler-policy sysfs parameter. Otherwise it must explicitly report that runtime verification is unavailable.
 
-The diagnostic must make no changes. It must not install/remove packages, regenerate initramfs, edit GRUB or reboot.
+The `--check-only` option is the installer's read-only boot diagnostic; it does not install/remove packages, regenerate initramfs, edit GRUB or reboot. The separate `charcoal-status` command reports installed kernel features and runtime state after boot. On this NAP branch it checks the NAP and TEO build options, whether NAP is the active CPUIdle governor, the DRM Round Robin policy when the kernel exposes its sysfs parameter, and the NAP userspace service integration. If the DRM parameter is absent, it reports that runtime verification is unavailable rather than treating the missing interface as a failure.
 
 ## Btrfs and boot status
 
