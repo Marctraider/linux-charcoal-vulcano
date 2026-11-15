@@ -18,7 +18,7 @@ The patch is pinned in the PKGBUILD. It is not fetched from a moving upstream br
 
 The pinned NAP patch is applied with `git apply --check` first. The API adapter, `automation/fix-nap-kernel-api.py`, uses narrow, fail-closed compatibility checks for the Linux 7.2+ IRQ counter layout and binary sysfs attribute constness. It rejects unexpected or partially matching source instead of guessing.
 
-The kernel configuration enables `CONFIG_CPU_IDLE=y` and `CONFIG_CPU_IDLE_GOV_NAP=y`, and selects NAP at boot with `cpuidle.governor=nap`. The bootloader command line remains appendable because `CONFIG_CMDLINE_OVERRIDE` stays disabled.
+The kernel configuration enables `CONFIG_CPU_IDLE=y` and `CONFIG_CPU_IDLE_GOV_NAP=y`, and selects NAP at boot with `cpuidle.governor=nap`. The bootloader command line remains appendable because `CONFIG_CMDLINE_OVERRIDE` stays disabled. `CONFIG_CPU_IDLE_GOV_TEO=y` is also retained as a fallback: if NAP fails its boot-time self-test or cannot register, the standard TEO governor remains available. The explicit boot argument still selects NAP when it registers successfully.
 
 ## Package integration
 
