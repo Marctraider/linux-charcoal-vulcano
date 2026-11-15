@@ -1,11 +1,10 @@
-name: Build SteamOS 3.10 Charcoal Linux 7.3
+name: Build SteamOS 3.10 Charcoal Linux 7.3 (NAP experiment)
 
-# Kernel builds run only for build-input changes on the isolated 7.3 validation branch.
-# Installer-only changes do not consume a full kernel build.
+# This workflow is deliberately isolated to the NAP experiment branch.
 on:
   push:
     branches:
-      - validation/steamos-3.10-linux-7.3
+      - experiment/steamos-3.10-linux-7.3-nap
     paths:
       - .github/workflows/build-kernel-7.3.yml
       - PKGBUILD
@@ -13,6 +12,9 @@ on:
       - config-charcoal
       - "*.patch"
       - automation/**
+      - nap-tools/**
+      - nap-tools.tar.gz
+      - linux-charcoal-73.install
       - 65-adios.rules
       - 60-charcoal-zram-ir.rules
       - configure-zram-ir
@@ -24,18 +26,19 @@ permissions:
   contents: read
 
 concurrency:
-  group: charcoal-linux-7.3-build
+  group: charcoal-linux-7.3-nap-experiment
   cancel-in-progress: true
 
 jobs:
   build-linux-7-3:
+    if: github.ref == 'refs/heads/experiment/steamos-3.10-linux-7.3-nap'
     runs-on: ubuntu-24.04
     timeout-minutes: 360
     steps:
-      - name: Check out 7.3 validation branch
+      - name: Check out NAP experiment branch
         uses: actions/checkout@v4
         with:
-          ref: validation/steamos-3.10-linux-7.3
+          ref: ${{ github.ref }}
           fetch-depth: 1
 
       - name: Free runner disk space
@@ -48,20 +51,26 @@ jobs:
         with:
           swap-size-gb: 16
 
-      - name: Validate 7.3 recipe and installer
+      - name: Validate 7.3 NAP recipe and tools
         run: |
           set -Eeuo pipefail
           mkdir -p logs
           bash -n PKGBUILD
           bash -n install-charcoal.sh
+          bash -n linux-charcoal-73.install
           bash tests/test-install-charcoal.sh
           python3 tests/test_port_steamos_73.py
+          python3 tests/test_nap_tools.py
+          python3 tests/test_nap_tools_refresh.py
           python3 -m py_compile \
             automation/prepare-sources-73.py \
             automation/port-amd-pstate-epp-boost-73.py \
             automation/port-zen-cpufreq-7.3.py \
             automation/configure-zen-interactive.py \
-            automation/fix-gud-tv-mode-fortify.py
+            automation/fix-gud-tv-mode-fortify.py \
+            automation/fix-nap-kernel-api.py \
+            nap-tools/refresh-tools.py \
+            nap-tools/install-tools.py
 
       - name: Prepare exact Valve source and pinned patch inputs
         run: |
@@ -73,7 +82,7 @@ jobs:
       - name: Build Arch Linux LLVM toolchain container
         run: docker build . --tag charcoal-linux-73
 
-      - name: Prepare source tree and compile/package Linux 7.3
+      - name: Prepare source tree and compile/package Linux 7.3 with NAP
         run: |
           set -Eeuo pipefail
           restore_owner() {
@@ -108,11 +117,11 @@ jobs:
           restore_owner
           trap - EXIT
 
-      - name: Upload Linux 7.3 build artifacts and logs
+      - name: Upload NAP Linux 7.3 build artifacts and logs
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: charcoal-steamos-3.10-linux-7.3-build-${{ github.run_number }}
+          name: charcoal-steamos-3.10-linux-7.3-nap-build-${{ github.run_number }}
           path: |
             linux-charcoal-73-*.pkg.tar.zst
             logs/
