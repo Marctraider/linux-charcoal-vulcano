@@ -1,6 +1,6 @@
 # Charcoal SteamOS 3.10 / Linux 7.3
 
-This branch contains the Linux 7.3 port and installer validation work for SteamOS 3.10 Preview. The published `r1` release has a known boot-packaging defect: its kernel package uses the wrong mkinitcpio/boot identity. **Do not install r1.** The branch installer rejects r1 and will not select a release until a corrected r2-or-newer package has been built and published. It is separate from the stable 7.2 line on `master`; the 7.2 branch is not part of this work and must remain unchanged. The 7.2 package uses the `linux-neptune-72` boot identity, whereas SteamOS 3.10's boot integration targets `linux-neptune-73`. The 7.2 installer also removes every installed `linux-charcoal-*` package before installing its selected series, so it can remove an existing 7.3 kernel without restoring the 3.10 boot target. **Do not install the 7.2 branch on SteamOS 3.10.**
+This branch contains the Linux 7.3 port and installer validation work for SteamOS 3.10 Preview. The published `r1` release has a known boot-packaging defect: its kernel package uses the wrong mkinitcpio/boot identity. The 7.3 branch installer now normalizes the downloaded r1 kernel package locally by changing only its `pkgbase` marker and matching `.MTREE` record, then verifies both before pacman can install it. The kernel image and modules are not rebuilt or modified. It is separate from the stable 7.2 line on `master`; the 7.2 branch is not part of this work and must remain unchanged. The 7.2 package uses the `linux-neptune-72` boot identity, whereas SteamOS 3.10's boot integration targets `linux-neptune-73`. The 7.2 installer also removes every installed `linux-charcoal-*` package before installing its selected series, so it can remove an existing 7.3 kernel without restoring the 3.10 boot target. **Do not install the 7.2 branch on SteamOS 3.10.**
 
 The build target is Valve's exact SteamOS 3.10 source package:
 
@@ -41,7 +41,7 @@ Steam Input and Valve's in-tree Steam Deck/controller support remain inherited f
 
 ## Install the latest 7.3 release
 
-**Important:** this command downloads and executes the 7.3 installer from this validation branch. It does not compile the kernel on the Steam Deck. The installer selects the newest published, non-draft, non-prerelease Linux 7.3 release at revision r2 or newer. It deliberately rejects the known-broken r1 package. It does not use the repository-wide latest release, which could belong to another kernel series.
+**Important:** this command downloads and executes the 7.3 installer from this validation branch. It does not compile the kernel on the Steam Deck. The installer selects the newest published, non-draft, non-prerelease Linux 7.3 release. If it selects r1, it corrects and verifies the local package copy before installation; it does not rebuild the kernel. It does not use the repository-wide latest release, which could belong to another kernel series.
 
 First run the read-only diagnostic on SteamOS 3.10:
 
@@ -52,7 +52,7 @@ bash install-charcoal-73.sh --check-only
 
 The `--check-only` mode checks the SteamOS version, installed kernel packages, mkinitcpio preset, kernel image, initramfs, module `pkgbase`, GRUB references and free space. It does not install/remove packages, write files, regenerate initramfs, change GRUB, or reboot. Share its complete output before attempting installation.
 
-**Do not run the installer without `--check-only` yet.** The current install transaction still removes the stock SteamOS 7.3 kernel and therefore removes the stock-kernel fallback. That destructive step has not been replaced with a verified dual-boot/recovery arrangement, and no corrected r2 package has been built or boot-tested.
+After `--check-only` passes, the normal installer can be run from a terminal. It requires an interactive confirmation, verifies the release ZIP and package checksums, normalizes the r1 boot identity if needed, verifies the package marker and `.MTREE`, then generates and checks the initramfs and GRUB references. It removes the stock SteamOS 7.3 kernel and headers to free space; the stock kernel is therefore not retained as a boot-menu fallback. The exact cached stock packages are required for an attempted rollback if installation fails before reboot. This remains a controlled test install, not a proven boot-tested release. Do not reboot unless the installer reports that the kernel image, initramfs and GRUB references all passed.
 
 ### CPU vulnerability mitigations
 
