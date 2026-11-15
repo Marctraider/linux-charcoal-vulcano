@@ -8,6 +8,8 @@ on:
       - 'install-charcoal.sh'
       - 'PKGBUILD'
       - 'tests/test-install-charcoal.sh'
+      - 'charcoal-status'
+      - 'README.md'
       - '.github/workflows/validate-nap-installer.yml'
   workflow_dispatch:
 
