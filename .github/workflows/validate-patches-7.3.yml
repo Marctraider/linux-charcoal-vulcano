@@ -1,0 +1,64 @@
+name: Validate SteamOS 3.10 Linux 7.3 patches (NAP experiment)
+
+on:
+  push:
+    branches:
+      - experiment/steamos-3.10-linux-7.3-nap
+    paths:
+      - PKGBUILD
+      - "*.patch"
+      - automation/**
+      - .github/workflows/validate-patches-7.3.yml
+
+permissions:
+  contents: read
+
+jobs:
+  validate-patches:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.ref }}
+          fetch-depth: 1
+      - name: Validate scripts and tests
+        run: |
+          set -Eeuo pipefail
+          mkdir -p logs
+          bash -n PKGBUILD
+          python3 tests/test_port_steamos_73.py
+          python3 tests/test_nap_tools.py
+          python3 tests/test_nap_tools_refresh.py
+          python3 -m py_compile automation/*.py nap-tools/*.py
+      - name: Download and verify exact Valve 7.3.1 source
+        run: |
+          set -Eeuo pipefail
+          python3 automation/prepare-sources-73.py --root "$GITHUB_WORKSPACE" 2>&1 | tee logs/source-preparation-73.log
+      - name: Prepare patched source only (no kernel compilation)
+        run: |
+          set -Eeuo pipefail
+          docker build . --tag charcoal-linux-73
+          restore_owner() {
+            sudo chown -R "$(id -u):$(id -g)" "$PWD" 2>/dev/null || true
+          }
+          trap restore_owner EXIT
+          docker run --rm -v "$PWD:/project" charcoal-linux-73 chown -R nobody /project
+          docker run --rm -v "$PWD:/project" charcoal-linux-73 sudo -u nobody bash -lc '
+            set -Eeuo pipefail
+            cd /project
+            mkdir -p logs
+            makepkg --verifysource --noconfirm 2>&1 | tee logs/verifysource-73.log
+            makepkg -Cof --noconfirm 2>&1 | tee logs/prepare-73.log
+            git -C src/archlinux-linux-charcoal diff --check | tee logs/git-diff-check-73.txt
+          '
+          restore_owner
+          trap - EXIT
+      - name: Upload patch-validation logs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: charcoal-linux-7.3-patch-validation-${{ github.run_number }}
+          path: logs/
+          if-no-files-found: warn
+          retention-days: 14

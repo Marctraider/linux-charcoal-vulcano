@@ -69,6 +69,7 @@ source=(
   90-charcoal-zram.conf
   90-charcoal-zram-ir.conf
   vangogh_allow_higher_cpu_freq.patch
+  re-swappiness-v1.2_backported.patch
   latest-lru_cast.patch
   latest-zram-ir.patch
   latest-amd-pstate-epp-02-cache-order.patch
@@ -83,6 +84,7 @@ source=(
   latest-zen-02.patch
   zstd-crypto-default-level-1.patch
   nap-6.12-v0.6.5.patch
+  drm_sched_rr_default.patch
   nap-tools.tar.gz
 )
 sha256sums=(
@@ -93,6 +95,7 @@ sha256sums=(
   'b59543c9aac43412e8b90b050380f482214ab33c4703d621ff0ea91ea39c6761'
   '07068c432fd7e80689f44a28346f1909de9ee77aa3e72dfaa6a4ea89d9921afd'
   '1a6f9d691612c4a729032273199d17756dd6666d85019655bd95ea24eff59cac'
+  '15955f233949cd8c37bc63dc5b9380266d228248' # Re-swappiness v1.2 upstream patch
   'f13ac591211d3af128f55f91658a98173472e5866d0cfcf7c730bd887cbf8271'
   '1620f45f0fbab1173c8693a2afc0ada37920c78fdde2d0cbff6afe28545128f4'
   '454f353669c81b5e214e5b71327ed5735733e6bd9f5671e710520a2c3e455cb6'
@@ -107,6 +110,7 @@ sha256sums=(
   '5059762e54c8dbe4262d48eafb8d486a54244eec71da5d7b61fc0f5f1c5c2ea7'
   '8c35a18407440f543518e383a96f8098438c3cbe4ea034241fb9a7fe8f7be129'
   '4d4ac50ba014de33638a2efe9c6adc507b888c6d090aa29ea17b2a4686de4e07' # firelzrd/nap v0.6.5, pinned upstream commit 5092cfdbc615f2e1626e68ab03d3d9730364bcbd
+  '6e510d8b74798944b5cb84ac775156831410c853c8a03c2a3f79e9bc7be9c2e2' # DRM scheduler default Round Robin patch
   '2f8c55a6ab9edb5ca08db326cd6aad1de8819f25352aec5247ea84827d305186' # deterministic NAP tools integration bootstrap
 )
 export KBUILD_BUILD_HOST=archlinux
@@ -182,10 +186,20 @@ prepare() {
       latest-zen-02.patch)
         python3 "$startdir/automation/port-zen-cpufreq-7.3.py" "../$src" drivers/cpufreq/Kconfig.x86
         ;;
+      re-swappiness-v1.2_backported.patch)
+        # Upstream distributes this as diff -Nru rather than git-format.
+        sed '/^Binärdateien /d; /^Binary files /d' "../$src" > "$srcdir/re-swappiness.normalized.patch"
+        patch --dry-run --batch --forward -p1 < "$srcdir/re-swappiness.normalized.patch"
+        patch --batch --forward -p1 < "$srcdir/re-swappiness.normalized.patch"
+        ;;
       nap-6.12-v0.6.5.patch)
         git apply --check --whitespace=nowarn "../$src"
         git apply --whitespace=nowarn "../$src"
         python3 "$startdir/automation/fix-nap-kernel-api.py" drivers/cpuidle/governors/nap/nap.c
+        ;;
+      drm_sched_rr_default.patch)
+        git apply --check --whitespace=nowarn "../$src"
+        git apply --whitespace=nowarn "../$src"
         ;;
       *)
         git apply --check --whitespace=nowarn "../$src"

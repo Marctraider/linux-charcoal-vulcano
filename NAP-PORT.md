@@ -46,3 +46,15 @@ The exact Valve source compatibility gate is now passed. The branch is still exp
 NAP selects CPU idle states and whether to stop the scheduler tick. It is not a CPU-frequency governor or scheduler, and this integration makes no FPS-improvement claim. Its impact on wake latency, power, thermals, and frame pacing needs measurement on Steam Deck hardware.
 
 For the persistence tools and post-boot diagnostics, see [NAP-TOOLS.md](NAP-TOOLS.md).
+
+
+## Additional kernel-only ports under evaluation
+
+This experiment also carries two independent upstream kernel-source changes:
+
+- **DRM scheduler Round Robin default**: pinned in `drm_sched_rr_default.patch`; changes the default DRM scheduler policy from FIFO to RR. It has no userspace dependency.
+- **Re-swappiness v1.2**: pinned in `re-swappiness-v1.2_backported.patch`; changes MGLRU so anonymous and file-backed memory are aged independently. It has no userspace dependency, but touches core memory-management code and needs exact-source compatibility validation.
+
+Neither port adds the original repository's controller drivers, SDL environment script, SMU tools, or other unrelated userspace components. NAP's persistence tools remain a separate component.
+
+The patch-validation workflow prepares and checks the exact Valve 7.3.1 source without compiling the kernel. The kernel build workflow is manual-only; ordinary patch commits do not start a kernel build. No compile, package, boot, installer, or gaming benchmark result is implied by adding these candidates.
