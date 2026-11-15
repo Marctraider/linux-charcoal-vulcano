@@ -196,7 +196,7 @@ prepare() {
   echo "Refreshing NAP userspace tools..."
   python3 "$srcdir/nap-tools/refresh-tools.py" \
     --output "$srcdir/nap-tools-latest" \
-    --record "$srcdir/nap-tools-upstream.json"
+    --record "$startdir/logs/nap-tools-upstream.json"
 
   python3 "$startdir/automation/configure-zen-interactive.py" "$PWD"
   python3 "$startdir/automation/fix-gud-tv-mode-fortify.py" \
