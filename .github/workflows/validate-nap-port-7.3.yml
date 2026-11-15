@@ -50,7 +50,7 @@ jobs:
           grep -q 'exit_latency_ns' "$RUNNER_TEMP/linux-7.3/include/linux/cpuidle.h"
           grep -q 'cpuidle_governor_latency_req' "$RUNNER_TEMP/linux-7.3/include/linux/cpuidle.h"
           grep -q 'IRQ_COUNT_APIC_TIMER' "$RUNNER_TEMP/linux-7.3/arch/x86/include/asm/hardirq.h"
-          grep -q 'counts\[NR_IRQ_COUNTS\]' "$RUNNER_TEMP/linux-7.3/arch/x86/include/asm/hardirq.h"
+          grep -q 'counts\[IRQ_COUNT_MAX\]' "$RUNNER_TEMP/linux-7.3/arch/x86/include/asm/hardirq.h"
           grep -q 'irqs_sum' "$RUNNER_TEMP/linux-7.3/include/linux/kernel_stat.h"
           grep -q 'const struct bin_attribute \*attr' "$RUNNER_TEMP/linux-7.3/include/linux/sysfs.h"
           grep -q 'const struct bin_attribute.*bin_attrs' "$RUNNER_TEMP/linux-7.3/include/linux/sysfs.h"
