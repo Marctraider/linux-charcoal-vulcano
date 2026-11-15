@@ -23,17 +23,9 @@ CONFIG_CMDLINE="amd_pstate.epp_boost=1 mitigations=off cpuidle.governor=nap"
 # Enable CAST page replacement by default.
 CONFIG_LRU_CAST=y
 
-# Keep the kernel ZSWAP feature and ZSTD as its default compressor. This fragment
-# does not create a swapfile or install a gaming-swap service.
-CONFIG_ZSWAP=y
-CONFIG_ZSWAP_DEFAULT_ON=y
-CONFIG_ZSWAP_SHRINKER_DEFAULT_ON=y
-# CONFIG_ZSWAP_COMPRESSOR_DEFAULT_DEFLATE is not set
-# CONFIG_ZSWAP_COMPRESSOR_DEFAULT_LZO is not set
-# CONFIG_ZSWAP_COMPRESSOR_DEFAULT_842 is not set
-# CONFIG_ZSWAP_COMPRESSOR_DEFAULT_LZ4HC is not set
-CONFIG_ZSWAP_COMPRESSOR_DEFAULT_ZSTD=y
-# CONFIG_ZSWAP_COMPRESSOR_DEFAULT_LZ4 is not set
+# Disable ZSWAP to avoid its additional page-compression CPU overhead.
+# ZRAM remains enabled below, with LZ4 as its primary compressor.
+# CONFIG_ZSWAP is not set
 CONFIG_ZSMALLOC=y
 
 CONFIG_ZRAM=m
