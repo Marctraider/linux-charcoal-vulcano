@@ -54,6 +54,8 @@ chmod +x "$tmp/bin/pacman" "$tmp/bin/bsdtar"
 touch "$tmp/linux-charcoal-73.pkg.tar.zst" "$tmp/linux-charcoal-73-headers.pkg.tar.zst"
 package_files=("$tmp/linux-charcoal-73.pkg.tar.zst" "$tmp/linux-charcoal-73-headers.pkg.tar.zst")
 PATH="$tmp/bin:$PATH" CONFIG_FIXTURE="$tmp/kernel.config" verify_kernel_package_identity package_files || fail "valid NAP package identity/config rejected"
+if PATH="$tmp/bin:$PATH" charcoal_upgrade_installed; then fail "missing Charcoal package treated as an upgrade"; fi
+CHARCOAL_TEST_INSTALLED=1 PATH="$tmp/bin:$PATH" charcoal_upgrade_installed || fail "installed Charcoal package not detected for in-place upgrade"
 grep -v 'CONFIG_CPU_IDLE_GOV_NAP=y' "$tmp/kernel.config" > "$tmp/kernel-bad.config"
 if ( PATH="$tmp/bin:$PATH" CONFIG_FIXTURE="$tmp/kernel-bad.config" verify_kernel_package_identity package_files >/dev/null 2>&1 ); then fail "package without NAP governor accepted"; fi
 cat > "$tmp/runs.json" <<'EOF'
@@ -92,7 +94,13 @@ grep -Fq 'nap-state-save.timer' "$INSTALLER" || fail "NAP save timer check"
 grep -Fq 'sched_policy' "$INSTALLER" || fail "DRM RR runtime check"
 grep -Fq 'CONFIG_BTRFS_FS=y' "$INSTALLER" || fail "Btrfs config check"
 grep -Fq 'Neither Valve linux-neptune-73 nor an existing Charcoal 7.3 kernel is installed' "$INSTALLER" || fail "existing 7.3 upgrade guard"
-grep -Fq 'verify_existing_boot_state || die' "$INSTALLER" || fail "pre-install boot-chain check"
+grep -Fq 'if charcoal_upgrade_installed; then' "$INSTALLER" || fail "existing Charcoal upgrade path"
+grep -Fq 'Replacing the existing Charcoal 7.3 kernel and headers in one pacman transaction' "$INSTALLER" || fail "direct in-place package replacement"
+grep -Fq 'verify_existing_boot_state || die' "$INSTALLER" || fail "fresh-install boot-chain check"
+grep -Fq 'mktemp -d /dev/shm/charcoal-73-installer' "$INSTALLER" || fail "package staging must stay off root filesystem"
+grep -Fq 'rm -f -- "$archive_path"' "$INSTALLER" || fail "release archive should be removed after extraction"
+grep -Fq 'ln -s -- "$found" "$rollback_dir/' "$INSTALLER" || fail "rollback cache should be referenced without copying to root filesystem"
+if grep -Fq 'cp -- "$found" "$rollback_dir/"' "$INSTALLER"; then fail "rollback package must not be duplicated"; fi
 grep -Fq 'mkinitcpio -p linux-neptune-73' "$INSTALLER" || fail "initramfs generation"
 grep -Fq 'verify_grub_entry' "$INSTALLER" || fail "GRUB verification"
 printf 'NAP Linux 7.3 installer tests passed\n'
