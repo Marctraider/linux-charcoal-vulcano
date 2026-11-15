@@ -223,8 +223,11 @@ grep -Fq '/boot/initramfs-linux-neptune-73.img' "$INSTALLER" \
   || fail "installer does not verify the expected SteamOS initramfs"
 grep -Fq 'verify_grub_entry' "$INSTALLER" \
   || fail "installer does not validate the generated GRUB entry"
-grep -Fq 'version[-1] < 2' "$INSTALLER" \
-  || fail "installer does not reject the known-broken r1 release"
+grep -Fq 'normalize-legacy-73-package.py' "$INSTALLER" \
+  || fail "installer does not normalize r1 package boot identity"
+if grep -Fq 'version[-1] < 2' "$INSTALLER"; then
+  fail "installer still rejects r1 before package normalization"
+fi
 grep -Fq 'linux-charcoal-73(-headers)?' "$INSTALLER" \
   || fail "installer must reject packages from other kernel series"
 
