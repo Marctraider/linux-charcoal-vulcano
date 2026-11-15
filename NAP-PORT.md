@@ -16,20 +16,22 @@ The patch is pinned in the PKGBUILD. It is not fetched from a moving upstream br
 
 ## Linux 7.3 compatibility
 
-The upstream patch is applied with `git apply --check` first. Then `automation/fix-nap-kernel-api.py` performs narrowly scoped, fail-closed compatibility edits for the Linux 7.2+ IRQ counter layout and binary sysfs attribute constness. Unexpected or partially matching source is rejected rather than guessed.
+The pinned NAP patch is applied with `git apply --check` first. The API adapter, `automation/fix-nap-kernel-api.py`, uses narrow, fail-closed compatibility checks for the Linux 7.2+ IRQ counter layout and binary sysfs attribute constness. It rejects unexpected or partially matching source instead of guessing.
 
-The kernel configuration enables `CONFIG_CPU_IDLE_GOV_NAP=y` and selects it at boot with `cpuidle.governor=nap`. The bootloader command line remains appendable because `CONFIG_CMDLINE_OVERRIDE` stays disabled.
+The kernel configuration enables `CONFIG_CPU_IDLE=y` and `CONFIG_CPU_IDLE_GOV_NAP=y`, and selects NAP at boot with `cpuidle.governor=nap`. The bootloader command line remains appendable because `CONFIG_CMDLINE_OVERRIDE` stays disabled.
 
 ## Validation status
 
-- PKGBUILD shell syntax: passed in GitHub Actions.
-- Pinned patch SHA-256: passed in GitHub Actions.
+- PKGBUILD shell syntax and pinned NAP patch SHA-256: passed in GitHub Actions.
 - NAP API compatibility unit tests: passed (6 tests).
-- Patch application and API adaptation against upstream Linux v7.3: passed in GitHub Actions.
-- Application against Valve's exact embedded 7.3.1-valve2 source commit: not yet verified.
-- Kernel build, package build, boot test, and gaming benchmark: not run.
+- Patch application and required API checks against upstream Linux v7.3: passed.
+- Valve source archive `linux-neptune-73-7.3.1.valve2-1.src.tar.gz`: downloaded and matched the PKGBUILD SHA-256.
+- Embedded Valve commit `0ed55b10a784a0a0b518ecd20551659fde1d59c9`: found and checked out successfully.
+- NAP patch application against that exact Valve source commit: passed.
+- API adapter against the exact Valve source: passed without source edits; `git diff --check` passed.
+- Kernel compile, package build, boot test, installer test, and gaming benchmark: not run.
 
-A passing upstream-source patch check is not a substitute for checking Valve's exact source archive. This branch is not a production or installation candidate until that check and subsequent user-authorized testing are complete.
+The exact Valve source compatibility gate is now passed. The branch is still experimental and is not a production or installation candidate until compile-time validation and subsequent user-authorized testing are completed.
 
 ## Expected behaviour
 
