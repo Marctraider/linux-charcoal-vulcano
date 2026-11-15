@@ -1,5 +1,8 @@
 # Charcoal SteamOS 3.10 / Linux 7.3
 
+> **Disclaimer:** At own risk! Tested on clean SteamOS builds.
+
+
 This branch contains the Linux 7.3 port and installer validation work for SteamOS 3.10 Preview. The published `r1` release has a known boot-packaging defect: its kernel package uses the wrong mkinitcpio/boot identity. The 7.3 branch installer now normalizes the downloaded r1 kernel package locally by changing only its `pkgbase` marker and matching `.MTREE` record, then verifies both before pacman can install it. The kernel image and modules are not rebuilt or modified. It is separate from the stable 7.2 line on `master`; the 7.2 branch is not part of this work and must remain unchanged. The 7.2 package uses the `linux-neptune-72` boot identity, whereas SteamOS 3.10's boot integration targets `linux-neptune-73`. The 7.2 installer also removes every installed `linux-charcoal-*` package before installing its selected series, so it can remove an existing 7.3 kernel without restoring the 3.10 boot target. **Do not install the 7.2 branch on SteamOS 3.10.**
 
 The build target is Valve's exact SteamOS 3.10 source package:
@@ -26,6 +29,8 @@ The intended kernel-side features retained in this port are:
 - Van Gogh 4.2 GHz frequency patch, subject to source and hardware validation. The separate Van Gogh power-limit patch is omitted because its source anchors changed in Valve 7.3 and a safe port was not established.
 
 ### Memory compression policy
+
+For an already-installed kernel that was built with ZSWAP default-on, add `zswap.enabled=0` to the kernel command line to disable it at boot without rebuilding; this boot parameter overrides `CONFIG_ZSWAP_DEFAULT_ON`. Verify after reboot with `cat /sys/module/zswap/parameters/enabled` (expected: `N`).
 
 ZRAM-IR remains enabled as the swap device for memory-pressure protection. Kernel ZSWAP is disabled in the 7.3 build configuration: it adds a second compressed-swap cache path, while the Steam Deck configuration prioritizes ZRAM and CPU time for games. ZSWAP's ZSTD compressor selection is therefore removed rather than retained as an inactive backend. ZRAM still performs compression when pages are actually swapped; this is not a guarantee of higher FPS, and the aim is to avoid ZSWAP's additional work rather than eliminate all compression overhead.
 
