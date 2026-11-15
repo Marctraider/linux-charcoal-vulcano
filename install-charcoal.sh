@@ -85,6 +85,35 @@ verify_boot_artifacts() {
   [[ -s "$initramfs" ]] || { info "error: expected initramfs is missing: $initramfs"; return 1; }
 }
 
+verify_existing_boot_state() {
+  # Fail before any package or filesystem changes if the current SteamOS
+  # 3.10 boot chain is already incomplete. Do not overwrite evidence or
+  # attempt an installation on a system that is already missing boot files.
+  verify_boot_artifacts || {
+    info "error: existing SteamOS 3.10 boot files are incomplete; installation aborted without changes"
+    return 1
+  }
+  local grub=""
+  for candidate in /efi/EFI/steamos/grub.cfg /boot/grub/grub.cfg; do
+    if [[ -s "$candidate" ]]; then
+      grub=$candidate
+      break
+    fi
+  done
+  [[ -n "$grub" ]] || {
+    info "error: no existing SteamOS GRUB configuration found; installation aborted without changes"
+    return 1
+  }
+  grep -Fq '/boot/vmlinuz-linux-neptune-73' "$grub" || {
+    info "error: current GRUB config does not reference the SteamOS 7.3 kernel; installation aborted"
+    return 1
+  }
+  grep -Fq '/boot/initramfs-linux-neptune-73.img' "$grub" || {
+    info "error: current GRUB config does not reference the SteamOS 7.3 initramfs; installation aborted"
+    return 1
+  }
+}
+
 verify_grub_entry() {
   [[ -n "$GRUB_CONFIG" && -s "$GRUB_CONFIG" ]] || {
     info "error: generated GRUB configuration is missing"
@@ -449,6 +478,8 @@ main() {
   if ! grep -Fxq 'linux-neptune-73' "$installed_file"; then
     die "The Valve linux-neptune-73 stock kernel is not installed; refusing to replace an unknown or already-broken boot setup"
   fi
+
+  verify_existing_boot_state || die "Existing SteamOS boot state is not healthy; no package changes were made"
 
   confirm_stock_removal stock_packages
   # Only the matching SteamOS stock 7.3 kernel may be removed. Existing
