@@ -26,7 +26,7 @@ jobs:
         run: |
           set -Eeuo pipefail
           bash -n PKGBUILD
-          echo '9baff430e13c423e06cb1edc85f74d297beeac5867b5863ab1cc769b2a168628  nap-6.12-v0.6.5.patch' | sha256sum --check
+          echo 'f4d7a42355df20ea18eac2dffd1a681c5c107e1be82334c644e3bb9bf1ba6293  nap-6.12-v0.6.5.patch' | sha256sum --check
           grep -q '^CONFIG_CPU_IDLE_GOV_NAP=y$' config-charcoal
           grep -q "'CONFIG_CPU_IDLE_GOV_NAP=y'" PKGBUILD
       - name: Test fail-closed NAP Linux API adaptation
