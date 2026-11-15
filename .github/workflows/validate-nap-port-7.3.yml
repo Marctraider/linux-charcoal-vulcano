@@ -28,95 +28,8 @@ jobs:
           bash -n PKGBUILD
           echo '4d4ac50ba014de33638a2efe9c6adc507b888c6d090aa29ea17b2a4686de4e07  nap-6.12-v0.6.5.patch' | sha256sum --check
           grep -q '^CONFIG_CPU_IDLE=y$' config-charcoal
-          grep -q '^CONFIG_CPU_IDLE_GOV_NAP=y
-      - name: Test fail-closed NAP Linux API adaptation
-        run: |
-          set -Eeuo pipefail
-          python3 -m py_compile automation/fix-nap-kernel-api.py tests/test_nap_kernel_api.py
-          python3 tests/test_nap_kernel_api.py
-      - name: Check patch application against upstream Linux 7.3 sources
-        run: |
-          set -Eeuo pipefail
-          git clone --filter=blob:none --depth=1 --branch v7.3 https://github.com/torvalds/linux.git "$RUNNER_TEMP/linux-7.3"
-          git -C "$RUNNER_TEMP/linux-7.3" sparse-checkout set drivers/cpuidle include/linux arch/x86/include/asm
-          git -C "$RUNNER_TEMP/linux-7.3" apply --check --whitespace=nowarn "$GITHUB_WORKSPACE/nap-6.12-v0.6.5.patch"
-          git -C "$RUNNER_TEMP/linux-7.3" apply --whitespace=nowarn "$GITHUB_WORKSPACE/nap-6.12-v0.6.5.patch"
-          python3 automation/fix-nap-kernel-api.py "$RUNNER_TEMP/linux-7.3/drivers/cpuidle/governors/nap/nap.c"
-          grep -q 'config CPU_IDLE_GOV_NAP' "$RUNNER_TEMP/linux-7.3/drivers/cpuidle/Kconfig"
-          grep -q 'config CPU_IDLE_GOV_TEO' "$RUNNER_TEMP/linux-7.3/drivers/cpuidle/Kconfig"
-          grep -q 'poll_limit_ns' "$RUNNER_TEMP/linux-7.3/include/linux/cpuidle.h"
-          grep -q 'last_residency_ns' "$RUNNER_TEMP/linux-7.3/include/linux/cpuidle.h"
-          grep -q 'target_residency_ns' "$RUNNER_TEMP/linux-7.3/include/linux/cpuidle.h"
-          grep -q 'exit_latency_ns' "$RUNNER_TEMP/linux-7.3/include/linux/cpuidle.h"
-          grep -q 'cpuidle_governor_latency_req' "$RUNNER_TEMP/linux-7.3/include/linux/cpuidle.h"
-          grep -q 'IRQ_COUNT_APIC_TIMER' "$RUNNER_TEMP/linux-7.3/arch/x86/include/asm/hardirq.h"
-          grep -q 'counts\[IRQ_COUNT_MAX\]' "$RUNNER_TEMP/linux-7.3/arch/x86/include/asm/hardirq.h"
-          grep -q 'irqs_sum' "$RUNNER_TEMP/linux-7.3/include/linux/kernel_stat.h"
-          grep -q 'const struct bin_attribute \*attr' "$RUNNER_TEMP/linux-7.3/include/linux/sysfs.h"
-          grep -q 'const struct bin_attribute.*bin_attrs' "$RUNNER_TEMP/linux-7.3/include/linux/sysfs.h"
-      - name: Verify patch against Valve's exact 7.3.1-valve2 source
-        timeout-minutes: 45
-        run: |
-          set -Eeuo pipefail
-          archive="$RUNNER_TEMP/linux-neptune-73-7.3.1.valve2-1.src.tar.gz"
-          curl --fail --location --retry 3 --retry-all-errors --output "$archive" \
-            https://steamdeck-packages.steamos.cloud/archlinux-mirror/sources/jupiter-3.10/linux-neptune-73-7.3.1.valve2-1.src.tar.gz
-          echo 'a6316acc22954d0685ac923248995246789a1f3b5ee6890d378ce2c3efa25af8  '"$archive" | sha256sum --check
-          mkdir -p "$RUNNER_TEMP/valve-source"
-          tar -xzf "$archive" -C "$RUNNER_TEMP/valve-source" linux-neptune-73/archlinux-linux-neptune
-          repo="$RUNNER_TEMP/valve-source/linux-neptune-73/archlinux-linux-neptune"
-          commit=0ed55b10a784a0a0b518ecd20551659fde1d59c9
-          git --git-dir="$repo" cat-file -e "$commit^{commit}"
-          git --git-dir="$repo" worktree add --detach "$RUNNER_TEMP/linux-neptune-73-worktree" "$commit"
-          git -C "$RUNNER_TEMP/linux-neptune-73-worktree" apply --check --whitespace=nowarn "$GITHUB_WORKSPACE/nap-6.12-v0.6.5.patch"
-          git -C "$RUNNER_TEMP/linux-neptune-73-worktree" apply --whitespace=nowarn "$GITHUB_WORKSPACE/nap-6.12-v0.6.5.patch"
-          python3 automation/fix-nap-kernel-api.py "$RUNNER_TEMP/linux-neptune-73-worktree/drivers/cpuidle/governors/nap/nap.c"
-          git -C "$RUNNER_TEMP/linux-neptune-73-worktree" diff --check
- config-charcoal
-          grep -q '^CONFIG_CPU_IDLE_GOV_TEO=y
-      - name: Test fail-closed NAP Linux API adaptation
-        run: |
-          set -Eeuo pipefail
-          python3 -m py_compile automation/fix-nap-kernel-api.py tests/test_nap_kernel_api.py
-          python3 tests/test_nap_kernel_api.py
-      - name: Check patch application against upstream Linux 7.3 sources
-        run: |
-          set -Eeuo pipefail
-          git clone --filter=blob:none --depth=1 --branch v7.3 https://github.com/torvalds/linux.git "$RUNNER_TEMP/linux-7.3"
-          git -C "$RUNNER_TEMP/linux-7.3" sparse-checkout set drivers/cpuidle include/linux arch/x86/include/asm
-          git -C "$RUNNER_TEMP/linux-7.3" apply --check --whitespace=nowarn "$GITHUB_WORKSPACE/nap-6.12-v0.6.5.patch"
-          git -C "$RUNNER_TEMP/linux-7.3" apply --whitespace=nowarn "$GITHUB_WORKSPACE/nap-6.12-v0.6.5.patch"
-          python3 automation/fix-nap-kernel-api.py "$RUNNER_TEMP/linux-7.3/drivers/cpuidle/governors/nap/nap.c"
-          grep -q 'config CPU_IDLE_GOV_NAP' "$RUNNER_TEMP/linux-7.3/drivers/cpuidle/Kconfig"
-          grep -q 'poll_limit_ns' "$RUNNER_TEMP/linux-7.3/include/linux/cpuidle.h"
-          grep -q 'last_residency_ns' "$RUNNER_TEMP/linux-7.3/include/linux/cpuidle.h"
-          grep -q 'target_residency_ns' "$RUNNER_TEMP/linux-7.3/include/linux/cpuidle.h"
-          grep -q 'exit_latency_ns' "$RUNNER_TEMP/linux-7.3/include/linux/cpuidle.h"
-          grep -q 'cpuidle_governor_latency_req' "$RUNNER_TEMP/linux-7.3/include/linux/cpuidle.h"
-          grep -q 'IRQ_COUNT_APIC_TIMER' "$RUNNER_TEMP/linux-7.3/arch/x86/include/asm/hardirq.h"
-          grep -q 'counts\[IRQ_COUNT_MAX\]' "$RUNNER_TEMP/linux-7.3/arch/x86/include/asm/hardirq.h"
-          grep -q 'irqs_sum' "$RUNNER_TEMP/linux-7.3/include/linux/kernel_stat.h"
-          grep -q 'const struct bin_attribute \*attr' "$RUNNER_TEMP/linux-7.3/include/linux/sysfs.h"
-          grep -q 'const struct bin_attribute.*bin_attrs' "$RUNNER_TEMP/linux-7.3/include/linux/sysfs.h"
-      - name: Verify patch against Valve's exact 7.3.1-valve2 source
-        timeout-minutes: 45
-        run: |
-          set -Eeuo pipefail
-          archive="$RUNNER_TEMP/linux-neptune-73-7.3.1.valve2-1.src.tar.gz"
-          curl --fail --location --retry 3 --retry-all-errors --output "$archive" \
-            https://steamdeck-packages.steamos.cloud/archlinux-mirror/sources/jupiter-3.10/linux-neptune-73-7.3.1.valve2-1.src.tar.gz
-          echo 'a6316acc22954d0685ac923248995246789a1f3b5ee6890d378ce2c3efa25af8  '"$archive" | sha256sum --check
-          mkdir -p "$RUNNER_TEMP/valve-source"
-          tar -xzf "$archive" -C "$RUNNER_TEMP/valve-source" linux-neptune-73/archlinux-linux-neptune
-          repo="$RUNNER_TEMP/valve-source/linux-neptune-73/archlinux-linux-neptune"
-          commit=0ed55b10a784a0a0b518ecd20551659fde1d59c9
-          git --git-dir="$repo" cat-file -e "$commit^{commit}"
-          git --git-dir="$repo" worktree add --detach "$RUNNER_TEMP/linux-neptune-73-worktree" "$commit"
-          git -C "$RUNNER_TEMP/linux-neptune-73-worktree" apply --check --whitespace=nowarn "$GITHUB_WORKSPACE/nap-6.12-v0.6.5.patch"
-          git -C "$RUNNER_TEMP/linux-neptune-73-worktree" apply --whitespace=nowarn "$GITHUB_WORKSPACE/nap-6.12-v0.6.5.patch"
-          python3 automation/fix-nap-kernel-api.py "$RUNNER_TEMP/linux-neptune-73-worktree/drivers/cpuidle/governors/nap/nap.c"
-          git -C "$RUNNER_TEMP/linux-neptune-73-worktree" diff --check
- config-charcoal
+          grep -q '^CONFIG_CPU_IDLE_GOV_NAP=y$' config-charcoal
+          grep -q '^CONFIG_CPU_IDLE_GOV_TEO=y$' config-charcoal
           grep -q "'CONFIG_CPU_IDLE_GOV_NAP=y'" PKGBUILD
           grep -q "'CONFIG_CPU_IDLE_GOV_TEO=y'" PKGBUILD
       - name: Test fail-closed NAP Linux API adaptation
@@ -133,7 +46,9 @@ jobs:
           git -C "$RUNNER_TEMP/linux-7.3" apply --whitespace=nowarn "$GITHUB_WORKSPACE/nap-6.12-v0.6.5.patch"
           python3 automation/fix-nap-kernel-api.py "$RUNNER_TEMP/linux-7.3/drivers/cpuidle/governors/nap/nap.c"
           grep -q 'config CPU_IDLE_GOV_NAP' "$RUNNER_TEMP/linux-7.3/drivers/cpuidle/Kconfig"
+          grep -q 'config CPU_IDLE_GOV_TEO' "$RUNNER_TEMP/linux-7.3/drivers/cpuidle/Kconfig"
           grep -q 'poll_limit_ns' "$RUNNER_TEMP/linux-7.3/include/linux/cpuidle.h"
+          grep -q 'poll_time_limit' "$RUNNER_TEMP/linux-7.3/include/linux/cpuidle.h"
           grep -q 'last_residency_ns' "$RUNNER_TEMP/linux-7.3/include/linux/cpuidle.h"
           grep -q 'target_residency_ns' "$RUNNER_TEMP/linux-7.3/include/linux/cpuidle.h"
           grep -q 'exit_latency_ns' "$RUNNER_TEMP/linux-7.3/include/linux/cpuidle.h"
