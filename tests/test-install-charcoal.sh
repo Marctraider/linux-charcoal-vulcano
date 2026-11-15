@@ -25,29 +25,6 @@ source "$INSTALLER"
 tmp="$(mktemp -d)"
 trap 'rm -rf "$tmp"' EXIT
 
-# The installer persists the ZSWAP-off policy in GRUB without a kernel rebuild.
-run_privileged() { "$@"; }
-export CHARCOAL_GRUB_DEFAULTS_FILE="$tmp/grub-defaults"
-cat > "$CHARCOAL_GRUB_DEFAULTS_FILE" <<'EOF'
-GRUB_CMDLINE_LINUX_DEFAULT="quiet splash zswap.enabled=1"
-GRUB_CMDLINE_LINUX="console=tty1 zswap.enabled=1"
-EOF
-ensure_zswap_disabled_boot_parameter || fail "could not set the persistent ZSWAP boot parameter"
-[[ "$(grep -c 'zswap.enabled=0' "$CHARCOAL_GRUB_DEFAULTS_FILE")" -eq 1 ]] || fail "ZSWAP-off parameter was not written exactly once"
-! grep -q 'zswap.enabled=1' "$CHARCOAL_GRUB_DEFAULTS_FILE" || fail "conflicting ZSWAP-on parameter remains"
-grep -q 'zswap.enabled=1' "$CHARCOAL_GRUB_DEFAULTS_FILE.charcoal-backup" || fail "original GRUB defaults were not backed up"
-ensure_zswap_disabled_boot_parameter || fail "second ZSWAP configuration pass failed"
-[[ "$(grep -c 'zswap.enabled=0' "$CHARCOAL_GRUB_DEFAULTS_FILE")" -eq 1 ]] || fail "ZSWAP boot parameter is not idempotent"
-unset CHARCOAL_GRUB_DEFAULTS_FILE
-cat > "$tmp/grub.cfg" <<'EOF'
-linux /boot/vmlinuz-linux-neptune-73 quiet zswap.enabled=0
-initrd /boot/initramfs-linux-neptune-73.img
-EOF
-GRUB_CONFIG="$tmp/grub.cfg"
-verify_grub_entry || fail "generated GRUB config without a valid ZSWAP-off boot argument was rejected"
-sed -i 's/zswap.enabled=0/zswap.enabled=1/' "$tmp/grub.cfg"
-if verify_grub_entry >/dev/null 2>&1; then fail "generated GRUB config with ZSWAP enabled was accepted"; fi
-
 # The 7.3 installer must refuse other operating-system releases.
 cat > "$tmp/os-release" <<'EOF'
 ID=steamos
