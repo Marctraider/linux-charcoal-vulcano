@@ -20,6 +20,12 @@ The pinned NAP patch is applied with `git apply --check` first. The API adapter,
 
 The kernel configuration enables `CONFIG_CPU_IDLE=y` and `CONFIG_CPU_IDLE_GOV_NAP=y`, and selects NAP at boot with `cpuidle.governor=nap`. The bootloader command line remains appendable because `CONFIG_CMDLINE_OVERRIDE` stays disabled.
 
+## Package integration
+
+The PKGBUILD includes the deterministic `nap-tools.tar.gz` bootstrap, resolves the current upstream tools during `prepare()`, and fails the build if upstream resolution or the reviewed integration fails. During packaging, `install-tools.py --require-resolved` verifies the fetched payload and builds the viewer from the actual patched NAP kernel weights.
+
+Only the kernel package carries `linux-charcoal-73.install`: installation and upgrades enable the persistence service and timer without restarting an already active service; removal stops the timer, saves the current state through the service stop action, and disables the units. The headers package does not run these hooks. The kernel package name and SteamOS boot identity remain unchanged, so the custom installer does not need a NAP-specific package path.
+
 ## Validation status
 
 - PKGBUILD shell syntax and pinned NAP patch SHA-256: passed in GitHub Actions.
