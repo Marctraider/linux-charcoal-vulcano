@@ -176,9 +176,11 @@ data = json.load(open(sys.argv[1], encoding="utf-8"))
 with open(sys.argv[1], "w", encoding="utf-8") as f:
     json.dump([r for r in data if r["tag_name"].endswith("-r1")], f)
 PY
-if parse_release_metadata "$tmp/releases.json" >/dev/null 2>&1; then
-  fail "installer must reject the known-broken r1 release"
-fi
+r1_metadata="$(parse_release_metadata "$tmp/releases.json")" \
+  || fail "installer did not accept r1 for verified local package normalization"
+mapfile -t r1_fields <<< "$r1_metadata"
+[[ ${r1_fields[0]} == charcoal-7.3.1.valve2.cc1-r1 ]] \
+  || fail "installer did not select the available r1 package when no newer 7.3 release exists"
 
 grep -Fq 'verify_host_platform || die' "$INSTALLER" \
   || fail "installer does not enforce the SteamOS 3.10 target"
