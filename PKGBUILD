@@ -190,8 +190,24 @@ prepare() {
         python3 "$startdir/automation/fix-nap-kernel-api.py" drivers/cpuidle/governors/nap/nap.c
         ;;
       drm_sched_rr_default.patch)
-        git apply --check --whitespace=nowarn "../$src"
-        git apply --whitespace=nowarn "../$src"
+        # Valve's 7.3 DRM scheduler source moved the policy declaration;
+        # apply the one-line default change by exact symbol match, not line offset.
+        python3 - <<'PY'
+from pathlib import Path
+
+path = Path("drivers/gpu/drm/scheduler/sched_main.c")
+source = path.read_text(encoding="utf-8")
+old = "int drm_sched_policy = DRM_SCHED_POLICY_FIFO;"
+new = "int drm_sched_policy = DRM_SCHED_POLICY_RR;"
+count = source.count(old)
+if count != 1:
+    raise SystemExit(
+        f"ERROR: expected exactly one FIFO DRM scheduler policy declaration, found {count}"
+    )
+path.write_text(source.replace(old, new, 1), encoding="utf-8")
+print("Applied DRM scheduler Round Robin default to sched_main.c")
+PY
+        grep -n -F 'int drm_sched_policy = DRM_SCHED_POLICY_RR;' drivers/gpu/drm/scheduler/sched_main.c
         ;;
       *)
         git apply --check --whitespace=nowarn "../$src"
