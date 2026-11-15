@@ -233,9 +233,11 @@ for scheduler_file in /sys/block/*/queue/scheduler; do
   [[ -r "$scheduler_file" ]] || continue
   scheduler_devices=$((scheduler_devices + 1))
   schedulers=$(<"$scheduler_file")
-    grep -q '\[adios\]' <<< "$schedulers" && adios_selected=$((adios_selected + 1))
+  if grep -qw adios <<< "$schedulers"; then
     adios_available=$((adios_available + 1))
-    grep -q '\[adios\]' <<< "$schedulers" && adios_selected=$((adios_selected + 1))
+    if grep -q '\[adios\]' <<< "$schedulers"; then
+      adios_selected=$((adios_selected + 1))
+    fi
   fi
 done
 if (( adios_selected > 0 )); then
