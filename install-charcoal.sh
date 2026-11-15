@@ -214,12 +214,12 @@ PY
 }
 
 verify_kernel_package_identity() {
-  local -n package_files=$1
+  local -n package_files_ref=$1
   local pkg pkgname="" pkgver="" kernel_pkg="" headers_pkg="" kernel_pkgver="" headers_pkgver=""
   local entry module_dir package_base archive_listing
   local -a pkgbase_entries=()
 
-  for pkg in "${package_files[@]}"; do
+  for pkg in "${package_files_ref[@]}"; do
     read -r pkgname pkgver < <(pacman -Qp "$pkg")
     [[ -n "$pkgname" && -n "$pkgver" ]] || { info "error: cannot read package metadata: $pkg"; return 1; }
     case "$pkgname" in
