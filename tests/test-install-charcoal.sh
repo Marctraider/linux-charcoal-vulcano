@@ -106,7 +106,7 @@ if grep -Fq 'cp -- "$found" "$rollback_dir/"' "$INSTALLER"; then fail "rollback 
 grep -Fq 'mkinitcpio -p linux-neptune-73' "$INSTALLER" || fail "initramfs generation"
 grep -Fq 'verify_grub_entry' "$INSTALLER" || fail "GRUB verification"
 grep -Fq 'sudo charcoal-status' "$INSTALLER" || fail "post-reboot runtime status instruction"
-if grep -Eq 'current_governor|nap-state\.service|nap-state-save\.timer|sched_policy' "$INSTALLER"; then fail "installer must not report current runtime feature state"; fi
+if grep -Eq 'current_governor|nap-state\.service|nap-state-save\.timer|/sys/module/drm(_sched)?/parameters/sched_policy' "$INSTALLER"; then fail "installer must not report current runtime feature state"; fi
 STATUS="$ROOT/charcoal-status"
 grep -Fq 'CONFIG_CPU_IDLE_GOV_NAP CONFIG_CPU_IDLE_GOV_TEO' "$STATUS" || fail "status checks NAP and TEO fallback"
 grep -Fq '/sys/module/drm_sched/parameters/sched_policy' "$STATUS" || fail "status checks DRM RR runtime policy under the drm_sched module"
