@@ -1,10 +1,8 @@
-# SteamOS 3.10 / Linux 7.3 port audit
+# SteamOS 3.10 / Linux 7.3 source and port record
 
-Status: **7.3 build preparation and validation in progress; no successful kernel build or Steam Deck boot has been established.** This branch is validation-only and must not publish a release.
+This file preserves source identity and compatibility notes from the original 7.3 port investigation. It is historical build documentation, not a statement that the port is still unbuilt.
 
-## Target source
-
-Use Valve's exact SteamOS 3.10 source package:
+## Exact Valve source
 
 - Package: `linux-neptune-73`
 - Version: `7.3.1.valve2-1`
@@ -14,69 +12,45 @@ Use Valve's exact SteamOS 3.10 source package:
 - Valve source tag: `7.3.1-valve2`
 - Resolved commit: `0ed55b10a784a0a0b518ecd20551659fde1d59c9`
 
-Do not substitute valve1, generic upstream v7.3.1, or a newer unrelated SteamOS source snapshot. The Valve source archive contains the embedded bare Git repository and the matching `config.x86_64` / `config-neptune` fragments.
+Do not substitute valve1, generic upstream v7.3.1, or another SteamOS source snapshot. The archive contains the embedded bare Git repository and matching `config.x86_64` / `config-neptune` fragments.
 
-## 7.3 package and installer
+## Package and boot identity
 
-- Dedicated recipe: `PKGBUILD`
-- Package identity: `linux-charcoal-73` and `linux-charcoal-73-headers`
-- Kernel source identity is pinned to Valve's exact 7.3.1.valve2 tag and archive checksum.
-- The 7.3 installer accepts only 7.3 release tags and package names.
-- It removes previously installed Charcoal kernel packages. It also identifies only the matching `linux-neptune-73` kernel and headers and asks for explicit confirmation before removing them.
-- It does not target `linux-neptune-72`. The installer never reboots automatically and attempts rollback from cached package files if installation fails.
-- The 7.3 build workflow is isolated from the 7.2 workflow and uploads build artifacts only. It does not publish a release.
-
-Because the installer can remove the stock 7.3 kernel after confirmation, do not approve that step unless a separate recovery route is available.
+- Recipe: `PKGBUILD`
+- Packages: `linux-charcoal-73` and `linux-charcoal-73-headers`
+- Boot/module identity: `linux-neptune-73`
+- Architecture: x86_64, Steam Deck Zen 2 compiler target `-march=znver2`
+- Installer: `install-charcoal.sh`; it does not reboot automatically.
 
 ## Retained Linux 7.3 feature scope
 
-The intended kernel-side feature set is:
+The consolidated baseline retains BORE, POC Selector, ADIOS and udev integration, LRU CAST, ZRAM-IR, AMD P-State EPP changes, NTSYNC, Steam Deck drivers/configuration, NAP CPUIdle with TEO fallback, DRM scheduler Round Robin default, Clang/LLVM, Zen 2 targeting, O3, full Clang LTO and Polly.
 
-- BORE scheduler and POC Selector.
-- ADIOS I/O scheduler and default-scheduler integration.
-- LRU CAST reclaim.
-- ZRAM-IR and its runtime configuration.
-- Kernel ZSWAP.
-- AMD P-State EPP defaults and per-core EPP boost, pending clean source application and compilation.
-- Zen 2 targeting, Clang/LLVM, O3, full Clang LTO and Polly.
-- Van Gogh 4.2 GHz frequency and power-limit changes, pending source/build/hardware validation.
+ZRAM is a module with LZ4 primary compression. ZSWAP is disabled. Btrfs is built in. Re-swappiness is omitted. The built-in command line includes `amd_pstate.epp_boost=1 mitigations=off cpuidle.governor=nap`; disabling CPU vulnerability mitigations is a security/performance trade-off.
 
-The pinned upstream patch candidates are checked against the exact Valve source. A successful `git apply --check` is only a preliminary compatibility signal, not proof of compilation or runtime correctness. Some 7.3-specific adaptations are handled by fail-closed Python helpers with exact source preconditions.
+NAP integration details and pinned source are documented in `NAP-PORT.md`; userspace persistence tooling is documented in `NAP-TOOLS.md`.
 
-## Explicit exclusions and inherited stock configuration
+## Patch application and validation rules
 
-- **NAP is omitted from Linux 7.3.** No native 7.3 patch has been proven to apply cleanly. NAP remains on the separate stable 7.2 line.
-- **IOMMU/PerfOpt is excluded.** Its patch, config overrides and README claims are not part of this port.
-- **No bundled third-party controller drivers or workarounds:** xone, xpadneo and xpad-noone are not included.
-- **No custom controller or Steam Deck HID config overrides.** The Charcoal overlay does not force these options on or off; Valve's SteamOS base fragments determine the stock module/built-in settings.
-- Gaming sysctl profiles, forced environment variables, gaming swapfile migration and gaming swap services/hooks are excluded.
-- The 7.3 package does not install the inherited NAP package lifecycle hook.
+The authoritative patch list, checksums, application order and 7.3-specific adapters are in `PKGBUILD`, `PATCH-SOURCES.md`, `automation/` and the validation workflows.
 
-Valve's base config has `CONFIG_BTRFS_FS=y` and the Steam Deck HID/MFD/LED/sensor options as modules. The Charcoal overlay does not override those controller/Steam Deck options. The earlier `btrfs.c` boot failure is not explained by Btrfs being disabled in Valve's 7.3 base config.
+- Verify the exact Valve source archive and pinned commit first.
+- Verify every patch input against its recorded SHA-256.
+- Apply patches in the order declared in `PKGBUILD`.
+- Use the fail-closed Python porting helpers for source APIs that differ from the upstream patch context. Do not replace these with fuzz or guessed offsets.
+- NAP is pinned to firelzrd commit `5092cfdbc615f2e1626e68ab03d3d9730364bcbd`; its 7.3 API compatibility helper is `automation/fix-nap-kernel-api.py`.
+- DRM Round Robin is applied by exact-match replacement of the single Valve FIFO policy declaration; preparation fails if the expected declaration is absent or duplicated.
+- Merge Valve's base config fragments with `config-charcoal`, run `olddefconfig`, and enforce the required config assertions in `PKGBUILD`.
+- Preserve build logs, source provenance and package SHA-256 manifests.
 
-## Current validation path
+A clean patch application is not proof of a successful build. The successful build procedure is encoded in `PKGBUILD` and `.github/workflows/build-kernel-7.3.yml`. The build workflow is manual-only and must not run automatically on pushes.
 
-1. Download and checksum-verify the exact Valve source archive.
-2. Inspect the embedded bare Git repository and resolve the exact `7.3.1-valve2` commit.
-3. Download pinned patch inputs, verify immutable Git blob IDs where available, and verify all source files against the PKGBUILD checksums.
-4. Apply retained patches and reviewed 7.3-specific adapters in the declared order.
-5. Merge Valve's base config fragments with `config-charcoal-73`, run `olddefconfig`, and assert required options.
-6. Compile and package the kernel and headers using the isolated `.github/workflows/build-kernel-7.3.yml` workflow.
-7. Inspect package metadata, module paths, boot image, headers and bootloader integration.
-8. Test boot, Btrfs, Wi-Fi, audio, Bluetooth, controllers, suspend/resume, storage and games on an actual Steam Deck.
+## Historical validation result
 
-The source-inspection workflow is diagnostic. The build workflow must complete all preparation and compilation steps before a package can be treated as build-validated. CI still cannot prove that the kernel boots or behaves correctly on the user's Deck.
+The consolidated build 77 completed successfully. The project owner reported that it installed and booted on a Steam Deck. This is a user-reported result for that build, not a guarantee for future builds or other hardware.
 
-## Safety gates
+The earlier port-audit statements that NAP was excluded, that no successful build existed, or that work belonged on a separate validation branch are superseded and should not be used as current project guidance.
 
-- **Do not modify `master` or its stable 7.2 release workflow.** All 7.3 changes stay on `validation/steamos-3.10-linux-7.3`.
-- Do not merge the validation branch or publish a 7.3 release without explicit approval.
-- Do not describe patch application as a successful build.
-- Do not claim a successful boot, hardware compatibility or performance improvement without evidence from the actual device.
-- Keep a separate recovery route before removing the stock 7.3 kernel.
+## Hardware validation
 
-## Verified Valve source identity
-
-The source inspection workflow successfully downloaded the official archive, extracted its package metadata and inspected the embedded repository. The exact annotated tag `7.3.1-valve2` resolves to commit `0ed55b10a784a0a0b518ecd20551659fde1d59c9`, subject `linux-integration 7.3.1-valve2`. The embedded bare Git repository contains 14,163,020 objects and its packed data is approximately 3.6 GiB.
-
-This identity is the pinned base for `PKGBUILD` and the 7.3-only build workflow.
+After any future authorized build, test boot, Btrfs root mounting, Wi-Fi, audio, Bluetooth, controllers, suspend/resume, storage, thermals and games on an actual Steam Deck. CI cannot prove hardware compatibility or performance.
