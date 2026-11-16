@@ -21,8 +21,7 @@ This repository contains the source integration, configuration, patch inputs, bu
   - ZRAM built as a module.
   - LZ4 primary ZRAM compression.
   - ZSTD recompression through ZRAM-IR.
-  - ZSWAP disabled.
-  - ZSTD Crypto API default compression level set to 1.
+    - ZSTD Crypto API default compression level set to 1.
 
 - **Storage and graphics**
   - ADIOS I/O scheduler set as the default.
