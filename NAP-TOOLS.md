@@ -1,4 +1,4 @@
-# Ferramentas NAP e persistência do aprendizado
+# NAP CPUIdle tools and learned-state persistence
 
 Cada build consulta o HEAD atual de `firelzrd/nap`, branch `main`, e busca
 as ferramentas de `tools/` nesse commit. A busca ocorre também nos builds locais
