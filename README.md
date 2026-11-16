@@ -6,12 +6,38 @@ This repository contains the source integration, configuration, patch inputs, bu
 
 **Changes from the stock Valve kernel**
 
-- **CPU scheduling and idle:** BORE, POC Selector, NAP CPUIdle governor (TEO fallback).
-- **CPU frequency and platform:** AMD P-State EPP active mode and boost changes; Zen Interactive changes (evdev RCU and schedutil dependency); higher Van Gogh CPU-frequency ceiling.
-- **Memory and compression:** LRU CAST; ZRAM as a module with LZ4 primary compression and ZSTD ZRAM-IR recompression; ZSWAP disabled; ZSTD Crypto API default level set to 1.
-- **Storage and graphics:** ADIOS I/O scheduler as the default; DRM scheduler Round Robin as the compiled default instead of FIFO.
-- **Compiler and optimization:** Clang/LLVM, O3, full Clang LTO, Polly, and AMD Zen 2 targeting via `-march=znver2`.
-- **Steam Deck support:** Valve's Steam Deck and Van Gogh platform support and boot/module identity are retained.
+- **CPU scheduling and idle**
+  - BORE scheduler.
+  - POC Selector.
+  - NAP CPUIdle governor, with TEO fallback.
+
+- **CPU frequency and platform**
+  - AMD P-State EPP active mode and boost changes.
+  - Zen Interactive changes (evdev RCU and schedutil dependency).
+  - Higher Van Gogh CPU-frequency ceiling.
+
+- **Memory and compression**
+  - LRU CAST.
+  - ZRAM built as a module.
+  - LZ4 primary ZRAM compression.
+  - ZSTD recompression through ZRAM-IR.
+  - ZSWAP disabled.
+  - ZSTD Crypto API default compression level set to 1.
+
+- **Storage and graphics**
+  - ADIOS I/O scheduler set as the default.
+  - DRM scheduler Round Robin set as the compiled default instead of FIFO.
+
+- **Compiler and optimization**
+  - Clang/LLVM toolchain.
+  - O3 optimization.
+  - Full Clang LTO.
+  - Polly.
+  - AMD Zen 2 target via `-march=znver2`.
+
+- **Steam Deck support**
+  - Valve Steam Deck and Van Gogh platform support retained.
+  - Valve boot and module identity retained.
 
 **Built-in kernel command line**
 
