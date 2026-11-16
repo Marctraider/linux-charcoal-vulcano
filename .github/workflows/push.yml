@@ -1,14 +1,7 @@
 name: Build latest SteamOS Charcoal kernel
 
-# CI validation for the userspace cleanup pull request.
-
+# Manual-only SteamOS stable kernel build. Repository pushes and pull requests must not start kernel builds.
 on:
-  push:
-    branches:
-      - master
-      - 'validation/**'
-  pull_request:
-    branches: [master]
   workflow_dispatch:
     inputs:
       publish_release:
