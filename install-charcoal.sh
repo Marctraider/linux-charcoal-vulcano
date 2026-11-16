@@ -360,7 +360,7 @@ attempt_rollback() {
 }
 
 main() {
-  for cmd in curl python3 zstd sha256sum mktemp pacman bsdtar awk grep tr find sort stat ln mkinitcpio steamos-readonly steamos-devmode; do require_command "$cmd"; done
+  for cmd in curl python3 zstd sha256sum mktemp pacman bsdtar awk grep tr find sort stat ln mv sleep date mkinitcpio steamos-readonly steamos-devmode; do require_command "$cmd"; done
   (( EUID == 0 )) || require_command sudo
   verify_host_platform || die "Unsupported SteamOS version; no packages were changed"
   [[ -d /dev/shm && -w /dev/shm ]] || die "/dev/shm is unavailable; refusing to stage large packages on the root filesystem"
