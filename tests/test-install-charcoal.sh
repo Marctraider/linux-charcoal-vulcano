@@ -115,7 +115,6 @@ grep -Fq '/sys/module/drm_sched/parameters/sched_policy' "$STATUS" || fail "stat
 grep -Fq -- '-march=znver2' "$STATUS" || fail "status reports the Steam Deck Zen 2 build target"
 grep -Fq 'config_disabled CONFIG_ZSWAP' "$STATUS" || fail "status recognizes ZSWAP compiled out"
 grep -Fq 'NAP userspace service configuration helper' "$STATUS" || fail "status checks NAP userspace integration"
-grep -Fq 'install-charcoal.sh --check-only' "$ROOT/README.md" || fail "README documents installer diagnostic command"
-grep -Fq 'bash install-charcoal.sh' "$ROOT/README.md" || fail "README documents installer command"
+grep -Fq 'does not currently publish an installable kernel package' "$ROOT/README.md" || fail "README states current package availability"
 if grep -Fq 'install-charcoal-73-nap.sh' "$ROOT/README.md"; then fail "README retains inconsistent installer filename"; fi
 printf 'NAP Linux 7.3 installer tests passed\n'
