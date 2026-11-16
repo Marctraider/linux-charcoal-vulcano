@@ -450,8 +450,11 @@ main() {
     fi
     die "Charcoal GRUB validation failed and automatic rollback was unsuccessful; do not reboot"
   fi
-  info "Charcoal SteamOS 3.10 / Linux 7.3 release ${RELEASE_TAG} installed; kernel, initramfs and GRUB references verified."
-  info "Reboot only after the installer reports all three boot checks passed."
+  info "PASS: Charcoal kernel package installed."
+  info "PASS: kernel image and initramfs verified."
+  info "PASS: GRUB references verified."
+  info "Charcoal SteamOS 3.10 / Linux 7.3 release ${RELEASE_TAG} installed."
+  info "Runtime features have not been checked. Reboot into Charcoal Linux 7.3, then run: sudo charcoal-status"
 }
 
 diagnose_boot_state() {
@@ -469,34 +472,8 @@ diagnose_boot_state() {
     [[ "$marker_value" == linux-neptune-73 ]] && marker_found=1
   done < <(find /usr/lib/modules -mindepth 2 -maxdepth 2 -type f -name pkgbase -print 2>/dev/null)
   if (( marker_found )); then info "PASS: module pkgbase linux-neptune-73"; else info "FAIL: module pkgbase mismatch"; failures=$((failures+1)); fi
-  local cfg="" cfgfile=""
-  if [[ -r /proc/config.gz ]] && command -v zcat >/dev/null 2>&1; then cfg="$(zcat /proc/config.gz 2>/dev/null || true)"
-  elif [[ -r "/boot/config-$(uname -r)" ]]; then cfgfile="/boot/config-$(uname -r)"
-  elif [[ -r "/usr/lib/modules/$(uname -r)/build/.config" ]]; then cfgfile="/usr/lib/modules/$(uname -r)/build/.config"; fi
-  [[ -n "$cfgfile" ]] && cfg="$(<"$cfgfile")"
-  if [[ -n "$cfg" ]]; then
-    local expected
-    for expected in CONFIG_BTRFS_FS=y CONFIG_ZRAM=m; do
-      if grep -qxF "$expected" <<< "$cfg"; then info "PASS: $expected"; else info "FAIL: missing $expected"; failures=$((failures+1)); fi
-    done
-    if grep -qxF CONFIG_CPU_IDLE_GOV_NAP=y <<< "$cfg"; then info "PASS: NAP governor is compiled in"; else info "INFO: the currently running kernel predates the NAP build"; fi
-    grep -qxF '# CONFIG_ZSWAP is not set' <<< "$cfg" && info "PASS: ZSWAP disabled" || info "WARN: ZSWAP state not confirmed"
-  else info "WARN: running kernel config unavailable; compile-time settings not checked"; fi
-  local governor_file=/sys/devices/system/cpu/cpuidle/current_governor
-  if [[ -r "$governor_file" ]]; then
-    local governor; governor="$(<"$governor_file")"
-    if [[ "$governor" == nap ]]; then info "PASS: NAP active"; else info "INFO: currently active CPUIdle governor is $governor (NAP takes effect after booting the NAP kernel)"; fi
-  else info "WARN: CPUIdle governor sysfs state unavailable"; fi
-  local drm_file=/sys/module/drm/parameters/sched_policy
-  if [[ -r "$drm_file" ]]; then
-    local policy; policy="$(<"$drm_file")"
-    if [[ "$policy" == 1 || "$policy" == RR || "$policy" == rr ]]; then info "PASS: DRM Round Robin policy"; else info "FAIL: DRM policy is $policy"; failures=$((failures+1)); fi
-  else info "WARN: DRM scheduler policy is not exposed; RR cannot be verified at runtime"; fi
-  if [[ -x /usr/lib/nap/configure-services ]]; then
-    info "PASS: NAP userspace helper installed"
-    systemctl is-enabled nap-state.service >/dev/null 2>&1 && info "PASS: NAP state restore service enabled" || info "WARN: NAP state restore service not enabled"
-    systemctl is-enabled nap-state-save.timer >/dev/null 2>&1 && info "PASS: NAP periodic save timer enabled" || info "WARN: NAP periodic save timer not enabled"
-  else info "INFO: NAP userspace helper is not installed yet"; fi
+  # Runtime feature checks are intentionally delegated to charcoal-status
+  # after reboot, when the newly installed kernel is actually running.
   for candidate in /efi/EFI/SteamOS/grub.cfg /efi/EFI/steamos/grub.cfg /boot/efi/EFI/SteamOS/grub.cfg /boot/efi/EFI/steamos/grub.cfg /boot/grub/grub.cfg; do
     if run_privileged test -s "$candidate"; then grub=$candidate; break; fi
   done
@@ -504,8 +481,9 @@ diagnose_boot_state() {
   elif run_privileged grep -Fq '/boot/vmlinuz-linux-neptune-73' "$grub" && run_privileged grep -Fq '/boot/initramfs-linux-neptune-73.img' "$grub"; then info "PASS: GRUB references 7.3 kernel and initramfs"
   else info "FAIL: GRUB references missing 7.3 boot files"; failures=$((failures+1)); fi
   df -h /boot / 2>/dev/null || true
-  if (( failures )); then info "Diagnostic result: $failures failure(s); no changes made"; return 1; fi
-  info "Diagnostic result: checks passed; review WARN lines. No changes made"
+  if (( failures )); then info "Diagnostic result: $failures installation/boot check failure(s); no changes made"; return 1; fi
+  info "Diagnostic result: installation and boot-file checks passed; no changes made"
+  info "Runtime features have not been checked. After booting into Charcoal Linux 7.3, run: sudo charcoal-status"
 }
 
 if [[ "${BASH_SOURCE[0]}" == "$0" ]]; then
