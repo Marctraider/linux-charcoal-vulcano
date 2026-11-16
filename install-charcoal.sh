@@ -1,12 +1,12 @@
 #!/usr/bin/env bash
-# Install the published NAP release for SteamOS 3.10 / Linux 7.3.
+# Install a published Charcoal Linux 7.3 release for SteamOS 3.10.
 
 set -Eeuo pipefail
 
-readonly RELEASE_TAG="steamos-3.10-linux-7.3-nap"
-readonly RELEASE_ARCHIVE="charcoal-steamos-3.10-linux-7.3-nap-build-77.zip"
+readonly RELEASE_TAG="steamos-3.10-linux-7.3"
+readonly RELEASE_ARCHIVE="charcoal-steamos-3.10-linux-7.3.zip"
 readonly RELEASE_URL="https://github.com/Marctraider/linux-charcoal-vulcano/releases/download/${RELEASE_TAG}/${RELEASE_ARCHIVE}"
-readonly RELEASE_SHA256="395cf9671e6149f26695e69eeed2fb4c1ae59a63ab35ee005f9519ca8d8e0680"
+readonly RELEASE_SHA256="" # Set only when a new, authorized release is published.
 
 WORKDIR=""
 MADE_ROOT_WRITABLE=0
@@ -159,7 +159,7 @@ download_file() {
     --output "$destination" "$url"
 }
 
-extract_and_verify_nap_artifact() {
+extract_and_verify_build_artifact() {
   python3 - "$1" "$2" <<'PY'
 import hashlib,re,stat,sys,zipfile
 from pathlib import Path,PurePosixPath
@@ -342,13 +342,14 @@ main() {
   WORKDIR="$(mktemp -d /dev/shm/charcoal-73-installer.XXXXXX)"
   trap cleanup EXIT
 
-  local archive_path="$WORKDIR/nap-build.zip" package_dir="$WORKDIR/packages"
-  info "Downloading the published NAP release bundle..."
+  [[ "$RELEASE_SHA256" =~ ^[0-9a-f]{64}$ ]] || die "No published Linux 7.3 package is configured. Installation is unavailable until a new build is authorized, validated and published."
+  local archive_path="$WORKDIR/charcoal-build.zip" package_dir="$WORKDIR/packages"
+  info "Downloading the published Charcoal Linux 7.3 release bundle..."
   download_file "$RELEASE_URL" "$archive_path"
   printf '%s  %s\n' "$RELEASE_SHA256" "$archive_path" | sha256sum --check --status \
-    || die "Published NAP release ZIP checksum failed; no packages were changed"
+    || die "Published Linux 7.3 release ZIP checksum failed; no packages were changed"
   info "Release ZIP checksum verified. Verifying package checksums..."
-  extract_and_verify_nap_artifact "$archive_path" "$package_dir"
+  extract_and_verify_build_artifact "$archive_path" "$package_dir"
   rm -f -- "$archive_path"
 
   local -a packages
@@ -391,7 +392,7 @@ main() {
     if pacman -Qq linux-neptune-73-headers >/dev/null 2>&1; then stock_packages+=(linux-neptune-73-headers); fi
   fi
 
-  confirm_transaction "NAP release ${RELEASE_TAG} (${RELEASE_ARCHIVE})" "${previous_packages[@]}"
+  confirm_transaction "Linux 7.3 release ${RELEASE_TAG} (${RELEASE_ARCHIVE})" "${previous_packages[@]}"
 
   info "Making SteamOS writable for the package transaction..."
   run_privileged steamos-readonly disable
@@ -449,7 +450,7 @@ main() {
     fi
     die "Charcoal GRUB validation failed and automatic rollback was unsuccessful; do not reboot"
   fi
-  info "Charcoal SteamOS 3.10 / Linux 7.3 NAP release ${RELEASE_TAG} installed; kernel, initramfs and GRUB references verified."
+  info "Charcoal SteamOS 3.10 / Linux 7.3 release ${RELEASE_TAG} installed; kernel, initramfs and GRUB references verified."
   info "Reboot only after the installer reports all three boot checks passed."
 }
 
