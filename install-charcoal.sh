@@ -3,10 +3,10 @@
 
 set -Eeuo pipefail
 
-readonly RELEASE_TAG="steamos-3.10-linux-7.3"
-readonly RELEASE_ARCHIVE="charcoal-steamos-3.10-linux-7.3.zip"
+readonly RELEASE_TAG="steamos-3.10-linux-7.3-build-82"
+readonly RELEASE_ARCHIVE="charcoal-steamos-3.10-linux-7.3-build-82.zip"
 readonly RELEASE_URL="https://github.com/Marctraider/linux-charcoal-vulcano/releases/download/${RELEASE_TAG}/${RELEASE_ARCHIVE}"
-readonly RELEASE_SHA256="" # Set only when a new, authorized release is published.
+readonly RELEASE_SHA256="225e5126487b56d6923b58b7f361eb7f158639e35a90e996ee96bae4d524de69"
 
 WORKDIR=""
 MADE_ROOT_WRITABLE=0
@@ -144,19 +144,45 @@ cleanup() {
 }
 
 download_file() {
-  local url=$1 destination=$2
-  # GitHub release downloads redirect to short-lived signed asset URLs.
-  # A unique query and no-cache headers prevent stale cached redirects,
-  # which can otherwise produce HTTP 401 from the asset host.
-  case "$url" in
-    https://github.com/*/releases/download/*)
-      url="${url}?download=1&cachebust=$(date +%s)"
-      ;;
-  esac
-  curl --fail --silent --show-error --location \
-    --proto '=https' --proto-redir '=https' --retry 3 --connect-timeout 15 \
-    -H 'Cache-Control: no-cache' -H 'Pragma: no-cache' \
-    --output "$destination" "$url"
+  local url=$1 destination=$2 request_url response_code curl_status attempt
+  local partial="${destination}.part"
+
+  # Use only the public GitHub Releases asset URL, never the Actions artifact
+  # API (which requires authentication and can return HTTP 401). Release assets
+  # redirect to signed URLs; each attempt gets a fresh cache-busting query.
+  for attempt in 1 2 3; do
+    request_url=$url
+    case "$url" in
+      https://github.com/*/releases/download/*)
+        request_url="${url}?download=1&cachebust=$(date +%s)-$-$RANDOM-$attempt"
+        ;;
+      *)
+        die "Refusing non-release download URL: $url"
+        ;;
+    esac
+
+    response_code="000"
+    curl_status=0
+    response_code="$(curl --fail --silent --show-error --location \
+      --proto '=https' --proto-redir '=https' --connect-timeout 15 --max-time 900 \
+      -H 'Cache-Control: no-cache, no-store' -H 'Pragma: no-cache' \
+      --output "$partial" --write-out '%{http_code}' "$request_url")" || curl_status=$?
+
+    if (( curl_status == 0 )) && [[ "$response_code" == "200" ]] && [[ -s "$partial" ]]; then
+      mv -- "$partial" "$destination"
+      return 0
+    fi
+
+    rm -f -- "$partial"
+    if [[ "$response_code" == "401" || "$response_code" == "403" || "$response_code" == "429" || "$response_code" =~ ^5[0-9][0-9]$ || "$response_code" == "000" ]]; then
+      info "GitHub release download attempt $attempt failed (HTTP $response_code); retrying with a fresh URL..."
+      sleep "$attempt"
+      continue
+    fi
+    die "GitHub release download failed with HTTP $response_code; no packages were changed"
+  done
+
+  die "GitHub release download failed after three fresh attempts; check the public release asset and network connection"
 }
 
 extract_and_verify_build_artifact() {
@@ -378,7 +404,7 @@ main() {
     verify_existing_boot_state || die "Existing SteamOS boot state is not healthy; no package changes were made"
   fi
 
-  local -a previous_packages=() stock_packages=()
+  local -a previous_packages=()
   local old_package
   if (( charcoal_installed )); then
     for old_package in linux-charcoal-73 linux-charcoal-73-headers; do
@@ -387,9 +413,6 @@ main() {
     # Reuse cached old packages by symlink from /dev/shm; never duplicate
     # rollback archives onto the SteamOS root filesystem.
     if (( ${#previous_packages[@]} > 0 )); then capture_rollback_packages previous_packages; fi
-  else
-    stock_packages=(linux-neptune-73)
-    if pacman -Qq linux-neptune-73-headers >/dev/null 2>&1; then stock_packages+=(linux-neptune-73-headers); fi
   fi
 
   confirm_transaction "Linux 7.3 release ${RELEASE_TAG} (${RELEASE_ARCHIVE})" "${previous_packages[@]}"
@@ -406,31 +429,18 @@ main() {
     if ! LC_ALL=C run_privileged pacman -U --noconfirm "${packages[@]}" >"$install_log" 2>&1; then
       cat "$install_log" >&2
       if attempt_rollback; then
-        die "NAP upgrade failed; the previous Charcoal 7.3 packages and boot files were restored"
+        die "Charcoal upgrade failed; the previous Charcoal 7.3 packages and boot files were restored"
       fi
-      die "NAP upgrade failed; pacman did not complete the replacement. Do not reboot until the existing kernel is confirmed."
+      die "Charcoal upgrade failed; pacman did not complete the replacement. Do not reboot until the existing kernel is confirmed."
     fi
   else
-    info "Installing Charcoal alongside the existing SteamOS 7.3 kernel..."
+    # A clean SteamOS 3.10 install is supported when the stock Valve 7.3
+    # kernel and boot chain are present. Keep the stock package installed as
+    # a fallback; never remove it automatically to work around low disk space.
+    info "Installing Charcoal alongside the existing SteamOS 3.10 / Linux 7.3 kernel..."
     if ! LC_ALL=C run_privileged pacman -U --noconfirm "${packages[@]}" >"$install_log" 2>&1; then
       cat "$install_log" >&2
-      if ! is_pacman_disk_space_error "$install_log"; then
-        die "SteamOS 7.3 package installation failed; the stock kernel was not removed"
-      fi
-      if (( ${#stock_packages[@]} == 0 )); then
-        die "Not enough disk space and no stock SteamOS 7.3 kernel package is available to remove"
-      fi
-      capture_rollback_packages stock_packages
-      confirm_stock_removal stock_packages
-      info "Removing only the matching SteamOS 7.3 stock kernel packages..."
-      run_privileged pacman -Rdd --noconfirm "${stock_packages[@]}"
-      info "Retrying the verified Charcoal packages after freeing space..."
-      if ! run_privileged pacman -U --noconfirm "${packages[@]}"; then
-        if attempt_rollback; then
-          die "SteamOS 7.3 installation failed; previous stock kernel packages were restored"
-        fi
-        die "SteamOS 3.10 / Linux 7.3 installation failed after stock-kernel removal; do not reboot"
-      fi
+      die "Charcoal installation failed. The Valve kernel package was not removed; free space or resolve the pacman error, then retry. Do not reboot if boot files were changed."
     fi
   fi
 
