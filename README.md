@@ -14,7 +14,7 @@ This repository contains the source integration, configuration, patch inputs, bu
 - **CPU frequency and platform**
   - AMD P-State EPP active mode and boost changes.
   - Zen Interactive changes (evdev RCU and schedutil dependency).
-  - Higher Van Gogh CPU-frequency ceiling.
+  - Higher Van Gogh CPU-frequency ceiling, up to 4.2 GHz; the higher limit must be enabled in UEFI.
 
 - **Memory and compression**
   - LRU CAST.
