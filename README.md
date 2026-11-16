@@ -1,6 +1,6 @@
 # Charcoal — tuned SteamOS 3.10 / Linux 7.3 kernel
 
-Charcoal is a performance- and responsiveness-tuned Linux kernel for the **Steam Deck**, built from Valve's SteamOS 3.10 kernel source. It keeps Valve's Steam Deck platform support and boot identity while adding a reviewed set of scheduler, CPU-frequency, memory-reclaim, storage, and compiler optimizations.
+Charcoal is a tuned Linux kernel for the **Steam Deck**, based on Valve's SteamOS 3.10 kernel source. It aims to improve gaming performance and frametime stability through a focused set of scheduler, CPU-frequency, memory, storage, and compiler optimizations, while retaining Valve's Steam Deck platform support and boot identity.
 
 This repository contains the source integration, configuration, patch inputs, build recipe, and validation tooling. It does not currently publish an installable kernel package.
 
@@ -112,7 +112,7 @@ amd_pstate.epp_boost=1 mitigations=off cpuidle.governor=nap
 | Parameter | Effect |
 |---|---|
 | `amd_pstate.epp_boost=1` | Enables the AMD P-State EPP boost feature added by the patch set. |
-| `mitigations=off` | Disables CPU vulnerability mitigations. This is a security trade-off and can expose the system to known CPU vulnerabilities. |
+| `mitigations=off` | Disables CPU vulnerability mitigations. |
 | `cpuidle.governor=nap` | Selects NAP as the CPU idle governor at boot. TEO remains compiled in as a fallback. |
 
 These are the kernel's **built-in command-line parameters** from `CONFIG_CMDLINE`; they are not compiler flags. The configuration sets `CONFIG_CMDLINE_BOOL=y` and leaves `CONFIG_CMDLINE_OVERRIDE` unset, so the boot loader can still supply its own command line according to the kernel's normal command-line combination rules.
@@ -213,7 +213,6 @@ There is currently no published binary package in this repository. The installer
 
 ## 9. Safety and project policy
 
-- `mitigations=off` disables CPU security mitigations; understand the risk before using this kernel.
 - Keep a recovery route and retain the stock SteamOS kernel.
 - Do not assume a compile-time default is active at runtime unless the running kernel exposes a way to verify it. In particular, DRM scheduler policy visibility depends on the kernel's sysfs interface.
 - Do not claim performance gains without repeatable benchmarks.
