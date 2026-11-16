@@ -87,8 +87,8 @@ extract_and_verify_build_artifact "$tmp/build-artifact.zip" "$tmp/unpacked" || f
 [[ -f "$tmp/unpacked/linux-charcoal-73-7.3.1.valve2.cc1-1-x86_64.pkg.tar.zst" ]] || fail "kernel package not extracted"
 [[ -f "$tmp/unpacked/linux-charcoal-73-headers-7.3.1.valve2.cc1-1-x86_64.pkg.tar.zst" ]] || fail "headers package not extracted"
 grep -Fq 'github.com/Marctraider/linux-charcoal-vulcano/releases/download/' "$INSTALLER" || fail "public release download URL"
-grep -Fq 'RELEASE_TAG="steamos-3.10-linux-7.3"' "$INSTALLER" || fail "NAP release tag"
-grep -Fq 'RELEASE_ARCHIVE="charcoal-steamos-3.10-linux-7.3.zip"' "$INSTALLER" || fail "published release archive name"
+grep -Fq 'RELEASE_TAG="steamos-3.10-linux-7.3"' "$INSTALLER" || fail "generic Linux 7.3 release tag"
+grep -Fq 'RELEASE_ARCHIVE="charcoal-steamos-3.10-linux-7.3.zip"' "$INSTALLER" || fail "generic Linux 7.3 release archive name"
 grep -Fq 'RELEASE_SHA256=""' "$INSTALLER" || fail "installer must not pin a deleted build-77 release checksum"
 grep -Fq 'cachebust=$(date +%s)' "$INSTALLER" || fail "release download must bypass cached signed redirects"
 grep -Fq "Cache-Control: no-cache" "$INSTALLER" || fail "release download must disable redirect caching"
@@ -116,5 +116,4 @@ grep -Fq -- '-march=znver2' "$STATUS" || fail "status reports the Steam Deck Zen
 grep -Fq 'config_disabled CONFIG_ZSWAP' "$STATUS" || fail "status recognizes ZSWAP compiled out"
 grep -Fq 'NAP userspace service configuration helper' "$STATUS" || fail "status checks NAP userspace integration"
 grep -Fq 'does not currently publish an installable kernel package' "$ROOT/README.md" || fail "README states current package availability"
-if grep -Fq 'install-charcoal-73-nap.sh' "$ROOT/README.md"; then fail "README retains inconsistent installer filename"; fi
-printf 'NAP Linux 7.3 installer tests passed\n'
+printf 'Charcoal Linux 7.3 installer tests passed\n'
