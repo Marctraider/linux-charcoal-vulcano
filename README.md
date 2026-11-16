@@ -1,3 +1,5 @@
+**Ignore most of the AI technobabble: The NAP branch is same as the 7.3 branch but added NAP, DRM round robin etc back in which was also in original Charcoal 6.x kernel.**
+
 # Charcoal SteamOS 3.10 / Linux 7.3 — NAP experiment
 
 > Experimental Steam Deck kernel build. Use at your own risk. A successful package build does not prove boot or runtime stability.
