@@ -1,33 +1,23 @@
-name: Build SteamOS 3.10 Charcoal Linux 7.3 (NAP experiment)
+name: Build SteamOS 3.10 Charcoal Linux 7.3
 
-# Kernel builds are manual-only; patch validation runs separately on push.
+# Kernel builds are manual-only. No push trigger: source and documentation changes never start a kernel build.
 on:
   workflow_dispatch:
-  push:
-    branches:
-      - experiment/steamos-3.10-linux-7.3-nap
-    paths:
-      - PKGBUILD
-      - config-charcoal
-      - '*.patch'
-      - automation/**
-      - nap-tools/**
-      - .github/workflows/build-kernel-7.3.yml
 
 permissions:
   contents: read
 
 concurrency:
-  group: charcoal-linux-7.3-nap-experiment
+  group: charcoal-linux-7.3
   cancel-in-progress: true
 
 jobs:
   build-linux-7-3:
-    if: github.ref == 'refs/heads/experiment/steamos-3.10-linux-7.3-nap'
+    if: github.ref == 'refs/heads/master'
     runs-on: ubuntu-24.04
     timeout-minutes: 360
     steps:
-      - name: Check out NAP experiment branch
+      - name: Check out master
         uses: actions/checkout@v4
         with:
           ref: ${{ github.ref }}
@@ -40,7 +30,7 @@ jobs:
         uses: pierotofy/set-swap-space@fc79b3f67fa8a838184ce84a674ca12238d2c761
         with:
           swap-size-gb: 16
-      - name: Validate 7.3 NAP recipe and tools
+      - name: Validate Linux 7.3 recipe and included features
         run: |
           set -Eeuo pipefail
           mkdir -p logs
@@ -58,7 +48,7 @@ jobs:
           python3 automation/prepare-sources-73.py --root "$GITHUB_WORKSPACE" 2>&1 | tee logs/source-preparation-73.log
       - name: Build Arch Linux LLVM toolchain container
         run: docker build . --tag charcoal-linux-73
-      - name: Prepare source tree and compile/package Linux 7.3 with NAP
+      - name: Prepare source tree and compile/package Charcoal Linux 7.3
         run: |
           set -Eeuo pipefail
           restore_owner() {
@@ -84,11 +74,11 @@ jobs:
           '
           restore_owner
           trap - EXIT
-      - name: Upload NAP Linux 7.3 build artifacts and logs
+      - name: Upload Charcoal Linux 7.3 build artifacts and logs
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: charcoal-steamos-3.10-linux-7.3-nap-build-${{ github.run_number }}
+          name: charcoal-steamos-3.10-linux-7.3-build-${{ github.run_number }}
           path: |
             linux-charcoal-73-*.pkg.tar.zst
             logs/
