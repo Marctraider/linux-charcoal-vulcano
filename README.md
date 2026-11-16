@@ -1,85 +1,104 @@
-**Ignore most of the AI technobabble: The NAP branch is same as the 7.3 branch but added NAP, DRM round robin etc back in which was also in original Charcoal 6.x kernel.**
+# Charcoal — SteamOS 3.10 / Linux 7.3
 
-# Charcoal SteamOS 3.10 / Linux 7.3 — NAP experiment
+Custom Steam Deck kernel based on Valve's exact SteamOS 3.10 Linux 7.3 source, with the retained Charcoal patches and configuration.
 
-> Experimental Steam Deck kernel build. Use at your own risk. A successful package build does not prove boot or runtime stability.
+The active development branch is `master`. The project is no longer organized as a separate NAP experiment or validation branch. NAP remains one of the included CPUIdle features; it is not the project name or release suffix.
 
-This branch targets Valve's exact SteamOS 3.10 Linux 7.3 source. It is separate from the frozen validation/steamos-3.10-linux-7.3 branch and the 7.2 line on master. Do not use the 7.2 installer on SteamOS 3.10.
+> **Status:** Build 77 was successfully installed and booted on a Steam Deck, as reported by the project owner. This is a hardware result for that specific build, not a guarantee for other devices or future changes.
 
-## Source and package identity
+## Target and source identity
 
-- Valve package: linux-neptune-73 7.3.1.valve2-1
-- Valve source commit: 0ed55b10a784a0a0b518ecd20551659fde1d59c9
-- Boot/module identity: linux-neptune-73
-- Package names: linux-charcoal-73 and linux-charcoal-73-headers
+- Platform: SteamOS 3.10 / Steam Deck
+- Valve package: `linux-neptune-73`
+- Valve package version: `7.3.1.valve2-1`
+- Valve source tag: `7.3.1-valve2`
+- Pinned Valve source commit: `0ed55b10a784a0a0b518ecd20551659fde1d59c9`
+- Official source archive SHA-256: `a6316acc22954d0685ac923248995246789a1f3b5ee6890d378ce2c3efa25af8`
+- Charcoal package names: `linux-charcoal-73` and `linux-charcoal-73-headers`
+- Boot/module identity: `linux-neptune-73`
+- Architecture: x86_64, tuned for Steam Deck Zen 2 with `-march=znver2`
 
-This is built from Valve's SteamOS source and configuration, not generic upstream Linux.
+This is built from Valve's matching SteamOS source archive and configuration fragments, not from generic upstream Linux 7.3. Do not substitute another Valve tag, a generic upstream source tree, or a different SteamOS release.
 
-## Feature set
+## Included kernel features
 
-The branch retains the previous 7.3 feature set: BORE, POC Selector, ADIOS and udev integration, LRU CAST, ZRAM-IR, AMD P-State EPP changes, NTSYNC, Steam Deck drivers/configuration, Clang/LLVM, Zen 2 targeting, O3, full Clang LTO and Polly.
+The current baseline retains the following features and integrations:
 
-This experiment adds:
-- NAP CPUIdle governor, pinned to firelzrd NAP v0.6.5. NAP is selected with cpuidle.governor=nap; TEO remains compiled as a fallback.
-- DRM scheduler Round Robin default, applied to Valve 7.3 source with an exact fail-closed symbol replacement.
-- NAP userspace tools and persistence integration, packaged with the kernel from the resolved upstream source and the actual built governor weights.
+- NAP CPUIdle governor, pinned to firelzrd NAP v0.6.5, with TEO compiled as fallback.
+- DRM scheduler Round Robin compiled as the default policy.
+- BORE CPU scheduler.
+- POC Selector.
+- ADIOS I/O scheduler and udev integration.
+- LRU CAST reclaim.
+- ZRAM as a module, with LZ4 as the primary compression algorithm and ZRAM-IR runtime configuration.
+- ZSWAP disabled in the kernel configuration.
+- NTSYNC.
+- Btrfs built into the kernel.
+- AMD P-State EPP changes.
+- Steam Deck / Van Gogh platform support and retained device-specific patches.
+- Clang/LLVM toolchain, O3 optimization, full Clang LTO and Polly.
 
-It excludes the re-swappiness patch. ZSWAP is disabled; ZRAM remains enabled as a module with LZ4 primary compression and ZRAM-IR runtime configuration. Btrfs is built into the kernel (CONFIG_BTRFS_FS=y).
+The re-swappiness patch is intentionally omitted. ZRAM remains enabled; ZSWAP is compiled out. The built-in command line includes `amd_pstate.epp_boost=1 mitigations=off cpuidle.governor=nap`. Disabling CPU vulnerability mitigations is a security trade-off.
 
-NAP changes CPU idle-state selection. It is not a scheduler or GPU-frequency booster, and no FPS gain should be assumed. Hardware testing is needed for power, wake latency, frame pacing and thermals.
+NAP controls CPU idle-state selection. It is not a CPU task scheduler or a GPU-frequency booster. The DRM Round Robin setting concerns GPU job scheduling, not CPU scheduling. The source patch sets the compiled default; runtime verification may be unavailable if the running kernel does not expose the DRM scheduler sysfs parameter.
 
-## Build and artifact validation
+## Build recipe and reproducibility
 
-GitHub Actions builds this branch only. The workflow downloads and verifies the exact Valve source archive, checks out the pinned Valve source commit, applies the NAP and DRM RR changes, resolves the kernel config, compiles with Clang/LLVM and packages kernel plus headers.
+The authoritative build recipe is `PKGBUILD`, driven by the Linux 7.3 GitHub Actions workflow in `.github/workflows/build-kernel-7.3.yml`.
 
-The successful build is published as the [SteamOS 3.10 – Linux 7.3 NAP GitHub Release](https://github.com/Marctraider/linux-charcoal-vulcano/releases/tag/steamos-3.10-linux-7.3-nap). The release contains the complete build ZIP and its `RELEASE-ZIP-SHA256SUM` checksum file. Verify the ZIP against that checksum before extracting it; the ZIP contains the kernel and headers packages, package SHA-256 manifest, build log and NAP upstream provenance. The published ZIP SHA-256 is `395cf9671e6149f26695e69eeed2fb4c1ae59a63ab35ee005f9519ca8d8e0680`. The installer downloads the published build-77 ZIP directly from the public GitHub Release asset URL, verifies the published ZIP SHA-256 and then verifies the individual package checksums before pacman runs. It does not use the GitHub Actions artifact API, so the Steam Deck does not need a GitHub login or token.
+The successful build procedure is:
 
-A green build proves compilation and packaging only. It does not prove Steam Deck boot, Btrfs root mounting on a particular installation, or performance benefit.
+1. Download the official Valve `linux-neptune-73 7.3.1.valve2-1` source archive and verify its SHA-256.
+2. Use the embedded Git repository and check out the exact pinned Valve commit.
+3. Fetch the pinned patch inputs and verify their recorded checksums.
+4. Apply patches in the order declared in `PKGBUILD`. The NAP and DRM Round Robin changes use explicit, fail-closed handling; NAP also uses the 7.3 API compatibility helper.
+5. Apply the reviewed 7.3-specific source adaptations and normalize patch whitespace.
+6. Merge Valve's `config.x86_64` and `config-neptune` fragments with `config-charcoal`.
+7. Run `olddefconfig` using Clang/LLVM and validate the required kernel options.
+8. Compile the kernel and bpftool, then package the kernel and matching headers.
+9. Inspect the package metadata, boot identity, embedded configuration, build logs and SHA-256 manifest.
 
-## Install or upgrade on SteamOS 3.10
+Important build details:
 
-The NAP package uses the same package names and linux-neptune-73 boot identity as the earlier non-NAP 7.3 package. Before installing, ensure the currently installed kernel boots and retain a recovery route.
+- `-march=znver2` is supplied through `KCFLAGS`; Valve 7.3 does not provide the old MZEN2 Kconfig selector.
+- The DRM Round Robin patch expects exactly one FIFO policy declaration and fails if the source no longer matches.
+- The NAP patch is pinned to upstream commit `5092cfdbc615f2e1626e68ab03d3d9730364bcbd`; the compatibility helper adapts the source for Valve 7.3.
+- Keep the source archive checksum, patch checksums, patch order, config assertions and build logs together. A successful patch application alone does not prove compilation.
+- A successful compile/package does not prove boot or runtime stability. Hardware testing is required after any future kernel build.
 
-Run the read-only diagnostic:
+Patch provenance, source overrides, patch-lock validation, porting helpers and tests are retained in the repository. See `PATCH-SOURCES.md`, `PKGBUILD`, `automation/`, `tests/` and the workflow files.
+
+## Installation
+
+The installer is `install-charcoal.sh`. It targets SteamOS 3.10 and the `linux-neptune-73` boot identity. It supports a read-only diagnostic mode:
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/Marctraider/linux-charcoal-vulcano/experiment/steamos-3.10-linux-7.3-nap/install-charcoal.sh -o install-charcoal.sh
 bash install-charcoal.sh --check-only
 ```
 
-If the checks pass, run the installer interactively:
+Run the installer interactively only when a compatible kernel package bundle is available and its checksums and package identity have been verified:
 
 ```bash
 bash install-charcoal.sh
 ```
 
-The installer downloads the published NAP release bundle (currently build 77) and verifies its ZIP checksum, package checksums, linux-neptune-73 boot identity, required kernel configuration (NAP, TEO fallback, Btrfs, ZRAM/LZ4, BORE, POC Selector, LRU CAST and NTSYNC), and build-log evidence for the DRM Round Robin default. It uses the public release download URL, not the authenticated GitHub Actions artifact endpoint.
+The installer does not reboot automatically. Retain a recovery route and do not remove the stock SteamOS kernel unless you understand the recovery implications. Post-install rollback is best-effort and depends on the previous packages still being present in the pacman cache.
 
-For an existing linux-charcoal-73 installation, it takes the short upgrade path: pacman replaces the kernel and headers together in one transaction. It does not run the fresh-install boot-chain preflight, calculate free space, or remove the stock kernel during this upgrade. It then regenerates initramfs and GRUB and checks the expected boot references.
+**No currently published binary package is maintained as part of this source baseline.** A future installable release requires a separately authorized build, validation and publication.
 
-For a fresh installation, it checks the existing SteamOS boot chain and keeps the Valve stock kernel unless pacman reports insufficient disk space. Only then does it ask before removing the matching stock 7.3 package(s) and retrying. If no stock package is available to free space, it stops rather than retrying the same transaction.
+## Diagnostics
 
-The downloaded ZIP and extracted packages are staged under /dev/shm (tmpfs), not /root or the root filesystem. The ZIP is deleted after extraction, and rollback packages already in pacman's cache are referenced by symlink rather than copied. This avoids creating a second large package archive on the root filesystem; it does use temporary RAM-backed storage, which must have enough free capacity. The installed kernel itself still occupies its normal filesystem space. The installer never reboots automatically.
+- `charcoal-status` reports kernel build options and runtime state after boot.
+- Installer `--check-only` performs read-only platform, package and boot-chain checks.
+- The test suite under `tests/` covers patch handling, configuration validation, installer behavior and status reporting.
 
-Rollback after a failed post-install check is best-effort and depends on the previous exact packages being present in pacman's cache; it is not guaranteed. Do not reboot unless the installer reports that kernel image, initramfs and GRUB checks passed. A successful automated check is not a substitute for a real Steam Deck boot test.
+A missing runtime sysfs control must be reported as unavailable, not treated as proof that a compile-time default is inactive. In particular, the DRM scheduler policy can only be confirmed at runtime when the running kernel exposes its policy parameter.
 
-## Feature diagnostics
+## Project policy
 
-The NAP-aware --check-only mode should check SteamOS version, installed package identity, module pkgbase, boot files and GRUB references. It should check the running kernel config for NAP, Btrfs and ZRAM where that config is exposed; check whether NAP is the active CPUIdle governor; report NAP userspace helper/service state; and check DRM Round Robin only if the running kernel exposes a scheduler-policy sysfs parameter. Otherwise it must explicitly report that runtime verification is unavailable.
-
-The `--check-only` option is the installer's read-only boot diagnostic; it does not install/remove packages, regenerate initramfs, edit GRUB or reboot. The separate `charcoal-status` command reports installed kernel features and runtime state after boot. On this NAP branch it checks the NAP and TEO build options, whether NAP is the active CPUIdle governor, the DRM Round Robin policy when the kernel exposes its sysfs parameter, and the NAP userspace service integration. If the DRM parameter is absent, it reports that runtime verification is unavailable rather than treating the missing interface as a failure.
-
-## Btrfs and boot status
-
-The build configuration enables Btrfs in-kernel. The package boot identity is linux-neptune-73, and the installer checks the expected kernel/initramfs/GRUB paths. These checks do not replace a real Steam Deck boot test. Btrfs root mounting and successful hardware boot remain unverified until tested on a Deck.
-
-## Memory and security policy
-
-ZRAM remains enabled with LZ4 primary compression and ZRAM-IR runtime configuration. ZSWAP and re-swappiness are omitted. The built-in kernel command line includes mitigations=off and amd_pstate.epp_boost=1. Disabling CPU vulnerability mitigations is a security/performance trade-off.
-
-## Branch safety
-
-- This documentation and installer apply only to experiment/steamos-3.10-linux-7.3-nap.
-- validation/steamos-3.10-linux-7.3 remains frozen and untouched.
-- master remains untouched.
-- No release is published automatically.
+- `master` is the sole intended development branch.
+- SteamOS 3.10 / Linux 7.3 is the sole active kernel baseline.
+- Preserve patch provenance, build scripts, configuration, tests and source-level diagnostics.
+- Do not claim performance improvements without repeatable measurements.
+- Do not claim boot success for a build that has not been tested on hardware.
+- Do not publish packages or releases without explicit authorization.
