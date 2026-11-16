@@ -96,7 +96,7 @@ Additional source adaptations are applied by the build recipe rather than by sta
 - `automation/port-zen-cpufreq-7.3.py` adapts the Zen P-State Kconfig change to Valve 7.3.
 - `automation/fix-nap-kernel-api.py` adapts the pinned NAP source to Valve 7.3 API differences.
 - `automation/configure-zen-interactive.py` exposes the two Zen changes through `CONFIG_ZEN_INTERACTIVE`.
-- `automation/configure-zen-interactive.py` and `automation/fix-gud-tv-mode-fortify.py` apply reviewed source-level adjustments needed by the selected configuration and O3/Full-LTO build.
+- `automation/fix-gud-tv-mode-fortify.py` applies a bounded-buffer compatibility fix in the GUD TV-mode path for the O3/Full-LTO build.
 - The DRM RR change uses an exact-match replacement in `drivers/gpu/drm/scheduler/sched_main.c`; it does not rely on a fuzzy patch offset.
 
 Patch application is fail-closed: the recipe checks expected source anchors and patch applicability and stops when the source no longer matches. It does not silently guess offsets or ignore failed patches.
@@ -204,7 +204,7 @@ There is currently no published binary package in this repository. The installer
 
 - `PKGBUILD` — authoritative source, patch, configuration, compile, and packaging recipe.
 - `config-charcoal` — Charcoal Kconfig overlay.
-- `PATCH-SOURCES.md`, `automation/patch-source-overrides-stable.json`, and `logs/patch-lock.json` — patch provenance and source locks.
+- `PATCH-SOURCES.md`, `logs/patch-source-overrides-stable.json`, and `logs/patch-lock.json` — patch provenance and source locks.
 - `automation/` — Valve 7.3 compatibility adapters and configuration helpers.
 - `NAP-PORT.md`, `NAP-TOOLS.md` — NAP governor port and userspace learning/persistence integration details.
 - `.github/workflows/build-kernel-7.3.yml` — manual-only kernel build workflow.
