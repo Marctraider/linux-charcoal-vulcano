@@ -1,9 +1,9 @@
-name: Validate NAP tools integration
+name: Validate CPUIdle governor tools integration
 
 on:
   push:
     branches:
-      - experiment/steamos-3.10-linux-7.3-nap
+      - master
     paths:
       - 'nap-tools/**'
       - 'PKGBUILD'
@@ -26,7 +26,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          ref: experiment/steamos-3.10-linux-7.3-nap
+          ref: master
       - name: Run NAP persistence and packaging tests
         run: |
           set -Eeuo pipefail
