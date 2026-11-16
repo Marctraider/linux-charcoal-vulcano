@@ -69,7 +69,7 @@ if PATH="$tmp/bin:$PATH" charcoal_upgrade_installed; then fail "missing Charcoal
 CHARCOAL_TEST_INSTALLED=1 PATH="$tmp/bin:$PATH" charcoal_upgrade_installed || fail "installed Charcoal package not detected for in-place upgrade"
 grep -v 'CONFIG_CPU_IDLE_GOV_NAP=y' "$tmp/kernel.config" > "$tmp/kernel-bad.config"
 if ( PATH="$tmp/bin:$PATH" CONFIG_FIXTURE="$tmp/kernel-bad.config" verify_kernel_package_identity package_files >/dev/null 2>&1 ); then fail "package without NAP governor accepted"; fi
-python3 - "$tmp/nap-artifact.zip" <<'PY'
+python3 - "$tmp/build-artifact.zip" <<'PY'
 import hashlib, sys, zipfile
 files = {
  "linux-charcoal-73-7.3.1.valve2.cc1-1-x86_64.pkg.tar.zst": b"kernel-package-fixture",
@@ -83,13 +83,13 @@ with zipfile.ZipFile(sys.argv[1], "w", zipfile.ZIP_DEFLATED) as z:
     z.writestr("logs/prepare-73.log", "Applying nap-6.12-v0.6.5.patch\nint drm_sched_policy = DRM_SCHED_POLICY_RR;\n")
     z.writestr("logs/nap-tools-upstream.json", "{}")
 PY
-extract_and_verify_nap_artifact "$tmp/nap-artifact.zip" "$tmp/unpacked" || fail "verified artifact extraction"
+extract_and_verify_build_artifact "$tmp/build-artifact.zip" "$tmp/unpacked" || fail "verified artifact extraction"
 [[ -f "$tmp/unpacked/linux-charcoal-73-7.3.1.valve2.cc1-1-x86_64.pkg.tar.zst" ]] || fail "kernel package not extracted"
 [[ -f "$tmp/unpacked/linux-charcoal-73-headers-7.3.1.valve2.cc1-1-x86_64.pkg.tar.zst" ]] || fail "headers package not extracted"
 grep -Fq 'github.com/Marctraider/linux-charcoal-vulcano/releases/download/' "$INSTALLER" || fail "public release download URL"
-grep -Fq 'RELEASE_TAG="steamos-3.10-linux-7.3-nap"' "$INSTALLER" || fail "NAP release tag"
-grep -Fq 'RELEASE_ARCHIVE="charcoal-steamos-3.10-linux-7.3-nap-build-77.zip"' "$INSTALLER" || fail "published release archive name"
-grep -Fq '395cf9671e6149f26695e69eeed2fb4c1ae59a63ab35ee005f9519ca8d8e0680' "$INSTALLER" || fail "published release ZIP checksum"
+grep -Fq 'RELEASE_TAG="steamos-3.10-linux-7.3"' "$INSTALLER" || fail "NAP release tag"
+grep -Fq 'RELEASE_ARCHIVE="charcoal-steamos-3.10-linux-7.3.zip"' "$INSTALLER" || fail "published release archive name"
+grep -Fq 'RELEASE_SHA256=""' "$INSTALLER" || fail "installer must not pin a deleted build-77 release checksum"
 grep -Fq 'cachebust=$(date +%s)' "$INSTALLER" || fail "release download must bypass cached signed redirects"
 grep -Fq "Cache-Control: no-cache" "$INSTALLER" || fail "release download must disable redirect caching"
 if grep -Eq '\\$\\{run_number\\}|\\$\\{build_commit' "$INSTALLER"; then fail "installer must not reference Actions-only build metadata"; fi
