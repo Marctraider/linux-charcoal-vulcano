@@ -154,7 +154,7 @@ download_file() {
     request_url=$url
     case "$url" in
       https://github.com/*/releases/download/*)
-        request_url="${url}?download=1&cachebust=$(date +%s)-$-$RANDOM-$attempt"
+        request_url="${url}?download=1&cachebust=$(date +%s)-$$-$RANDOM-$attempt"
         ;;
       *)
         die "Refusing non-release download URL: $url"
