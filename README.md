@@ -2,7 +2,36 @@
 
 Charcoal is a tuned Linux kernel for the **Steam Deck**, based on Valve's SteamOS 3.10 kernel source. It aims to improve gaming performance and frametime stability through a focused set of scheduler, CPU-frequency, memory, storage, and compiler optimizations, while retaining Valve's Steam Deck platform support and boot identity.
 
-This repository contains the source integration, configuration, patch inputs, build recipe, and validation tooling. It does not currently publish an installable kernel package.
+This repository contains the source integration, configuration, patch inputs, build recipe, validation tooling, and the published SteamOS 3.10 / Linux 7.3 Charcoal package.
+
+## Install the published SteamOS 3.10 build
+
+The current published package is **Build 82**: [Charcoal SteamOS 3.10 / Linux 7.3 release](https://github.com/Marctraider/linux-charcoal-vulcano/releases/tag/steamos-3.10-linux-7.3-build-82).
+
+The installer supports a clean SteamOS 3.10 installation when the stock Valve `linux-neptune-73` kernel and its existing boot files are present, as well as an upgrade from an existing Charcoal 7.3 installation. It verifies the release archive and both package checksums before changing packages. The Valve kernel package is not automatically removed to work around low disk space.
+
+Download and run the installer from Desktop Mode:
+
+```bash
+curl -fL --retry 3 --proto '=https' --proto-redir '=https' \
+  -o install-charcoal.sh \
+  https://raw.githubusercontent.com/Marctraider/linux-charcoal-vulcano/master/install-charcoal.sh
+sudo bash install-charcoal.sh
+```
+
+The installer downloads the public GitHub Release asset directly. It does not use the GitHub Actions artifact API or require a GitHub token. Release redirects are fetched with cache-busting URLs and retried on transient authorization responses to avoid stale signed-URL HTTP 401 errors.
+
+After installation, reboot into Charcoal Linux 7.3 and run:
+
+```bash
+sudo charcoal-status
+```
+
+Release ZIP SHA-256:
+
+```text
+225e5126487b56d6923b58b7f361eb7f158639e35a90e996ee96bae4d524de69
+```
 
 **Changes from the stock Valve kernel**
 
