@@ -90,7 +90,7 @@ grep -Fq 'github.com/Marctraider/linux-charcoal-vulcano/releases/download/' "$IN
 grep -Fq 'RELEASE_TAG="steamos-3.10-linux-7.3-build-82"' "$INSTALLER" || fail "published build-82 release tag"
 grep -Fq 'RELEASE_ARCHIVE="charcoal-steamos-3.10-linux-7.3-build-82.zip"' "$INSTALLER" || fail "published build-82 release archive name"
 grep -Fq 'RELEASE_SHA256="225e5126487b56d6923b58b7f361eb7f158639e35a90e996ee96bae4d524de69"' "$INSTALLER" || fail "published build-82 ZIP checksum"
-grep -Fq 'cachebust=$(date +%s)-$-$RANDOM-$attempt' "$INSTALLER" || fail "each release download attempt must use a fresh cache-busting URL"
+grep -Fq 'cachebust=$(date +%s)-$$-$RANDOM-$attempt' "$INSTALLER" || fail "each release download attempt must use a fresh cache-busting URL"
 grep -Fq 'HTTP 401' "$INSTALLER" || fail "installer must document and retry stale signed-URL 401 responses"
 grep -Fq 'after three fresh attempts' "$INSTALLER" || fail "release download retry limit"
 grep -Fq "Cache-Control: no-cache" "$INSTALLER" || fail "release download must disable redirect caching"
