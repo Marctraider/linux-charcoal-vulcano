@@ -12,7 +12,7 @@ permissions:
 
 jobs:
   dispatch-master:
-    name: Dispatch full SteamOS stable master build
+    name: Dispatch manual SteamOS stable master build
     runs-on: ubuntu-24.04
     steps:
       - name: Trigger full master build and stable release
@@ -23,4 +23,4 @@ jobs:
           gh workflow run push.yml \
             --repo "$GITHUB_REPOSITORY" \
             --ref master \
-            -f publish_release=true
+            -f publish_release=false
