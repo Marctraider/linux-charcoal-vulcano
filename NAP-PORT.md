@@ -1,8 +1,8 @@
-# NAP governor port for SteamOS 3.10 / Linux 7.3
+# CPUIdle governor integration for SteamOS 3.10 / Linux 7.3
 
-**Experimental branch only:** `experiment/steamos-3.10-linux-7.3-nap`.
+This integration is part of the consolidated `master` Linux 7.3 baseline.
 
-This branch integrates the NAP (Neural Adaptive Predictor) CPUIdle governor into the Charcoal 7.3 kernel source preparation. It does not change the validation branch, `master`, the installer, or the published kernel package.
+This document records how the NAP (Neural Adaptive Predictor) CPUIdle governor is integrated into the Charcoal Linux 7.3 baseline. NAP is an included kernel feature, not a separate project branch or product variant.
 
 ## Pinned upstream source
 
@@ -39,7 +39,7 @@ Only the kernel package carries `linux-charcoal-73.install`: installation and up
 - API adapter against the exact Valve source: passed without source edits; `git diff --check` passed.
 - Kernel compile, package build, boot test, installer test, and gaming benchmark: not run.
 
-The exact Valve source compatibility gate is now passed. The branch is still experimental and is not a production or installation candidate until compile-time validation and subsequent user-authorized testing are completed.
+The exact Valve source compatibility gate passed, and the consolidated build containing this integration was subsequently built and reported booted by the project owner.
 
 ## Expected behaviour
 
@@ -57,4 +57,4 @@ This experiment also carries two independent upstream kernel-source changes:
 
 Neither port adds the original repository's controller drivers, SDL environment script, SMU tools, or other unrelated userspace components. NAP's persistence tools remain a separate component.
 
-The patch-validation workflow prepares and checks the exact Valve 7.3.1 source without compiling the kernel. This branch's intended build enables NAP and DRM Round Robin; Re-swappiness is excluded. The kernel build workflow is manual-only; ordinary patch commits do not start a kernel build. No compile, package, boot, installer, or gaming benchmark result is implied by adding these candidates.
+The patch-validation workflow prepares and checks the exact Valve 7.3.1 source without compiling the kernel. The retained Linux 7.3 baseline enables NAP and DRM Round Robin; re-swappiness is excluded. The kernel build workflow is manual-only; ordinary patch or documentation commits do not start a kernel build. No compile, package, boot, installer, or gaming benchmark result is implied by adding these candidates.
