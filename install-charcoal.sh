@@ -434,31 +434,13 @@ main() {
       die "Charcoal upgrade failed; pacman did not complete the replacement. Do not reboot until the existing kernel is confirmed."
     fi
   else
-    # Fresh SteamOS installs replace the stock Valve kernel before installing
-    # Charcoal, avoiding the extra disk-space requirement of keeping both.
-    local -a stock_packages=()
-    for old_package in linux-neptune-73 linux-neptune-73-headers; do
-      if pacman -Qq "$old_package" >/dev/null 2>&1; then
-        stock_packages+=("$old_package")
-      fi
-    done
-    (( ${#stock_packages[@]} > 0 )) || die "No installed Valve Linux 7.3 package was found to replace"
-
-    # Preserve cached package archives for best-effort rollback, but do not
-    # block the requested replacement when cache copies are unavailable.
-    capture_rollback_packages stock_packages
-    info "Removing the stock SteamOS 7.3 kernel package(s) before installing Charcoal..."
-    if ! run_privileged pacman -Rdd --noconfirm "${stock_packages[@]}"; then
-      die "Could not remove the stock Valve kernel package(s). Do not reboot until the boot state is checked."
-    fi
-
-    info "Installing the verified Charcoal kernel and headers..."
+    # A clean SteamOS 3.10 install is supported when the stock Valve 7.3
+    # kernel and boot chain are present. Keep the stock package installed as
+    # a fallback; never remove it automatically to work around low disk space.
+    info "Installing Charcoal alongside the existing SteamOS 3.10 / Linux 7.3 kernel..."
     if ! LC_ALL=C run_privileged pacman -U --noconfirm "${packages[@]}" >"$install_log" 2>&1; then
       cat "$install_log" >&2
-      if attempt_rollback; then
-        die "Charcoal installation failed; the cached stock Valve kernel packages and boot files were restored"
-      fi
-      die "Charcoal installation failed after stock-kernel removal and automatic rollback was unsuccessful; do not reboot"
+      die "Charcoal installation failed. The Valve kernel package was not removed; free space or resolve the pacman error, then retry. Do not reboot if boot files were changed."
     fi
   fi
 
