@@ -360,11 +360,9 @@ attempt_rollback() {
 }
 
 main() {
-  for cmd in curl python3 zstd sha256sum mktemp pacman bsdtar awk grep tr find sort stat ln mv sleep date mkinitcpio steamos-readonly steamos-devmode; do require_command "$cmd"; done
+  for cmd in curl python3 zstd sha256sum mktemp pacman bsdtar awk grep tr find sort ln mv sleep date mkinitcpio steamos-readonly steamos-devmode; do require_command "$cmd"; done
   (( EUID == 0 )) || require_command sudo
   verify_host_platform || die "Unsupported SteamOS version; no packages were changed"
-  [[ -d /dev/shm && -w /dev/shm ]] || die "/dev/shm is unavailable; refusing to stage large packages on the root filesystem"
-  [[ "$(stat -f -c %T /dev/shm)" == tmpfs ]] || die "/dev/shm is not a tmpfs; refusing to consume root-filesystem space"
   WORKDIR="$(mktemp -d /dev/shm/charcoal-73-installer.XXXXXX)"
   trap cleanup EXIT
 
@@ -434,13 +432,27 @@ main() {
       die "Charcoal upgrade failed; pacman did not complete the replacement. Do not reboot until the existing kernel is confirmed."
     fi
   else
-    # A clean SteamOS 3.10 install is supported when the stock Valve 7.3
-    # kernel and boot chain are present. Keep the stock package installed as
-    # a fallback; never remove it automatically to work around low disk space.
-    info "Installing Charcoal alongside the existing SteamOS 3.10 / Linux 7.3 kernel..."
+    # Free the space occupied by the stock Valve kernel before installing
+    # Charcoal. Preserve cached package archives for rollback when available.
+    local -a stock_packages=()
+    for old_package in linux-neptune-73 linux-neptune-73-headers; do
+      if pacman -Qq "$old_package" >/dev/null 2>&1; then
+        stock_packages+=("$old_package")
+      fi
+    done
+    (( ${#stock_packages[@]} > 0 )) || die "The stock Valve kernel package is not installed; refusing an unknown boot setup"
+    capture_rollback_packages stock_packages
+    info "Removing the stock SteamOS 7.3 kernel package(s) before installing Charcoal..."
+    if ! run_privileged pacman -Rdd --noconfirm "${stock_packages[@]}"; then
+      die "Could not remove the stock Valve kernel package(s); Charcoal was not installed. Do not reboot until the existing boot state is checked."
+    fi
+    info "Installing Charcoal Linux 7.3..."
     if ! LC_ALL=C run_privileged pacman -U --noconfirm "${packages[@]}" >"$install_log" 2>&1; then
       cat "$install_log" >&2
-      die "Charcoal installation failed. The Valve kernel package was not removed; free space or resolve the pacman error, then retry. Do not reboot if boot files were changed."
+      if attempt_rollback; then
+        die "Charcoal installation failed; the cached stock SteamOS kernel was restored"
+      fi
+      die "Charcoal installation failed after removing the stock kernel and automatic rollback was unavailable or unsuccessful; do not reboot"
     fi
   fi
 
