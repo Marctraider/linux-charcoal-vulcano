@@ -452,42 +452,31 @@ main() {
       die "Charcoal upgrade failed; pacman did not complete the replacement. Do not reboot until the existing kernel is confirmed."
     fi
   else
-    # Keep the Valve kernel for the normal install attempt. If pacman reports
-    # an explicit disk-space failure, offer a separately confirmed fallback.
+    # Fresh SteamOS installs replace the stock Valve kernel before installing
+    # Charcoal, avoiding the extra disk-space requirement of keeping both.
     local -a stock_packages=()
     for old_package in linux-neptune-73 linux-neptune-73-headers; do
       if pacman -Qq "$old_package" >/dev/null 2>&1; then
         stock_packages+=("$old_package")
       fi
     done
-    (( ${#stock_packages[@]} > 0 )) || die "The Valve kernel package could not be identified; refusing the fresh-install fallback"
-    capture_rollback_packages stock_packages
+    (( ${#stock_packages[@]} > 0 )) || die "No installed Valve Linux 7.3 package was found to replace"
 
-    info "Installing Charcoal while retaining the existing SteamOS 3.10 / Linux 7.3 kernel..."
+    # Preserve cached package archives for best-effort rollback, but do not
+    # block the requested replacement when cache copies are unavailable.
+    capture_rollback_packages stock_packages
+    info "Removing the stock SteamOS 7.3 kernel package(s) before installing Charcoal..."
+    if ! run_privileged pacman -Rdd --noconfirm "${stock_packages[@]}"; then
+      die "Could not remove the stock Valve kernel package(s). Do not reboot until the boot state is checked."
+    fi
+
+    info "Installing the verified Charcoal kernel and headers..."
     if ! LC_ALL=C run_privileged pacman -U --noconfirm "${packages[@]}" >"$install_log" 2>&1; then
       cat "$install_log" >&2
-      if ! is_disk_space_failure "$install_log"; then
-        die "Charcoal installation failed for a reason other than insufficient disk space. The Valve kernel was not removed. Resolve the pacman error and retry."
+      if attempt_rollback; then
+        die "Charcoal installation failed; the cached stock Valve kernel packages and boot files were restored"
       fi
-      if (( ! ROLLBACK_READY )); then
-        die "Pacman ran out of disk space, but the exact installed Valve package archive(s) are not all cached. The stock kernel was left installed; free space manually and retry."
-      fi
-      if pacman -Qq linux-charcoal-73 >/dev/null 2>&1 || pacman -Qq linux-charcoal-73-headers >/dev/null 2>&1; then
-        die "Pacman reported a disk-space failure after changing Charcoal package state. The Valve kernel was not removed; inspect package and boot state before retrying. Do not reboot if boot files changed."
-      fi
-      confirm_stock_kernel_removal
-      info "Removing the stock Valve kernel package(s) after explicit confirmation..."
-      if ! run_privileged pacman -Rdd --noconfirm "${stock_packages[@]}"; then
-        die "Could not remove the stock Valve kernel package(s). Charcoal was not retried; inspect pacman state before proceeding."
-      fi
-      info "Retrying the Charcoal kernel and headers installation..."
-      if ! LC_ALL=C run_privileged pacman -U --noconfirm "${packages[@]}" >"$install_log" 2>&1; then
-        cat "$install_log" >&2
-        if attempt_rollback; then
-          die "Charcoal installation failed after removing the Valve kernel; the cached Valve packages and boot files were restored"
-        fi
-        die "Charcoal installation failed after removing the Valve kernel and automatic rollback was unsuccessful; do not reboot"
-      fi
+      die "Charcoal installation failed after stock-kernel removal and automatic rollback was unsuccessful; do not reboot"
     fi
   fi
 
