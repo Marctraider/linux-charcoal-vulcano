@@ -309,6 +309,24 @@ confirm_transaction() {
   esac
 }
 
+is_disk_space_failure() {
+  local log_file=$1
+  grep -Eiq 'no space left on device|not enough (free )?disk space|not enough free space|insufficient[^[:cntrl:]]*space|partition .+ too full|there is not enough space' "$log_file"
+}
+
+confirm_stock_kernel_removal() {
+  [[ -t 0 ]] || die "Pacman ran out of disk space, but removing the Valve kernel requires a separate interactive confirmation. Rerun from a terminal."
+  local answer
+  printf '\nWARNING: the normal installation failed because of insufficient disk space.\n'
+  printf 'The fallback will remove the installed Valve Linux 7.3 kernel package(s),\n'
+  printf 'then retry Charcoal. Cached Valve packages are available for rollback.\n'
+  read -r -p "Remove the stock Valve kernel to continue? [y/N] " answer
+  case "$answer" in
+    y|Y|yes|YES) ;;
+    *) die "Installation cancelled; the Valve kernel was left installed" ;;
+  esac
+}
+
 capture_rollback_packages() {
   local -n package_names=$1
   (( ${#package_names[@]} > 0 )) || return 0
@@ -434,13 +452,42 @@ main() {
       die "Charcoal upgrade failed; pacman did not complete the replacement. Do not reboot until the existing kernel is confirmed."
     fi
   else
-    # A clean SteamOS 3.10 install is supported when the stock Valve 7.3
-    # kernel and boot chain are present. Keep the stock package installed as
-    # a fallback; never remove it automatically to work around low disk space.
-    info "Installing Charcoal alongside the existing SteamOS 3.10 / Linux 7.3 kernel..."
+    # Keep the Valve kernel for the normal install attempt. If pacman reports
+    # an explicit disk-space failure, offer a separately confirmed fallback.
+    local -a stock_packages=()
+    for old_package in linux-neptune-73 linux-neptune-73-headers; do
+      if pacman -Qq "$old_package" >/dev/null 2>&1; then
+        stock_packages+=("$old_package")
+      fi
+    done
+    (( ${#stock_packages[@]} > 0 )) || die "The Valve kernel package could not be identified; refusing the fresh-install fallback"
+    capture_rollback_packages stock_packages
+
+    info "Installing Charcoal while retaining the existing SteamOS 3.10 / Linux 7.3 kernel..."
     if ! LC_ALL=C run_privileged pacman -U --noconfirm "${packages[@]}" >"$install_log" 2>&1; then
       cat "$install_log" >&2
-      die "Charcoal installation failed. The Valve kernel package was not removed; free space or resolve the pacman error, then retry. Do not reboot if boot files were changed."
+      if ! is_disk_space_failure "$install_log"; then
+        die "Charcoal installation failed for a reason other than insufficient disk space. The Valve kernel was not removed. Resolve the pacman error and retry."
+      fi
+      if (( ! ROLLBACK_READY )); then
+        die "Pacman ran out of disk space, but the exact installed Valve package archive(s) are not all cached. The stock kernel was left installed; free space manually and retry."
+      fi
+      if pacman -Qq linux-charcoal-73 >/dev/null 2>&1 || pacman -Qq linux-charcoal-73-headers >/dev/null 2>&1; then
+        die "Pacman reported a disk-space failure after changing Charcoal package state. The Valve kernel was not removed; inspect package and boot state before retrying. Do not reboot if boot files changed."
+      fi
+      confirm_stock_kernel_removal
+      info "Removing the stock Valve kernel package(s) after explicit confirmation..."
+      if ! run_privileged pacman -Rdd --noconfirm "${stock_packages[@]}"; then
+        die "Could not remove the stock Valve kernel package(s). Charcoal was not retried; inspect pacman state before proceeding."
+      fi
+      info "Retrying the Charcoal kernel and headers installation..."
+      if ! LC_ALL=C run_privileged pacman -U --noconfirm "${packages[@]}" >"$install_log" 2>&1; then
+        cat "$install_log" >&2
+        if attempt_rollback; then
+          die "Charcoal installation failed after removing the Valve kernel; the cached Valve packages and boot files were restored"
+        fi
+        die "Charcoal installation failed after removing the Valve kernel and automatic rollback was unsuccessful; do not reboot"
+      fi
     fi
   fi
 
