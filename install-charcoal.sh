@@ -309,24 +309,6 @@ confirm_transaction() {
   esac
 }
 
-is_disk_space_failure() {
-  local log_file=$1
-  grep -Eiq 'no space left on device|not enough (free )?disk space|not enough free space|insufficient[^[:cntrl:]]*space|partition .+ too full|there is not enough space' "$log_file"
-}
-
-confirm_stock_kernel_removal() {
-  [[ -t 0 ]] || die "Pacman ran out of disk space, but removing the Valve kernel requires a separate interactive confirmation. Rerun from a terminal."
-  local answer
-  printf '\nWARNING: the normal installation failed because of insufficient disk space.\n'
-  printf 'The fallback will remove the installed Valve Linux 7.3 kernel package(s),\n'
-  printf 'then retry Charcoal. Cached Valve packages are available for rollback.\n'
-  read -r -p "Remove the stock Valve kernel to continue? [y/N] " answer
-  case "$answer" in
-    y|Y|yes|YES) ;;
-    *) die "Installation cancelled; the Valve kernel was left installed" ;;
-  esac
-}
-
 capture_rollback_packages() {
   local -n package_names=$1
   (( ${#package_names[@]} > 0 )) || return 0
