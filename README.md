@@ -6,9 +6,9 @@ This repository contains the source integration, configuration, patch inputs, bu
 
 ## Install the published SteamOS 3.10 build
 
-The current published package is **Build 82**: [Charcoal SteamOS 3.10 / Linux 7.3 release](https://github.com/Marctraider/linux-charcoal-vulcano/releases/tag/steamos-3.10-linux-7.3-build-82).
+The current published package is **Build 82**: [download the Build 82 ZIP](https://github.com/Marctraider/linux-charcoal-vulcano/releases/download/steamos-3.10-linux-7.3-build-82/charcoal-steamos-3.10-linux-7.3-build-82.zip) or [view the release details](https://github.com/Marctraider/linux-charcoal-vulcano/releases/tag/steamos-3.10-linux-7.3-build-82).
 
-The installer supports a clean SteamOS 3.10 installation when the stock Valve `linux-neptune-73` kernel and its existing boot files are present, as well as an upgrade from an existing Charcoal 7.3 installation. It verifies the release archive and both package checksums before changing packages. The Valve kernel package is not automatically removed to work around low disk space.
+The installer script is maintained on `master` and is configured to install the published Build 82 release. It supports a clean SteamOS 3.10 installation when the stock Valve `linux-neptune-73` kernel and its existing boot files are present, as well as an upgrade from an existing Charcoal 7.3 installation. It verifies the release archive and both package checksums before changing packages. The stock Valve kernel is kept installed as a fallback; ensure there is enough free space for both kernel packages.
 
 Download and run the installer from Desktop Mode:
 
