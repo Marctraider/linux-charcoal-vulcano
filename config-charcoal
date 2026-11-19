@@ -26,6 +26,11 @@ CONFIG_SCHED_BORE=y
 # LAVD requires sched_ext, BPF JIT and vmlinux BTF.
 CONFIG_BPF=y
 CONFIG_BPF_SYSCALL=y
+# BPF_EVENTS needs PERF_EVENTS and at least one probe event backend.
+# Uprobes remain inactive unless a userspace tool explicitly attaches one.
+CONFIG_PERF_EVENTS=y
+CONFIG_UPROBES=y
+CONFIG_UPROBE_EVENTS=y
 CONFIG_BPF_EVENTS=y
 CONFIG_BPF_JIT=y
 CONFIG_BPF_JIT_ALWAYS_ON=y
