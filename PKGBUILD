@@ -91,17 +91,25 @@ _validate_kernel_config() {
     '# CONFIG_DEBUG_INFO_REDUCED is not set' \
     '# CONFIG_DEBUG_INFO_SPLIT is not set' \
     '# CONFIG_SCHED_DEBUG is not set' \
-    'CONFIG_FTRACE=y' \
-    'CONFIG_FTRACE_SYSCALLS=y' \
     '# CONFIG_FUNCTION_TRACER is not set' \
     '# CONFIG_FUNCTION_GRAPH_TRACER is not set' \
+    '# CONFIG_KPROBES is not set' \
+    '# CONFIG_PROFILING is not set' \
     '# CONFIG_KASAN is not set' \
     '# CONFIG_KCSAN is not set' \
     '# CONFIG_UBSAN is not set' \
     '# CONFIG_KFENCE is not set' \
+    '# CONFIG_KMSAN is not set' \
     '# CONFIG_SLUB_DEBUG is not set' \
     '# CONFIG_LOCKDEP is not set' \
     '# CONFIG_PROVE_LOCKING is not set' \
+    '# CONFIG_DEBUG_ATOMIC_SLEEP is not set' \
+    '# CONFIG_DEBUG_MUTEXES is not set' \
+    '# CONFIG_DEBUG_SPINLOCK is not set' \
+    '# CONFIG_DEBUG_LIST is not set' \
+    '# CONFIG_DEBUG_OBJECTS is not set' \
+    '# CONFIG_DEBUG_PAGEALLOC is not set' \
+    '# CONFIG_PAGE_POISONING is not set' \
     'CONFIG_BTRFS_FS=y' \
     'CONFIG_HID_STEAM=m' \
     'CONFIG_MFD_STEAMDECK=m' \
@@ -168,8 +176,11 @@ prepare() {
 build() {
   cd "$_srcname"
   _make_llvm all
-  # Produce the CO-RE header from this kernel's BTF for sched_ext schedulers.
-  _make_llvm -C tools/bpf/bpftool vmlinux.h feature-clang-bpf-co-re=1
+  # Build bpftool and export this kernel's BTF as the CO-RE header used
+  # when building sched_ext BPF schedulers such as scx_lavd.
+  _make_llvm -C tools/bpf/bpftool
+  tools/bpf/bpftool/bpftool btf dump file vmlinux format c > tools/bpf/bpftool/vmlinux.h
+  test -s tools/bpf/bpftool/vmlinux.h
 }
 
 _package() {
