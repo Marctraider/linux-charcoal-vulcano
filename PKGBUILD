@@ -77,6 +77,9 @@ _validate_kernel_config() {
     'CONFIG_SCHED_CLASS_EXT=y' \
     'CONFIG_BPF=y' \
     'CONFIG_BPF_SYSCALL=y' \
+    'CONFIG_PERF_EVENTS=y' \
+    'CONFIG_UPROBES=y' \
+    'CONFIG_UPROBE_EVENTS=y' \
     'CONFIG_BPF_EVENTS=y' \
     'CONFIG_BPF_JIT=y' \
     'CONFIG_BPF_JIT_ALWAYS_ON=y' \
