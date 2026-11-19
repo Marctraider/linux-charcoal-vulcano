@@ -20,9 +20,6 @@ CONFIG_CC_OPTIMIZE_FOR_PERFORMANCE=y
 CONFIG_LTO_CLANG_FULL=y
 CONFIG_POLLY_CLANG=y
 
-# BORE modifies the fair scheduler and remains the in-kernel fallback.
-CONFIG_SCHED_BORE=y
-
 # LAVD requires sched_ext, BPF JIT and vmlinux BTF.
 CONFIG_BPF=y
 CONFIG_BPF_SYSCALL=y
