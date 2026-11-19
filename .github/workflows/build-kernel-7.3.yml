@@ -3,6 +3,12 @@ name: Build SteamOS 3.10 Charcoal Linux 7.3
 # Kernel builds are manual-only. No push trigger: source and documentation changes never start a kernel build.
 on:
   workflow_dispatch:
+    inputs:
+      compile_kernel:
+        description: "Compile and package after source and configuration preparation"
+        required: true
+        type: boolean
+        default: false
 
 permissions:
   contents: read
@@ -46,7 +52,7 @@ jobs:
           python3 automation/prepare-sources-73.py --root "$GITHUB_WORKSPACE" 2>&1 | tee logs/source-preparation-73.log
       - name: Build Arch Linux LLVM toolchain container
         run: docker build . --tag charcoal-linux-73
-      - name: Prepare source tree and compile/package Charcoal Linux 7.3
+      - name: Prepare source tree and final configuration (no kernel compilation)
         run: |
           set -Eeuo pipefail
           restore_owner() {
@@ -67,6 +73,28 @@ jobs:
             makepkg --verifysource --noconfirm 2>&1 | tee logs/verifysource-73.log
             makepkg -Cof --noconfirm 2>&1 | tee logs/prepare-73.log
             git -C src/archlinux-linux-charcoal diff --check | tee logs/git-diff-check-73.txt
+          '
+          restore_owner
+          trap - EXIT
+      - name: Compile and package Charcoal Linux 7.3
+        if: inputs.compile_kernel
+        run: |
+          set -Eeuo pipefail
+          restore_owner() {
+            sudo chown -R "$(id -u):$(id -g)" "$PWD" 2>/dev/null || true
+          }
+          trap restore_owner EXIT
+          docker run --rm -v "$PWD:/project" charcoal-linux-73 chown -R nobody /project
+          docker run --rm -v "$PWD:/project" charcoal-linux-73 sudo -u nobody bash -lc '
+            set -Eeuo pipefail
+            cd /project
+            mkdir -p logs .cache/ccache
+            export CCACHE_DIR=/project/.cache/ccache
+            export CCACHE_BASEDIR=/project
+            export CCACHE_COMPILERCHECK=content
+            export CCACHE_NOHASHDIR=true
+            export CCACHE_MAXSIZE=5G
+            export CCACHE_COMPRESS=true
             makepkg -ef --noconfirm 2>&1 | tee logs/makepkg-73.log
             sha256sum linux-charcoal-73-*.pkg.tar.zst | tee logs/SHA256SUMS-73
           '
