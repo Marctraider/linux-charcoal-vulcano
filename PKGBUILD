@@ -4,7 +4,7 @@ pkgbase=linux-charcoal-73
 _tag=7.3.1-valve2
 _ver=1
 pkgver=${_tag//-/.}.cc$_ver
-pkgrel=1
+pkgrel=2
 pkgdesc='SteamOS 3.10 Linux 7.3 kernel for Steam Deck'
 url="https://steamdeck-packages.steamos.cloud/archlinux-mirror/sources/jupiter-3.10/"
 arch=(x86_64)
@@ -88,8 +88,10 @@ _validate_kernel_config() {
     '# CONFIG_DEBUG_INFO_REDUCED is not set' \
     '# CONFIG_DEBUG_INFO_SPLIT is not set' \
     '# CONFIG_SCHED_DEBUG is not set' \
-    '# CONFIG_FTRACE is not set' \
+    'CONFIG_FTRACE=y' \
+    'CONFIG_FTRACE_SYSCALLS=y' \
     '# CONFIG_FUNCTION_TRACER is not set' \
+    '# CONFIG_FUNCTION_GRAPH_TRACER is not set' \
     '# CONFIG_KASAN is not set' \
     '# CONFIG_KCSAN is not set' \
     '# CONFIG_UBSAN is not set' \
