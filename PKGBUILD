@@ -4,7 +4,7 @@ pkgbase=linux-charcoal-73
 _tag=7.3.1-valve2
 _ver=1
 pkgver=${_tag//-/.}.cc$_ver
-pkgrel=2
+pkgrel=3
 pkgdesc='SteamOS 3.10 Linux 7.3 kernel for Steam Deck'
 url="https://steamdeck-packages.steamos.cloud/archlinux-mirror/sources/jupiter-3.10/"
 arch=(x86_64)
@@ -45,7 +45,6 @@ source=(
   latest-amd-pstate-epp-02-cache-order.patch
   latest-amd-pstate-epp-03-core.patch
   latest-clang-polly.patch
-  latest-bore.patch
 )
 sha256sums=(
   'a6316acc22954d0685ac923248995246789a1f3b5ee6890d378ce2c3efa25af8' # exact Valve 7.3.1.valve2-1 source archive
@@ -53,7 +52,6 @@ sha256sums=(
   '454f353669c81b5e214e5b71327ed5735733e6bd9f5671e710520a2c3e455cb6' # AMD P-State EPP cache ordering
   '072927860ad14a09bbc08ef4f99d52d9964ed4de5800b647e3d61bab7a046dda' # AMD P-State per-core EPP boost
   'ecb48f8b4a122180e815beff3f64fd3077fb8bfb57ff2c554c1e8e31388eb8e9' # LLVM Polly port
-  'SKIP' # immutable BORE Git blob is verified by prepare-sources-73.py
 )
 
 export KBUILD_BUILD_HOST=archlinux
@@ -73,7 +71,6 @@ _validate_kernel_config() {
     '# CONFIG_CC_OPTIMIZE_FOR_PERFORMANCE_O3 is not set' \
     'CONFIG_LTO_CLANG_FULL=y' \
     'CONFIG_POLLY_CLANG=y' \
-    'CONFIG_SCHED_BORE=y' \
     'CONFIG_SCHED_CLASS_EXT=y' \
     'CONFIG_BPF=y' \
     'CONFIG_BPF_SYSCALL=y' \
