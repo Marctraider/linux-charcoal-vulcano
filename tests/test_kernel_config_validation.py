@@ -52,6 +52,15 @@ class KernelConfigValidationTests(unittest.TestCase):
             "CONFIG_KFENCE=n",
             "CONFIG_KMSAN=n",
             "CONFIG_UBSAN=n",
+            "CONFIG_KPROBES=n",
+            "CONFIG_PROFILING=n",
+            "CONFIG_DEBUG_ATOMIC_SLEEP=n",
+            "CONFIG_DEBUG_MUTEXES=n",
+            "CONFIG_DEBUG_SPINLOCK=n",
+            "CONFIG_DEBUG_LIST=n",
+            "CONFIG_DEBUG_OBJECTS=n",
+            "CONFIG_DEBUG_PAGEALLOC=n",
+            "CONFIG_PAGE_POISONING=n",
         ):
             self.assertIn(setting, CONFIG)
         self.assertIn("CONFIG_FTRACE=y", CONFIG)
@@ -60,6 +69,15 @@ class KernelConfigValidationTests(unittest.TestCase):
         self.assertNotIn("CONFIG_DEBUG_INFO_NONE=y", CONFIG)
         self.assertNotIn("CONFIG_DEBUG_INFO_REDUCED=y", CONFIG)
         self.assertNotIn("CONFIG_DEBUG_INFO_SPLIT=y", CONFIG)
+
+    def test_build_generates_kernel_specific_btf_header_for_core(self):
+        self.assertIn("_make_llvm -C tools/bpf/bpftool", PKGBUILD)
+        self.assertIn(
+            "tools/bpf/bpftool/bpftool btf dump file vmlinux format c",
+            PKGBUILD,
+        )
+        self.assertIn("test -s tools/bpf/bpftool/vmlinux.h", PKGBUILD)
+        self.assertNotIn("vmlinux.h feature-clang-bpf-co-re=1", PKGBUILD)
 
     def test_unrequested_patch_series_are_not_in_build_recipe(self):
         source_block = PKGBUILD.split("source=(", 1)[1].split(")", 1)[0]
