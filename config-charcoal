@@ -41,11 +41,14 @@ CONFIG_DEBUG_INFO_BTF=y
 # CONFIG_DEBUG_INFO_SPLIT is not set
 # CONFIG_DEBUG_INFO_NONE is not set
 
-# Disable optional runtime debugging, sanitizers, lock checking and tracing.
-# DEBUG_KERNEL and vmlinux BTF above are retained only for sched_ext.
+# Retain syscall tracepoints for LAVD futex tracking. The tracing framework
+# has no per-function instrumentation because function tracers remain disabled.
+CONFIG_TRACEPOINTS=y
+CONFIG_FTRACE=y
+CONFIG_FTRACE_SYSCALLS=y
 CONFIG_SCHED_DEBUG=n
-CONFIG_FTRACE=n
 CONFIG_FUNCTION_TRACER=n
+CONFIG_FUNCTION_GRAPH_TRACER=n
 CONFIG_KPROBES=n
 CONFIG_PROFILING=n
 CONFIG_LOCKDEP=n
