@@ -1,13 +1,11 @@
-# Maintainer: Thomas Rohloff <v10lator@myway.de>
-# Maintainer: John Schoenick <johns@valvesoftware.com>
-# Maintainer: Jan Alexander Steffens (heftig) <heftig@archlinux.org>
+# Maintainer: Charcoal SteamOS kernel project
 
 pkgbase=linux-charcoal-73
 _tag=7.3.1-valve2
 _ver=1
 pkgver=${_tag//-/.}.cc$_ver
 pkgrel=1
-pkgdesc='Linux'
+pkgdesc='SteamOS 3.10 Linux 7.3 kernel for Steam Deck'
 url="https://steamdeck-packages.steamos.cloud/archlinux-mirror/sources/jupiter-3.10/"
 arch=(x86_64)
 license=(GPL-2.0-only)
@@ -21,91 +19,43 @@ makedepends=(
   python
   tar
   xz
-
-  # htmldocs
-  # Jupiter: documentation dependencies, disabled for now
-  #graphviz
-  #imagemagick
-  #python-sphinx
-  #python-yaml
-  #texlive-latexextra
-
-  # Jupiter: we're using git+ssh for the source
   git
   openssh
-
-  # Charcoal: We build on LLVM
   llvm
   clang
   lld
+  polly
 )
 options=(
   !debug
   !strip
 )
 
-# Use Clang directly for both target and host tools. ccache is intentionally
-# omitted: the sandboxed build user may not have a writable cache directory.
+# Build for the Steam Deck's AMD Zen 2 (Van Gogh) CPU target.
+# CONFIG_CC_OPTIMIZE_FOR_PERFORMANCE selects the kernel's O2 optimization.
 _make_llvm() {
-  # Valve 7.3 no longer exposes the old x86-64 MZEN2 Kconfig selector.
-  # Apply the Steam Deck's Zen 2 target directly to kernel compilation.
   make LLVM=1 KCFLAGS="${KCFLAGS:+$KCFLAGS }-march=znver2" \
-    CC=clang \
-    HOSTCC=clang \
-    HOSTCXX=clang++ \
-    "$@"
+    CC=clang HOSTCC=clang HOSTCXX=clang++ "$@"
 }
+
 _srcname=archlinux-linux-charcoal
 source=(
   valve-source.tar.gz
-  65-adios.rules
-  60-charcoal-zram-ir.rules
-  configure-zram-ir
-  90-charcoal-zram.conf
-  90-charcoal-zram-ir.conf
   vangogh_allow_higher_cpu_freq.patch
-  latest-lru_cast.patch
-  latest-zram-ir.patch
   latest-amd-pstate-epp-02-cache-order.patch
   latest-amd-pstate-epp-03-core.patch
-  latest-o3.patch
   latest-clang-polly.patch
   latest-bore.patch
-  latest-poc-selector.patch
-  latest-adios.patch
-  latest-adios-default.patch
-  latest-zen-01.patch
-  latest-zen-02.patch
-  zstd-crypto-default-level-1.patch
-  nap-6.12-v0.6.5.patch
-  drm_sched_rr_default.patch
-  nap-tools.tar.gz
 )
 sha256sums=(
-  'a6316acc22954d0685ac923248995246789a1f3b5ee6890d378ce2c3efa25af8' # Valve linux-neptune-73 7.3.1.valve2-1 source archive
-  '52cbbf41450806d766260bc4f1ea055f6f9fdd55d37ad831840b16d505beb0cc'
-  '35fc7647671b1ab412804143a0585dde8d9880097c06feb520f90680780ac5e5'
-  '3e200a7ad9661f59be2dfd442fd993fd130da8a6f5df7d8b4ec40d86351b1dcd'
-  'b59543c9aac43412e8b90b050380f482214ab33c4703d621ff0ea91ea39c6761'
-  '07068c432fd7e80689f44a28346f1909de9ee77aa3e72dfaa6a4ea89d9921afd'
-  '1a6f9d691612c4a729032273199d17756dd6666d85019655bd95ea24eff59cac'
-  'f13ac591211d3af128f55f91658a98173472e5866d0cfcf7c730bd887cbf8271'
-  '1620f45f0fbab1173c8693a2afc0ada37920c78fdde2d0cbff6afe28545128f4'
-  '454f353669c81b5e214e5b71327ed5735733e6bd9f5671e710520a2c3e455cb6'
-  '072927860ad14a09bbc08ef4f99d52d9964ed4de5800b647e3d61bab7a046dda'
-  '492aafbd940b18b817e4b7957805b9874f488cc1463fee588dd8dacd18c86677'
-  'ecb48f8b4a122180e815beff3f64fd3077fb8bfb57ff2c554c1e8e31388eb8e9'
-  '59349771e5cde001b5456b29b9d302f5dca9cdbe60beb43d1161a85b21c1a82d'
-  '091a51229f796efbf2b22215d89f4502af1992ee912198f46d138aacb82f234e'
-  '5cfab7f86fe855a6b0ed5b10cb64437ab8541e80eb430945d48f94531f82cb6a'
-  '5ef2f14326a5fab8980d1ebb6734ece576f930c173b4980eb026513aa3b1b9d0'
-  'bc647f73ec860a0fe7d074c2377588816a616dc2a651b30d7b9cd168863a17c6'
-  '5059762e54c8dbe4262d48eafb8d486a54244eec71da5d7b61fc0f5f1c5c2ea7'
-  '8c35a18407440f543518e383a96f8098438c3cbe4ea034241fb9a7fe8f7be129'
-  '4d4ac50ba014de33638a2efe9c6adc507b888c6d090aa29ea17b2a4686de4e07' # firelzrd/nap v0.6.5, pinned upstream commit 5092cfdbc615f2e1626e68ab03d3d9730364bcbd
-  '7e57307253178a7a99df479c6bdc43ccec0422ca7204b60daf17ab75bf63b5a4' # DRM scheduler default Round Robin patch
-  '2f8c55a6ab9edb5ca08db326cd6aad1de8819f25352aec5247ea84827d305186' # deterministic NAP tools integration bootstrap
+  'a6316acc22954d0685ac923248995246789a1f3b5ee6890d378ce2c3efa25af8' # exact Valve 7.3.1.valve2-1 source archive
+  '1a6f9d691612c4a729032273199d17756dd6666d85019655bd95ea24eff59cac' # Van Gogh higher CPU frequency
+  '454f353669c81b5e214e5b71327ed5735733e6bd9f5671e710520a2c3e455cb6' # AMD P-State EPP cache ordering
+  '072927860ad14a09bbc08ef4f99d52d9964ed4de5800b647e3d61bab7a046dda' # AMD P-State per-core EPP boost
+  'ecb48f8b4a122180e815beff3f64fd3077fb8bfb57ff2c554c1e8e31388eb8e9' # LLVM Polly port
+  'SKIP' # immutable BORE Git blob is verified by prepare-sources-73.py
 )
+
 export KBUILD_BUILD_HOST=archlinux
 export KBUILD_BUILD_USER=$pkgbase
 export KBUILD_BUILD_TIMESTAMP="$(date -Ru${SOURCE_DATE_EPOCH:+d @$SOURCE_DATE_EPOCH})"
@@ -117,21 +67,36 @@ _validate_kernel_config() {
     'CONFIG_X86_AMD_PSTATE=y' \
     'CONFIG_X86_AMD_PSTATE_DEFAULT_MODE=3' \
     'CONFIG_CMDLINE_BOOL=y' \
-    'CONFIG_CMDLINE="amd_pstate.epp_boost=1 mitigations=off cpuidle.governor=nap"' \
-    'CONFIG_CC_OPTIMIZE_FOR_PERFORMANCE_O3=y' \
+    'CONFIG_CMDLINE="amd_pstate.epp_boost=1 mitigations=off"' \
+    '# CONFIG_CMDLINE_OVERRIDE is not set' \
+    'CONFIG_CC_OPTIMIZE_FOR_PERFORMANCE=y' \
+    '# CONFIG_CC_OPTIMIZE_FOR_PERFORMANCE_O3 is not set' \
     'CONFIG_LTO_CLANG_FULL=y' \
     'CONFIG_POLLY_CLANG=y' \
-    'CONFIG_ZEN_INTERACTIVE=y' \
-    'CONFIG_LRU_CAST=y' \
     'CONFIG_SCHED_BORE=y' \
-    'CONFIG_SCHED_POC_SELECTOR=y' \
-    '# CONFIG_ZSWAP is not set' \
-    'CONFIG_ZSMALLOC=m' \
-    'CONFIG_ZRAM=m' \
-    'CONFIG_ZRAM_DEF_COMP_LZ4=y' \
-    'CONFIG_ZRAM_MULTI_COMP=y' \
-    'CONFIG_ZRAM_DEF_COMP="lz4"' \
-    'CONFIG_CRYPTO_LZ4=y' \
+    'CONFIG_SCHED_CLASS_EXT=y' \
+    'CONFIG_BPF=y' \
+    'CONFIG_BPF_SYSCALL=y' \
+    'CONFIG_BPF_JIT=y' \
+    'CONFIG_BPF_JIT_ALWAYS_ON=y' \
+    'CONFIG_BPF_JIT_DEFAULT_ON=y' \
+    'CONFIG_DEBUG_KERNEL=y' \
+    'CONFIG_DEBUG_INFO=y' \
+    'CONFIG_DEBUG_INFO_DWARF5=y' \
+    'CONFIG_DEBUG_INFO_BTF=y' \
+    '# CONFIG_DEBUG_INFO_BTF_MODULES is not set' \
+    '# CONFIG_DEBUG_INFO_REDUCED is not set' \
+    '# CONFIG_DEBUG_INFO_SPLIT is not set' \
+    '# CONFIG_SCHED_DEBUG is not set' \
+    '# CONFIG_FTRACE is not set' \
+    '# CONFIG_FUNCTION_TRACER is not set' \
+    '# CONFIG_KASAN is not set' \
+    '# CONFIG_KCSAN is not set' \
+    '# CONFIG_UBSAN is not set' \
+    '# CONFIG_KFENCE is not set' \
+    '# CONFIG_SLUB_DEBUG is not set' \
+    '# CONFIG_LOCKDEP is not set' \
+    '# CONFIG_PROVE_LOCKING is not set' \
     'CONFIG_BTRFS_FS=y' \
     'CONFIG_HID_STEAM=m' \
     'CONFIG_MFD_STEAMDECK=m' \
@@ -139,17 +104,14 @@ _validate_kernel_config() {
     'CONFIG_SENSORS_STEAMDECK=m' \
     'CONFIG_LEDS_VALVE=m' \
     'CONFIG_JOYSTICK_XBOX_GIP=m' \
-    'CONFIG_NTSYNC=y' \
-    'CONFIG_IO_DELAY_NONE=y' \
-    'CONFIG_CPU_IDLE=y' \
-    'CONFIG_CPU_IDLE_GOV_NAP=y' \
-    'CONFIG_CPU_IDLE_GOV_TEO=y'; do
+    'CONFIG_NTSYNC=y'; do
     if ! grep -qxF "$expected" .config; then
       echo "ERROR: Linux 7.3 configuration requires $expected after olddefconfig" >&2
       return 1
     fi
   done
 }
+
 prepare() {
   local repo_dir="$srcdir/linux-neptune-73/archlinux-linux-neptune"
   local valve_commit="0ed55b10a784a0a0b518ecd20551659fde1d59c9"
@@ -171,124 +133,38 @@ prepare() {
     src="${src##*/}"
     src="${src%.zst}"
     [[ $src = *.patch ]] || continue
-    echo "Applying or porting patch $src..."
-    case "$src" in
-      latest-amd-pstate-epp-03-core.patch)
-        python3 "$startdir/automation/port-amd-pstate-epp-boost-73.py" "../$src" "$PWD"
-        ;;
-      latest-zen-02.patch)
-        python3 "$startdir/automation/port-zen-cpufreq-7.3.py" "../$src" drivers/cpufreq/Kconfig.x86
-        ;;
-      nap-6.12-v0.6.5.patch)
-        git apply --check --whitespace=nowarn "../$src"
-        git apply --whitespace=nowarn "../$src"
-        python3 "$startdir/automation/fix-nap-kernel-api.py" drivers/cpuidle/governors/nap/nap.c
-        ;;
-      drm_sched_rr_default.patch)
-        # Valve's 7.3 DRM scheduler source moved the policy declaration;
-        # apply the one-line default change by exact symbol match, not line offset.
-        python3 - <<'PY'
-from pathlib import Path
-
-path = Path("drivers/gpu/drm/scheduler/sched_main.c")
-source = path.read_text(encoding="utf-8")
-old = "int drm_sched_policy = DRM_SCHED_POLICY_FIFO;"
-new = "int drm_sched_policy = DRM_SCHED_POLICY_RR;"
-count = source.count(old)
-if count != 1:
-    raise SystemExit(
-        f"ERROR: expected exactly one FIFO DRM scheduler policy declaration, found {count}"
-    )
-path.write_text(source.replace(old, new, 1), encoding="utf-8")
-print("Applied DRM scheduler Round Robin default to sched_main.c")
-PY
-        grep -n -F 'int drm_sched_policy = DRM_SCHED_POLICY_RR;' drivers/gpu/drm/scheduler/sched_main.c
-        ;;
-      *)
-        git apply --check --whitespace=nowarn "../$src"
-        git apply --whitespace=nowarn "../$src"
-        ;;
-    esac
+    echo "Applying pinned patch $src..."
+    if [[ $src == latest-amd-pstate-epp-03-core.patch ]]; then
+      python3 "$startdir/automation/port-amd-pstate-epp-boost-73.py" "../$src" "$PWD"
+    else
+      git apply --check --whitespace=nowarn "../$src"
+      git apply --whitespace=nowarn "../$src"
+    fi
   done
 
-  echo "Refreshing NAP userspace tools..."
-  python3 "$srcdir/nap-tools/refresh-tools.py" \
-    --output "$srcdir/nap-tools-latest" \
-    --record "$startdir/logs/nap-tools-upstream.json"
+  git diff --check || {
+    echo "ERROR: patched source contains whitespace errors" >&2
+    return 1
+  }
 
-  python3 "$startdir/automation/configure-zen-interactive.py" "$PWD"
-  python3 "$startdir/automation/fix-gud-tv-mode-fortify.py" \
-    drivers/gpu/drm/gud/gud_connector.c
-
-  # Normalize whitespace introduced by pinned patches before the full diff check.
-  # Only files changed from Valve's base commit are touched.
-  python3 - <<'PY'
-import subprocess
-from pathlib import Path
-import re
-
-changed = subprocess.check_output(["git", "diff", "--name-only", "-z"]).split(b"\0")
-for raw in changed:
-    if not raw:
-        continue
-    path = Path(raw.decode())
-    try:
-        content = path.read_text(encoding="utf-8")
-    except (UnicodeDecodeError, OSError):
-        continue
-    lines = [re.sub(r"^([ \t]+)", lambda m: re.sub(r" +(?=\t)", "", m.group(1)), line).rstrip(" \t") for line in content.splitlines()]
-    while lines and not lines[-1]:
-        lines.pop()
-    path.write_text("\n".join(lines) + "\n", encoding="utf-8")
-PY
-  echo "Checking patch whitespace..."
-  git diff --check || { echo "ERROR: patched source contains whitespace errors" >&2; return 1; }
-
-  # Verify the ZSTD Crypto API default remains at level 1 and log the exact source line.
-  echo "Checking ZSTD Crypto API default in crypto/zstd.c..."
-  grep -n 'ZSTD_DEF_LEVEL' crypto/zstd.c || true
-  python3 - <<'PY'
-import re
-from pathlib import Path
-
-source = Path("crypto/zstd.c").read_text(encoding="utf-8")
-match = re.search(r"(?m)^\s*#\s*define\s+ZSTD_DEF_LEVEL\s+(\d+)\b", source)
-if not match or match.group(1) != "1":
-    actual = match.group(1) if match else "not found"
-    raise SystemExit(f"ERROR: expected ZSTD_DEF_LEVEL=1 in crypto/zstd.c, found {actual}")
-PY
-  sha256sum crypto/zstd.c | tee "$startdir/logs/zstd-crypto-source.sha256"
-
-  # Merge the exact Valve 7.3 base fragments with the Charcoal overlay.
+  # Merge Valve's exact SteamOS fragments with the minimal Charcoal overlay.
   cp "$srcdir/linux-neptune-73/config.x86_64" "$srcdir/config.x86_64"
   cp "$srcdir/linux-neptune-73/config-neptune" "$srcdir/config-neptune"
   cp "$startdir/config-charcoal" "$srcdir/config-charcoal"
   cp ../config.x86_64 .config
   scripts/kconfig/merge_config.sh -m ../config.x86_64 ../config-neptune ../config-charcoal
 
-  # Diagnose Valve's 7.3 Kconfig ownership of CPU_MITIGATIONS before resolution.
-  {
-    echo "=== CPU mitigation Kconfig definitions ==="
-    grep -n -B 3 -A 40 -E 'CPU_MITIGATIONS|ARCH_CONFIGURES_CPU_MITIGATIONS' \
-      arch/x86/Kconfig arch/Kconfig || true
-    echo "=== x86 mitigation Kconfig context ==="
-    sed -n '2395,2445p' arch/x86/Kconfig
-    echo "=== merged CPU mitigation values before olddefconfig ==="
-    grep -E '^(CONFIG_CPU_MITIGATIONS|CONFIG_ARCH_CONFIGURES_CPU_MITIGATIONS)=' .config || true
-  } | tee "$startdir/logs/cpu-mitigations-kconfig-73.log"
-
   _make_llvm olddefconfig
   _validate_kernel_config
-  diff -u ../config.x86_64 .config || :
   _make_llvm -s kernelrelease > version
   echo "Prepared $pkgbase version $(<version)"
 }
-build() {
-  cd $_srcname
-  _make_llvm all
-  _make_llvm -C tools/bpf/bpftool vmlinux.h feature-clang-bpf-co-re=1
-#  make htmldocs # Jupiter: Don't build the docs
 
+build() {
+  cd "$_srcname"
+  _make_llvm all
+  # Produce the CO-RE header from this kernel's BTF for sched_ext schedulers.
+  _make_llvm -C tools/bpf/bpftool vmlinux.h feature-clang-bpf-co-re=1
 }
 
 _package() {
@@ -318,41 +194,17 @@ _package() {
     linux-charcoal-72
   )
 
-  cd $_srcname
+  cd "$_srcname"
   local modulesdir="$pkgdir/usr/lib/modules/$(<version)"
 
   echo "Installing boot image..."
-  # systemd expects to find the kernel here to allow hibernation
-  # https://github.com/systemd/systemd/commit/edda44605f06a41fb86b7ab8128dcf99161d2344
   install -Dm644 "$(_make_llvm -s image_name)" "$modulesdir/vmlinuz"
-
-  # Used by mkinitcpio to name the kernel
-  # Match Valve SteamOS 3.10 boot naming and mkinitcpio preset identity.
   echo "linux-neptune-73" | install -Dm644 /dev/stdin "$modulesdir/pkgbase"
 
   echo "Installing modules..."
   ZSTD_CLEVEL=19 _make_llvm INSTALL_MOD_PATH="$pkgdir/usr" INSTALL_MOD_STRIP=1 \
-    DEPMOD=/doesnt/exist modules_install  # Suppress depmod
+    DEPMOD=/doesnt/exist modules_install
 
-  # Install device-specific udev rules for ADIOS and ZRAM-IR
-  install -D -m 0644 -t "$pkgdir/etc/udev/rules.d" ../65-adios.rules
-  install -D -m 0644 ../60-charcoal-zram-ir.rules \
-    "$pkgdir/usr/lib/udev/rules.d/60-charcoal-zram-ir.rules"
-  install -D -m 0755 ../configure-zram-ir \
-    "$pkgdir/usr/lib/charcoal/configure-zram-ir"
-  install -D -m 0644 ../90-charcoal-zram.conf \
-    "$pkgdir/usr/lib/systemd/zram-generator.conf.d/90-charcoal-zram.conf"
-  install -D -m 0644 ../90-charcoal-zram-ir.conf \
-    "$pkgdir/usr/lib/systemd/system/systemd-zram-setup@.service.d/90-charcoal-zram-ir.conf"
-
-  echo "Installing NAP learning persistence tools..."
-  python3 "$srcdir/nap-tools-latest/install-tools.py" \
-    --source-dir "$srcdir/nap-tools-latest" \
-    --destdir "$pkgdir" \
-    --kernel-dir "$PWD/drivers/cpuidle/governors/nap" \
-    --require-resolved
-
-  # remove build link
   rm "$modulesdir"/build
 }
 
@@ -366,7 +218,7 @@ _package-headers() {
     polly
   )
 
-  cd $_srcname
+  cd "$_srcname"
   local builddir="$pkgdir/usr/lib/modules/$(<version)/build"
 
   echo "Installing build files..."
@@ -377,11 +229,12 @@ _package-headers() {
   cp -t "$builddir" -a scripts
   ln -srt "$builddir" "$builddir/scripts/gdb/vmlinux-gdb.py"
 
-  # required when STACK_VALIDATION is enabled
+  # Required when STACK_VALIDATION is enabled.
   install -Dt "$builddir/tools/objtool" tools/objtool/objtool
-
-  # required when DEBUG_INFO_BTF_MODULES is enabled
-  install -Dt "$builddir/tools/bpf/resolve_btfids" tools/bpf/resolve_btfids/resolve_btfids
+  # Required when DEBUG_INFO_BTF_MODULES is enabled in other configs.
+  if [[ -x tools/bpf/resolve_btfids/resolve_btfids ]]; then
+    install -Dt "$builddir/tools/bpf/resolve_btfids" tools/bpf/resolve_btfids/resolve_btfids
+  fi
 
   echo "Installing headers..."
   cp -t "$builddir" -a include
@@ -390,26 +243,19 @@ _package-headers() {
 
   install -Dt "$builddir/drivers/md" -m644 drivers/md/*.h
   install -Dt "$builddir/net/mac80211" -m644 net/mac80211/*.h
-
-  # https://bugs.archlinux.org/task/13146
   install -Dt "$builddir/drivers/media/i2c" -m644 drivers/media/i2c/msp3400-driver.h
-
-  # https://bugs.archlinux.org/task/20402
   install -Dt "$builddir/drivers/media/usb/dvb-usb" -m644 drivers/media/usb/dvb-usb/*.h
   install -Dt "$builddir/drivers/media/dvb-frontends" -m644 drivers/media/dvb-frontends/*.h
   install -Dt "$builddir/drivers/media/tuners" -m644 drivers/media/tuners/*.h
-
-  # https://bugs.archlinux.org/task/71392
   install -Dt "$builddir/drivers/iio/common/hid-sensors" -m644 drivers/iio/common/hid-sensors/*.h
 
-  echo "Installing KConfig files..."
+  echo "Installing Kconfig files..."
   find . -name 'Kconfig*' -exec install -Dm644 {} "$builddir/{}" \;
 
   echo "Removing unneeded architectures..."
   local arch
   for arch in "$builddir"/arch/*/; do
     [[ $arch = */x86/ ]] && continue
-    echo "Removing $(basename "$arch")"
     rm -r "$arch"
   done
 
@@ -417,59 +263,29 @@ _package-headers() {
   rm -r "$builddir/Documentation"
 
   echo "Removing broken symlinks..."
-  find -L "$builddir" -type l -printf 'Removing %P\n' -delete
+  find -L "$builddir" -type l -delete
 
   echo "Removing loose objects..."
-  find "$builddir" -type f -name '*.o' -printf 'Removing %P\n' -delete
+  find "$builddir" -type f -name '*.o' -delete
 
   echo "Stripping build tools..."
   local file
   while read -rd '' file; do
     case "$(file -Sib "$file")" in
-      application/x-sharedlib\;*)      # Libraries (.so)
-        strip -v $STRIP_SHARED "$file" ;;
-      application/x-archive\;*)        # Libraries (.a)
-        strip -v $STRIP_STATIC "$file" ;;
-      application/x-executable\;*)     # Binaries
-        strip -v $STRIP_BINARIES "$file" ;;
-      application/x-pie-executable\;*) # Relocatable binaries
-        strip -v $STRIP_SHARED "$file" ;;
+      application/x-sharedlib\;*)      strip -v $STRIP_SHARED "$file" ;;
+      application/x-archive\;*)        strip -v $STRIP_STATIC "$file" ;;
+      application/x-executable\;*)     strip -v $STRIP_BINARIES "$file" ;;
+      application/x-pie-executable\;*) strip -v $STRIP_SHARED "$file" ;;
     esac
   done < <(find "$builddir" -type f -perm -u+x ! -name vmlinux -print0)
 
   echo "Stripping vmlinux..."
   strip -v $STRIP_STATIC "$builddir/vmlinux"
 
-  echo "Adding symlink..."
   mkdir -p "$pkgdir/usr/src"
   ln -sr "$builddir" "$pkgdir/usr/src/$pkgbase"
 }
 
-_package-docs() {
-  pkgdesc="Documentation for the $pkgdesc kernel"
-
-  cd $_srcname
-  local builddir="$pkgdir/usr/lib/modules/$(<version)/build"
-
-  echo "Installing documentation..."
-  local src dst
-  while read -rd '' src; do
-    dst="${src#Documentation/}"
-    dst="$builddir/Documentation/${dst#output/}"
-    install -Dm644 "$src" "$dst"
-  done < <(find Documentation -name '.*' -prune -o ! -type d -print0)
-
-  echo "Adding symlink..."
-  mkdir -p "$pkgdir/usr/share/doc"
-  ln -sr "$builddir/Documentation" "$pkgdir/usr/share/doc/$pkgbase"
-}
-
-# Jupiter: Don't package the docs
-#pkgname=(
-#  "$pkgbase"
-#  "$pkgbase-headers"
-#  "$pkgbase-docs"
-#)
 pkgname=("$pkgbase" "$pkgbase-headers")
 package_linux-charcoal-73() {
   install=linux-charcoal-73.install
@@ -482,6 +298,3 @@ package_linux-charcoal-73-headers() {
 }
 
 # vim:set ts=8 sts=2 sw=2 et:
-
-
-
