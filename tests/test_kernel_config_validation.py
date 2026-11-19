@@ -41,8 +41,8 @@ class KernelConfigValidationTests(unittest.TestCase):
     def test_debug_instrumentation_is_disabled_but_btf_is_retained(self):
         for setting in (
             "CONFIG_SCHED_DEBUG=n",
-            "CONFIG_FTRACE=n",
             "CONFIG_FUNCTION_TRACER=n",
+            "CONFIG_FUNCTION_GRAPH_TRACER=n",
             "CONFIG_LOCKDEP=n",
             "CONFIG_PROVE_LOCKING=n",
             "CONFIG_KASAN=n",
@@ -52,6 +52,8 @@ class KernelConfigValidationTests(unittest.TestCase):
             "CONFIG_UBSAN=n",
         ):
             self.assertIn(setting, CONFIG)
+        self.assertIn("CONFIG_FTRACE=y", CONFIG)
+        self.assertIn("CONFIG_FTRACE_SYSCALLS=y", CONFIG)
         self.assertIn("# CONFIG_DEBUG_INFO_BTF_MODULES is not set", CONFIG)
         self.assertNotIn("CONFIG_DEBUG_INFO_NONE=y", CONFIG)
         self.assertNotIn("CONFIG_DEBUG_INFO_REDUCED=y", CONFIG)
