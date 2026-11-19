@@ -18,19 +18,10 @@ ARCHIVE_URL = (
 ARCHIVE_SHA256 = "a6316acc22954d0685ac923248995246789a1f3b5ee6890d378ce2c3efa25af8"
 OUTPUTS = {
     "vangogh_freq_4_2ghz": "vangogh_allow_higher_cpu_freq.patch",
-    "lru_cast": "latest-lru_cast.patch",
-    "zram_ir": "latest-zram-ir.patch",
     "amd_pstate_epp_02_cache_order": "latest-amd-pstate-epp-02-cache-order.patch",
     "amd_pstate_epp_03_core": "latest-amd-pstate-epp-03-core.patch",
-    "o3_7_3": "latest-o3.patch",
     "clang_polly_7_2_port": "latest-clang-polly.patch",
     "bore": "latest-bore.patch",
-    "poc_selector": "latest-poc-selector.patch",
-    "adios": "latest-adios.patch",
-    "adios_default": "latest-adios-default.patch",
-    "zen_evdev_call_rcu": "latest-zen-01.patch",
-    "zen_pstate_schedutil_dependency": "latest-zen-02.patch",
-    "zstd_crypto_default_level_1": "zstd-crypto-default-level-1.patch",
 }
 LOCAL_OVERRIDES = {
     "clang_polly_7_2_port": "7.2-clang-polly-from-cachyos-7.1.patch",
