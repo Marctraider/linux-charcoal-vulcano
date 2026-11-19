@@ -39,6 +39,7 @@ jobs:
           bash -n linux-charcoal-73.install
           bash tests/test-install-charcoal.sh
           python3 tests/test_port_steamos_73.py
+          python3 tests/test_kernel_config_validation.py
           python3 tests/test_nap_tools.py
           python3 tests/test_nap_tools_refresh.py
           python3 -m py_compile automation/*.py nap-tools/*.py
