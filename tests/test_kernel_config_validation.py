@@ -2,7 +2,6 @@
 """Validate the requested Linux 7.3 performance and sched_ext configuration."""
 
 from pathlib import Path
-import re
 import unittest
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -34,6 +33,9 @@ class KernelConfigValidationTests(unittest.TestCase):
             "CONFIG_BPF_JIT_DEFAULT_ON=y",
             "CONFIG_DEBUG_INFO_DWARF5=y",
             "CONFIG_DEBUG_INFO_BTF=y",
+            "CONFIG_TRACEPOINTS=y",
+            "CONFIG_FTRACE=y",
+            "CONFIG_FTRACE_SYSCALLS=y",
         ):
             self.assertIn(setting, CONFIG)
             self.assertIn(f"'{setting}'", PKGBUILD)
