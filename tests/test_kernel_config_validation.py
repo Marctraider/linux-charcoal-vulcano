@@ -22,10 +22,9 @@ class KernelConfigValidationTests(unittest.TestCase):
         self.assertIn("CONFIG_X86_AMD_PSTATE_DEFAULT_MODE=3", CONFIG)
         self.assertIn("CONFIG_CPU_MITIGATIONS=y", CONFIG)
 
-    def test_lavd_kernel_prerequisites_and_bore_fallback(self):
+    def test_lavd_kernel_prerequisites(self):
         for setting in (
             "CONFIG_SCHED_CLASS_EXT=y",
-            "CONFIG_SCHED_BORE=y",
             "CONFIG_BPF=y",
             "CONFIG_BPF_SYSCALL=y",
             "CONFIG_PERF_EVENTS=y",
