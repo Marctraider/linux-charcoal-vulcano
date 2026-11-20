@@ -187,7 +187,15 @@ fi
 section "Kernel features (build configuration only; not proof of runtime activation)"
 check_config CONFIG_ZRAM "ZRAM support"
 check_config CONFIG_X86_AMD_PSTATE "AMD P-State"
-check_config CONFIG_CC_OPTIMIZE_FOR_PERFORMANCE_O3 "O3 optimization"
+if [[ -z "$CONFIG_FILE" ]]; then
+  warn "Kernel optimization level: kernel .config unavailable; cannot verify O2/O3 selection"
+elif config_enabled CONFIG_CC_OPTIMIZE_FOR_PERFORMANCE && config_disabled CONFIG_CC_OPTIMIZE_FOR_PERFORMANCE_O3; then
+  pass "Kernel optimization: O2 selected; O3 is disabled as intended"
+elif config_enabled CONFIG_CC_OPTIMIZE_FOR_PERFORMANCE_O3; then
+  fail "Kernel optimization: O3 is enabled; this build targets O2"
+else
+  fail "Kernel optimization: expected CONFIG_CC_OPTIMIZE_FOR_PERFORMANCE=y (O2)"
+fi
 check_config CONFIG_LTO_CLANG_FULL "Full Clang LTO"
 check_config CONFIG_POLLY_CLANG "Clang Polly"
 
