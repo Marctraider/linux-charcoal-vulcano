@@ -241,6 +241,9 @@ _package() {
     DEPMOD=/doesnt/exist modules_install
 
   rm "$modulesdir"/build
+
+  echo "Installing Charcoal status utility..."
+  install -Dm755 "$startdir/charcoal-status" "$pkgdir/usr/bin/charcoal-status"
 }
 
 _package-headers() {
