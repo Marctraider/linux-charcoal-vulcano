@@ -3,13 +3,13 @@
 
 set -Eeuo pipefail
 
-readonly RELEASE_TAG="steamos-3.10-linux-7.3-build-99"
+readonly RELEASE_TAG="steamos-3.10-linux-7.3-build-100"
 readonly RELEASE_BASE_URL="https://github.com/Marctraider/linux-charcoal-vulcano/releases/download/${RELEASE_TAG}"
 readonly KERNEL_ASSET="linux-charcoal-73-7.3.1.valve2.cc1-3-x86_64.pkg.tar.zst"
 readonly HEADERS_ASSET="linux-charcoal-73-headers-7.3.1.valve2.cc1-3-x86_64.pkg.tar.zst"
 readonly CHECKSUM_ASSET="SHA256SUMS"
 # SHA-256 digest reported by GitHub for the uploaded SHA256SUMS release asset.
-readonly CHECKSUM_ASSET_SHA256="c89062483306d771676c80df2c91602d37b28ecbfa86c01637a9b55aaa98d6dc"
+readonly CHECKSUM_ASSET_SHA256="d08ca13f1afa536db076c9a8db48b6af4acf4d26b8cb1c3b5bbe1b37e6fdb72c"
 
 WORKDIR=""
 MADE_ROOT_WRITABLE=0
@@ -216,7 +216,7 @@ PY
 verify_kernel_package_identity() {
   local -n package_files_ref=$1
   local pkg pkgname="" pkgver="" kernel_pkg="" headers_pkg="" kernel_pkgver="" headers_pkgver=""
-  local entry module_dir package_base archive_listing
+  local entry module_dir package_base archive_listing headers_listing
   local -a pkgbase_entries=()
 
   for pkg in "${package_files_ref[@]}"; do
@@ -249,6 +249,20 @@ verify_kernel_package_identity() {
   package_base="$(bsdtar -xOf "$kernel_pkg" "$entry" | tr -d '\r\n')" || { info "error: cannot read kernel package boot identity"; return 1; }
   [[ "$package_base" == linux-neptune-73 ]] || {
     info "error: kernel package boot identity is '$package_base', expected linux-neptune-73"
+    return 1
+  }
+
+  # The matching headers must target the exact same kernel release directory.
+  headers_listing="$(bsdtar -tf "$headers_pkg")" || {
+    info "error: cannot list headers package contents"
+    return 1
+  }
+  grep -Fxq "$module_dir/build/Makefile" <<< "$headers_listing" || {
+    info "error: matching headers package is missing $module_dir/build/Makefile"
+    return 1
+  }
+  grep -Fxq "$module_dir/build/version" <<< "$headers_listing" || {
+    info "error: matching headers package is missing $module_dir/build/version"
     return 1
   }
 
@@ -331,14 +345,16 @@ attempt_rollback() {
   verify_grub_entry || return 1
 }
 
-install_lavd_scheduler() {
-  local unit=/etc/systemd/system/charcoal-lavd.service
-
-  info "Installing the SteamOS sched_ext userspace scheduler package..."
+install_lavd_userspace() {
+  info "Installing the SteamOS sched_ext userspace scheduler package before changing kernels..."
   if ! run_privileged pacman -S --needed --noconfirm scx-scheds; then
-    die "Could not install the SteamOS scx-scheds package; Charcoal is installed, but LAVD is not configured. Do not assume LAVD is active."
+    die "Could not install SteamOS scx-scheds; the kernel transaction has not started"
   fi
-  run_privileged test -x /usr/bin/scx_lavd || die "scx-scheds installed without /usr/bin/scx_lavd"
+  run_privileged test -x /usr/bin/scx_lavd || die "scx-scheds installed without /usr/bin/scx_lavd; the kernel transaction has not started"
+}
+
+configure_lavd_scheduler() {
+  local unit=/etc/systemd/system/charcoal-lavd.service
 
   info "Configuring LAVD as the persistent default scheduler..."
   run_privileged install -d -m 0755 /etc/systemd/system
@@ -431,6 +447,10 @@ main() {
   info "Enabling SteamOS developer mode..."
   run_privileged steamos-devmode enable --no-prompt
 
+  # Install the scheduler userspace before touching the current kernel, so a
+  # missing SteamOS scx-scheds package cannot leave a half-configured kernel.
+  install_lavd_userspace
+
   local install_log="$WORKDIR/pacman-install.log"
   if (( charcoal_installed )); then
     info "Replacing the existing Charcoal 7.3 kernel and headers in one pacman transaction..."
@@ -466,12 +486,13 @@ main() {
     fi
   fi
 
-  install_lavd_scheduler
-
   rm -rf -- "$package_dir"
   info "Generating the SteamOS 7.3 boot image and initramfs..."
-  if ! run_privileged mkinitcpio -p linux-neptune-73; then
-    info "warning: mkinitcpio returned a non-zero status; continuing with installation"
+  if ! run_privileged mkinitcpio -p linux-neptune-73 || ! verify_boot_artifacts; then
+    if attempt_rollback; then
+      die "Charcoal initramfs generation or validation failed; the previous SteamOS kernel was restored"
+    fi
+    die "Charcoal initramfs generation or validation failed and automatic rollback was unavailable or unsuccessful; do not reboot"
   fi
 
   info "Updating the SteamOS bootloader configuration..."
@@ -481,8 +502,13 @@ main() {
     fi
     die "Charcoal GRUB validation failed and automatic rollback was unsuccessful; do not reboot"
   fi
+
+  if ! configure_lavd_scheduler; then
+    info "warning: the kernel and bootloader are installed, but enabling charcoal-lavd.service failed"
+    info "warning: boot is safe to proceed; configure LAVD manually after reboot"
+  fi
   info "Charcoal SteamOS 3.10 / Linux 7.3 release ${RELEASE_TAG} installed."
-  info "LAVD userspace is installed and enabled for boot. Reboot into Charcoal Linux 7.3, then run: sudo charcoal-status"
+  info "Reboot into Charcoal Linux 7.3, then run: sudo charcoal-status"
 }
 
 diagnose_boot_state() {
