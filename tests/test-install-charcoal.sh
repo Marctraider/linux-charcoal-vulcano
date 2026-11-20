@@ -16,7 +16,7 @@ verify_host_platform "$tmp/os-release" || fail "SteamOS 3.10 host"
 sed 's/3.10/3.9.5/' "$tmp/os-release" > "$tmp/old"
 if verify_host_platform "$tmp/old" >/dev/null 2>&1; then fail "unsupported SteamOS accepted"; fi
 
-# The installer must validate package identity and boot naming, not kernel .config options.
+# Validate the exact kernel configuration embedded in the Actions-built headers package.
 identity_fn="$(declare -f verify_kernel_package_identity)"
 grep -Fq 'bsdtar -xOf "$headers_pkg" "$module_dir/build/.config"' <<< "$identity_fn" || fail "installer does not inspect the packaged Actions-build config"
 grep -Fq "CONFIG_CC_OPTIMIZE_FOR_PERFORMANCE=y" <<< "$identity_fn" || fail "installer does not enforce the Actions O2 setting"
