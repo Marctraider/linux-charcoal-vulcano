@@ -6,107 +6,7 @@
     "tag_regex": "^(?P<version>7\\.2\\.\\d+)-valve(?P<valve>[0-9.]+)$",
     "allow_prerelease": false
   },
-  "components": [
-    {
-      "name": "lru_cast",
-      "kind": "github_tree",
-      "repository": "firelzrd/lru_cast",
-      "ref": "main",
-      "target": "latest-lru_cast.patch",
-      "source_regex": "(?:latest-lru_cast\\.patch|6\\.\\d+(?:\\.\\d+)?-lru_cast-[^\\s]+\\.patch)",
-      "filename_regex": "(?i)^patches/(?:stable/|testing/)?0001-(?:linux)?\\d+\\.\\d+(?:\\.\\d+)?(?:-rc\\d+)?-lru_cast-v?[0-9]+(?:\\.[0-9]+)*(?:-rc[0-9]+|r[0-9]+)?\\.patch$",
-      "kernel_version_regex": "(?i)(?:0001-|linux)(?P<kernel>\\d+\\.\\d+(?:\\.\\d+)?)(?:-rc[0-9]+)?",
-      "project_version_regex": "(?i)lru_cast-v?(?P<version>[0-9]+(?:\\.[0-9]+)*(?:-rc[0-9]+|r[0-9]+)?)\\.patch$",
-      "port_for_kernel": "7.2",
-      "port_when_incompatible": true,
-      "adaptive_port": "lru-cast-context",
-      "latest_release_first": true
-    },
-    {
-      "name": "zram_ir",
-      "kind": "github_tree",
-      "repository": "firelzrd/zram-ir",
-      "ref": "main",
-      "target": "latest-zram-ir.patch",
-      "source_regex": "(?:latest-zram-ir\\.patch|0001-linux[^\\s]*-zram-ir-[^\\s]+\\.patch)",
-      "filename_regex": "(?i)^patches/(?:stable/|testing/)?0001-linux\\d+\\.\\d+(?:\\.\\d+)?(?:-rc[0-9]+)?(?:\\.y)?-zram-ir-[0-9]+(?:\\.[0-9]+)*(?:(?:-rc|r)[0-9]+)?\\.patch$",
-      "kernel_version_regex": "(?i)linux(?P<kernel>\\d+\\.\\d+(?:\\.\\d+)?)(?:-rc[0-9]+)?(?:\\.y)?",
-      "project_version_regex": "(?i)zram-ir-(?P<version>[0-9]+(?:\\.[0-9]+)*(?:(?:-rc|r)[0-9]+)?)\\.patch$",
-      "port_for_kernel": "7.2",
-      "port_when_incompatible": true,
-      "local_port": "0001-linux7.2-zram-ir-1.2.patch",
-      "local_port_project_version": "1.3",
-      "local_port_upstream_sha256": "1620f45f0fbab1173c8693a2afc0ada37920c78fdde2d0cbff6afe28545128f4"
-    },
-    {
-      "name": "adios",
-      "kind": "github_tree",
-      "repository": "firelzrd/adios",
-      "ref": "main",
-      "target": "latest-adios.patch",
-      "source_regex": "(?:latest-adios\\.patch|6\\.\\d+(?:\\.\\d+)?-ADIOS-[^\\s]+\\.patch)",
-      "filename_regex": "(?i)^patches/(?:stable|testing)/0001-linux\\d+\\.\\d+(?:\\.[0-9]+)?(?:-rc[0-9]+)?-ADIOS-[0-9]+(?:\\.[0-9]+)*(?:-rc[0-9]+|r[0-9]+)?\\.patch$",
-      "kernel_version_regex": "(?i)linux(?P<kernel>\\d+\\.\\d+(?:\\.\\d+)?)",
-      "project_version_regex": "(?i)ADIOS-(?P<version>[0-9]+(?:\\.[0-9]+)*(?:-rc[0-9]+|r[0-9]+)?)\\.patch$",
-      "exclude_regex": "(?i)default",
-      "port_for_kernel": "7.2",
-      "port_when_incompatible": true,
-      "adaptive_port": "adios-pkgbuild-7.2"
-    },
-    {
-      "name": "bore",
-      "kind": "github_tree",
-      "repository": "firelzrd/bore-scheduler",
-      "ref": "main",
-      "target": "latest-bore.patch",
-      "source_regex": "(?:6\\.\\d+\\.\\d+-bore-[0-9][^\\s]*|latest-bore\\.patch)",
-      "filename_regex": "(?i)^patches/(?:testing/|stable/(?:linux-\\d+\\.\\d+-bore/)?)0001-linux\\d+\\.\\d+(?:\\.[0-9]+)?(?:-rc[0-9]+)?-bore-[0-9]+(?:\\.[0-9]+)*(?:-rc[0-9]+|r[0-9]+)?\\.patch$",
-      "kernel_version_regex": "(?i)linux(?P<kernel>\\d+\\.\\d+(?:\\.\\d+)?)",
-      "project_version_regex": "(?i)bore-(?P<version>[0-9]+(?:\\.[0-9]+)*(?:(?:-rc|r)[0-9]+)?)\\.patch$",
-      "always_latest": true,
-      "port_for_kernel": "7.2",
-      "local_port_overlays": []
-    },
-    {
-      "name": "bore_sched_ext_coexistence",
-      "kind": "github_tree",
-      "repository": "firelzrd/bore-scheduler",
-      "ref": "main",
-      "target": "latest-bore-sched-ext-coexistence-fix.patch",
-      "source_regex": "(?:6\\.\\d+\\.\\d+-bore-sched-ext-coexistence-fix\\.patch|latest-bore-sched-ext-coexistence-fix\\.patch)",
-      "filename_regex": "(?i)^patches/additions/0002-sched-ext-coexistence-fix\\.patch$",
-      "always_latest": true,
-      "port_for_kernel": "7.2"
-    },
-    {
-      "name": "poc_selector",
-      "kind": "github_tree",
-      "repository": "firelzrd/poc-selector",
-      "ref": "main",
-      "target": "latest-poc-selector.patch",
-      "source_regex": "(?:latest-poc-selector\\.patch|6\\.\\d+(?:\\.\\d+)?-poc-selector-[^\\s]+\\.patch)",
-      "filename_regex": "(?i)^patches/(?:stable|testing)/0001-\\d+\\.\\d+(?:\\.\\d+)?(?:-[0-9A-Za-z.]+)?-poc-selector-[0-9A-Za-z._-]+\\.patch$",
-      "kernel_version_regex": "(?i)(?P<kernel>\\d+\\.\\d+(?:\\.\\d+)?)",
-      "project_version_regex": "(?i)poc-selector-v?(?P<version>[0-9]+(?:\\.[0-9]+)*(?:(?:-rc|r)[0-9]+)?)\\.patch$",
-      "port_for_kernel": "7.2",
-      "port_when_incompatible": true,
-      "adaptive_port": "poc-selector-valve"
-    },
-    {
-      "name": "nap",
-      "kind": "github_tree",
-      "repository": "firelzrd/nap",
-      "ref": "main",
-      "target": "latest-nap.patch",
-      "source_regex": "(?:latest-nap\\.patch|6\\.\\d+(?:\\.\\d+)?-nap-v?[^\\s]+\\.patch)",
-      "filename_regex": "(?i)^patches/(?:stable|testing)/0001-\\d+\\.\\d+(?:\\.\\d+)?(?:-[0-9A-Za-z.]+)?-nap-v?[0-9A-Za-z._-]+\\.patch$",
-      "kernel_version_regex": "(?i)(?P<kernel>\\d+\\.\\d+(?:\\.\\d+)?)",
-      "project_version_regex": "(?i)nap-v?(?P<version>[0-9]+(?:\\.[0-9]+)*(?:(?:-rc|r)[0-9]+)?)\\.patch$",
-      "port_for_kernel": "7.2",
-      "port_when_incompatible": true,
-      "adaptive_port": "nap-direct-apply-7.2"
-    }
-  ],
+  "components": [],
   "auxiliary_components": [
     {
       "name": "amd_pstate_epp_boost_kernel_doc",
@@ -287,16 +187,6 @@
       "target": "latest-ath11k-remapped-ce.patch",
       "source_regex": "910-ath11k-fix-remapped-ce-accessing-issue-on-64bit-OS\\.patch::https://git\\.openwrt\\.org/.+",
       "filename_regex": "^package/kernel/mac80211/patches/ath11k/910-ath11k-fix-remapped-ce-accessing-issue-on-64bit-OS\\.patch$",
-      "always_latest": true
-    },
-    {
-      "name": "adios_default",
-      "kind": "github_tree",
-      "repository": "firelzrd/adios",
-      "ref": "main",
-      "target": "latest-adios-default.patch",
-      "source_regex": "https://raw\\.githubusercontent\\.com/firelzrd/adios/[0-9a-f]{40}/patches/0002-Make-ADIOS-the-Default-I-O-scheduler\\.patch",
-      "filename_regex": "^patches/0002-Make-ADIOS-the-Default-I-O-scheduler\\.patch$",
       "always_latest": true
     },
     {
