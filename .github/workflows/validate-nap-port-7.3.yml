@@ -1,16 +1,7 @@
 name: Validate SteamOS 3.10 CPUIdle governor integration
 
 on:
-  push:
-    branches:
-      - master
-    paths:
-      - 'PKGBUILD'
-      - 'config-charcoal'
-      - 'nap-6.12-v0.6.5.patch'
-      - 'automation/fix-nap-kernel-api.py'
-      - 'tests/test_nap_kernel_api.py'
-      - '.github/workflows/validate-nap-port-7.3.yml'
+  workflow_dispatch:
 
 permissions:
   contents: read
