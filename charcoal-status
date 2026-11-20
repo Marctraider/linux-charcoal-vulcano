@@ -161,15 +161,13 @@ else
   warn "CONFIG_CPU_MITIGATIONS is absent from the selected config; cannot determine its build state"
 fi
 
-if [[ -n "$CONFIG_FILE" ]]; then
-  if config_enabled CONFIG_CPU_SUP_AMD; then
-    info "CPU build target: Steam Deck Zen 2 (znver2), selected by -march=znver2 in the Charcoal 7.3 build flags; Valve 7.3 has no MZEN2 Kconfig selector"
-  else
-    info "CPU build target: this kernel config does not identify an AMD CPU target"
-  fi
-fi
 printf '  Architecture reported by uname: %s\n' "$(uname -m)"
-printf '  The .config does not encode compiler -march/-mtune flags.\n'
+if grep -Fq 'linux-charcoal-73-znver2@' /proc/version 2>/dev/null; then
+  pass "Running kernel build metadata identifies the Zen 2-targeted Charcoal build"
+  info "Build recipe force-includes a compile-time guard requiring Clang __znver2 and __tune_znver2__ in every kernel C translation unit"
+else
+  warn "Zen 2 compiler target is UNVERIFIED for the running kernel; its build metadata does not contain the guarded linux-charcoal-73-znver2 identity"
+fi
 
 compiler=""
 if [[ -n "$BUILD_DIR" && -r "$BUILD_DIR/include/generated/compile.h" ]]; then
