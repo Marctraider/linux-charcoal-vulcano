@@ -23,11 +23,11 @@ class KernelConfigValidationTests(unittest.TestCase):
         self.assertIn("_verify_zen2_compiler_target", PKGBUILD)
         self.assertIn("_verify_zen2_compiler_target\n", PKGBUILD)
         self.assertIn("scripts/config --enable CC_OPTIMIZE_FOR_PERFORMANCE", PKGBUILD)
-        self.assertIn("scripts/config --disable CC_OPTIMIZE_FOR_PERFORMANCE_O3", PKGBUILD)
         self.assertIn("_make_llvm olddefconfig\n  _validate_kernel_config", PKGBUILD)
         self.assertIn("KBUILD_BUILD_USER=${pkgbase}-znver2", PKGBUILD)
-        self.assertIn("# CONFIG_CC_OPTIMIZE_FOR_PERFORMANCE_O3 is not set", PKGBUILD)
         self.assertIn("CONFIG_CC_OPTIMIZE_FOR_PERFORMANCE=y", CONFIG)
+        self.assertIn("scripts/config --enable CC_OPTIMIZE_FOR_PERFORMANCE", PKGBUILD)
+        self.assertNotIn("scripts/config --disable CC_OPTIMIZE_FOR_PERFORMANCE_O3", PKGBUILD)
         self.assertIn("CONFIG_LTO_CLANG_FULL=y", CONFIG)
         self.assertIn("CONFIG_POLLY_CLANG=y", CONFIG)
 
