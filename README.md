@@ -38,17 +38,13 @@ Release ZIP SHA-256:
 **Changes from the stock Valve kernel**
 
 - **CPU scheduling**
-  - Valve's scheduler remains the default.
-  - sched_ext and BPF support are enabled for optional userspace schedulers such as `scx_lavd`.
-  - The installer installs the Charcoal kernel and headers; it does **not** install the separate `scx_lavd` userspace loader/runtime. LAVD must be installed and configured separately before it can be used.
+  - LAVD (`scx_lavd`) is configured as the default scheduler through a systemd service.
+  - The installer installs the SteamOS `scx-scheds` userspace package and enables the service to start LAVD automatically on boot.
+  - The kernel provides sched_ext/BPF support; the userspace service loads LAVD and keeps it active across reboots.
 
 - **CPU frequency and platform**
   - AMD P-State EPP active mode and boost changes.
   - Higher Van Gogh CPU-frequency ceiling, up to 4.2 GHz; the higher limit must be enabled in UEFI.
-  - Valve's CPUIdle behavior is retained.
-
-- **Memory and compression**
-  - Valve's base memory-reclaim and ZRAM behavior is retained.
 
 - **Compiler and optimization**
   - Clang/LLVM toolchain.
