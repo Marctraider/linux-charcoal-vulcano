@@ -95,7 +95,7 @@ jobs:
             export CCACHE_NOHASHDIR=true
             export CCACHE_MAXSIZE=5G
             export CCACHE_COMPRESS=true
-            makepkg -ef --noconfirm 2>&1 | tee logs/makepkg-73.log
+            makepkg -ef --noprepare --noconfirm 2>&1 | tee logs/makepkg-73.log
             sha256sum linux-charcoal-73-*.pkg.tar.zst | tee logs/SHA256SUMS-73
           '
           restore_owner
