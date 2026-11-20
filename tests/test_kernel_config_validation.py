@@ -43,7 +43,8 @@ class KernelConfigValidationTests(unittest.TestCase):
             "CONFIG_TRACEPOINTS=y",
             "CONFIG_FTRACE=y",
             "CONFIG_FTRACE_SYSCALLS=y",
-            "# CONFIG_DYNAMIC_FTRACE is not set",
+            "CONFIG_FUNCTION_TRACER=y",
+            "CONFIG_DYNAMIC_FTRACE=y",
         ):
             self.assertIn(setting, CONFIG)
             self.assertIn(f"'{setting}'", PKGBUILD)
@@ -52,7 +53,6 @@ class KernelConfigValidationTests(unittest.TestCase):
         for setting in (
             "# CONFIG_STACK_TRACER is not set",
             "# CONFIG_FPROBE is not set",
-            "# CONFIG_FUNCTION_TRACER is not set",
             "# CONFIG_FUNCTION_GRAPH_TRACER is not set",
             "# CONFIG_LOCKDEP is not set",
             "# CONFIG_PROVE_LOCKING is not set",
@@ -76,8 +76,8 @@ class KernelConfigValidationTests(unittest.TestCase):
         self.assertIn("# CONFIG_STACK_TRACER is not set", CONFIG)
         self.assertIn("'# CONFIG_STACK_TRACER is not set'", PKGBUILD)
         self.assertIn("CONFIG_FTRACE_SYSCALLS=y", CONFIG)
-        self.assertIn("scripts/config --disable DYNAMIC_FTRACE", PKGBUILD)
-        self.assertIn("scripts/config --disable FUNCTION_TRACER", PKGBUILD)
+        self.assertIn("scripts/config --enable DYNAMIC_FTRACE", PKGBUILD)
+        self.assertIn("scripts/config --enable FUNCTION_TRACER", PKGBUILD)
         self.assertIn("scripts/config --disable FUNCTION_GRAPH_TRACER", PKGBUILD)
         self.assertIn("scripts/config --disable FPROBE", PKGBUILD)
         self.assertIn("scripts/config --disable STACK_TRACER", PKGBUILD)
