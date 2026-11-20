@@ -46,7 +46,7 @@ module_dir='usr/lib/modules/7.3.1-valve2-3-charcoal-73-g0ed55b10a784-dirty'
 case "$1" in
   -tf)
     if [[ "$2" == *headers* ]]; then
-      printf '%s\n' "$module_dir/build/Makefile" "$module_dir/build/version"
+      printf '%s\n' "$module_dir/build/Makefile" "$module_dir/build/version" "$module_dir/build/.config"
     else
       printf '%s\n' "$module_dir/pkgbase" "$module_dir/vmlinuz"
     fi ;;
