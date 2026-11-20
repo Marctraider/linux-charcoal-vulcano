@@ -64,7 +64,6 @@ class KernelConfigValidationTests(unittest.TestCase):
             "# CONFIG_STACK_TRACER is not set",
             "# CONFIG_FPROBE is not set",
             "# CONFIG_FUNCTION_GRAPH_TRACER is not set",
-            "# CONFIG_LOCKDEP is not set",
             "# CONFIG_PROVE_LOCKING is not set",
             "# CONFIG_KASAN is not set",
             "# CONFIG_KCSAN is not set",
@@ -92,7 +91,8 @@ class KernelConfigValidationTests(unittest.TestCase):
         self.assertIn("scripts/config --disable FPROBE", PKGBUILD)
         self.assertIn("scripts/config --disable STACK_TRACER", PKGBUILD)
         self.assertIn("scripts/config --disable PROVE_LOCKING", PKGBUILD)
-        self.assertIn("scripts/config --disable LOCKDEP", PKGBUILD)
+        self.assertIn("CONFIG_LOCKDEP=y", PKGBUILD)
+        self.assertIn("unexpectedly enables CONFIG_LOCKDEP", PKGBUILD)
         self.assertNotIn("'CONFIG_NTSYNC=y'", PKGBUILD)
         self.assertIn("# CONFIG_DEBUG_INFO_BTF_MODULES is not set", CONFIG)
         self.assertNotIn("CONFIG_DEBUG_INFO_NONE=y", CONFIG)
