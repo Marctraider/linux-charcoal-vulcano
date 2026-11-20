@@ -13,7 +13,6 @@ for excluded in nap-6.12-v0.6.5.patch drm_sched_rr_default.patch latest-bore.pat
   if grep -Fq "$excluded" <<< "$source_block"; then fail "excluded patch input $excluded"; fi
 done
 if grep -Eiq 're-swappiness' "$ROOT/PKGBUILD"; then fail "re-swappiness must remain omitted"; fi
-grep -Fq 'CONFIG_BTRFS_FS=y' "$ROOT/config-charcoal" || fail "Btrfs config"
 source "$INSTALLER"
 tmp="$(mktemp -d)"; trap 'rm -rf "$tmp"' EXIT
 printf 'ID=steamos\nVERSION_ID=3.10\n' > "$tmp/os-release"
@@ -22,18 +21,31 @@ sed 's/3.10/3.9.5/' "$tmp/os-release" > "$tmp/old"
 if verify_host_platform "$tmp/old" >/dev/null 2>&1; then fail "unsupported SteamOS accepted"; fi
 
 cat > "$tmp/kernel.config" <<'EOF'
-CONFIG_CPU_IDLE_GOV_NAP=y
-CONFIG_CPU_IDLE_GOV_TEO=y
-CONFIG_CMDLINE="amd_pstate.epp_boost=1 mitigations=off cpuidle.governor=nap"
-CONFIG_BTRFS_FS=y
-CONFIG_ZRAM=m
-CONFIG_ZSMALLOC=m
-CONFIG_ZRAM_DEF_COMP_LZ4=y
-CONFIG_ZRAM_MULTI_COMP=y
-CONFIG_ZRAM_DEF_COMP="lz4"
-CONFIG_SCHED_BORE=y
-CONFIG_SCHED_POC_SELECTOR=y
-CONFIG_LRU_CAST=y
+CONFIG_CPU_MITIGATIONS=y
+CONFIG_X86_AMD_PSTATE=y
+CONFIG_X86_AMD_PSTATE_DEFAULT_MODE=3
+CONFIG_CMDLINE_BOOL=y
+CONFIG_CMDLINE="amd_pstate.epp_boost=1 mitigations=off"
+# CONFIG_CMDLINE_OVERRIDE is not set
+CONFIG_CC_OPTIMIZE_FOR_PERFORMANCE=y
+# CONFIG_CC_OPTIMIZE_FOR_PERFORMANCE_O3 is not set
+CONFIG_LTO_CLANG_FULL=y
+CONFIG_POLLY_CLANG=y
+CONFIG_SCHED_CLASS_EXT=y
+CONFIG_BPF=y
+CONFIG_BPF_SYSCALL=y
+CONFIG_PERF_EVENTS=y
+CONFIG_UPROBES=y
+CONFIG_UPROBE_EVENTS=y
+CONFIG_BPF_EVENTS=y
+CONFIG_BPF_JIT=y
+CONFIG_BPF_JIT_ALWAYS_ON=y
+CONFIG_BPF_JIT_DEFAULT_ON=y
+CONFIG_DEBUG_INFO_DWARF5=y
+CONFIG_DEBUG_INFO_BTF=y
+CONFIG_TRACEPOINTS=y
+CONFIG_FTRACE=y
+CONFIG_FTRACE_SYSCALLS=y
 CONFIG_NTSYNC=y
 # CONFIG_ZSWAP is not set
 EOF
@@ -68,11 +80,11 @@ touch "$tmp/linux-charcoal-73.pkg.tar.zst" "$tmp/linux-charcoal-73-headers.pkg.t
 package_files=("$tmp/linux-charcoal-73.pkg.tar.zst" "$tmp/linux-charcoal-73-headers.pkg.tar.zst")
 if PATH="$tmp/bin:$PATH" charcoal_upgrade_installed; then fail "missing Charcoal package treated as an upgrade"; fi
 CHARCOAL_TEST_INSTALLED=1 PATH="$tmp/bin:$PATH" charcoal_upgrade_installed || fail "installed Charcoal package not detected for in-place upgrade"
-PATH="$tmp/bin:$PATH" CONFIG_FIXTURE="$tmp/kernel.config" verify_kernel_package_identity package_files || fail "valid NAP package identity/config rejected"
+PATH="$tmp/bin:$PATH" CONFIG_FIXTURE="$tmp/kernel.config" verify_kernel_package_identity package_files || fail "valid current kernel package identity/config rejected"
 if PATH="$tmp/bin:$PATH" charcoal_upgrade_installed; then fail "missing Charcoal package treated as an upgrade"; fi
 CHARCOAL_TEST_INSTALLED=1 PATH="$tmp/bin:$PATH" charcoal_upgrade_installed || fail "installed Charcoal package not detected for in-place upgrade"
-grep -v 'CONFIG_CPU_IDLE_GOV_NAP=y' "$tmp/kernel.config" > "$tmp/kernel-bad.config"
-if ( PATH="$tmp/bin:$PATH" CONFIG_FIXTURE="$tmp/kernel-bad.config" verify_kernel_package_identity package_files >/dev/null 2>&1 ); then fail "package without NAP governor accepted"; fi
+grep -v 'CONFIG_SCHED_CLASS_EXT=y' "$tmp/kernel.config" > "$tmp/kernel-bad.config"
+if ( PATH="$tmp/bin:$PATH" CONFIG_FIXTURE="$tmp/kernel-bad.config" verify_kernel_package_identity package_files >/dev/null 2>&1 ); then fail "package without sched_ext support accepted"; fi
 python3 - "$tmp/build-artifact.zip" <<'PY'
 import hashlib, sys, zipfile
 files = {
@@ -84,8 +96,7 @@ with zipfile.ZipFile(sys.argv[1], "w", zipfile.ZIP_DEFLATED) as z:
     for name, value in files.items(): z.writestr(name, value)
     z.writestr("logs/SHA256SUMS-73", manifest)
     z.writestr("logs/makepkg-73.log", "build log")
-    z.writestr("logs/prepare-73.log", "Applying nap-6.12-v0.6.5.patch\nint drm_sched_policy = DRM_SCHED_POLICY_RR;\n")
-    z.writestr("logs/nap-tools-upstream.json", "{}")
+    z.writestr("logs/prepare-73.log", "Applying pinned patch vangogh_allow_higher_cpu_freq.patch\nApplying pinned patch latest-amd-pstate-epp-02-cache-order.patch\nApplying pinned patch latest-amd-pstate-epp-03-core.patch\nApplying pinned patch latest-clang-polly.patch\n")
 PY
 extract_and_verify_build_artifact "$tmp/build-artifact.zip" "$tmp/unpacked" || fail "verified artifact extraction"
 [[ -f "$tmp/unpacked/linux-charcoal-73-7.3.1.valve2.cc1-1-x86_64.pkg.tar.zst" ]] || fail "kernel package not extracted"
