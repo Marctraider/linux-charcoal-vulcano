@@ -56,7 +56,7 @@ sha256sums=(
   '1a6f9d691612c4a729032273199d17756dd6666d85019655bd95ea24eff59cac' # Van Gogh higher CPU frequency
   '454f353669c81b5e214e5b71327ed5735733e6bd9f5671e710520a2c3e455cb6' # AMD P-State EPP cache ordering
   '072927860ad14a09bbc08ef4f99d52d9964ed4de5800b647e3d61bab7a046dda' # AMD P-State per-core EPP boost
-  '789ca116f2ea6efff29a1bdaa7b4939f2406e7dfa72674b17ca8a3be02ea2b61' # LLVM Polly port
+  'd768b825af5654ec999088d67553952d9023fe0497c0f3914a46f7aa67652ac8' # LLVM Polly port
 )
 
 export KBUILD_BUILD_HOST=archlinux
