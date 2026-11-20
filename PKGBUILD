@@ -152,6 +152,8 @@ prepare() {
   local repo_dir="$srcdir/linux-neptune-73/archlinux-linux-neptune"
   local valve_commit="0ed55b10a784a0a0b518ecd20551659fde1d59c9"
 
+  _verify_zen2_compiler_target
+
   if [[ ! -d "$repo_dir/objects" ]]; then
     echo "ERROR: Valve source archive did not extract the embedded bare Git repository" >&2
     return 1
@@ -201,6 +203,9 @@ prepare() {
   scripts/config --disable STACK_TRACER
   scripts/config --disable PROVE_LOCKING
   scripts/config --disable LOCKDEP
+  scripts/config --enable CC_OPTIMIZE_FOR_PERFORMANCE
+  scripts/config --disable CC_OPTIMIZE_FOR_PERFORMANCE_O3
+  _make_llvm olddefconfig
   _validate_kernel_config
   _make_llvm -s kernelrelease > version
   echo "Prepared $pkgbase version $(<version) for AMD Zen 2 (znver2), O2"
