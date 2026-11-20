@@ -1,9 +1,6 @@
 name: Validate SteamOS 7.2 dynamic source policy
 
 on:
-  push:
-    branches:
-      - kernel-7.2-dynamic-validation
   workflow_dispatch:
 
 permissions:
