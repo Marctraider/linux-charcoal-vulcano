@@ -1,6 +1,6 @@
 # Charcoal — tuned SteamOS 3.10 / Linux 7.3 kernel
 
-Charcoal is a tuned Linux kernel for the **Steam Deck**, based on Valve's SteamOS 3.10 kernel source. It aims to improve gaming performance and frametime stability through a focused set of scheduler, CPU-frequency, memory, storage, and compiler optimizations, while retaining Valve's Steam Deck platform support and boot identity.
+Charcoal is a tuned Linux kernel for the **Steam Deck**, based on Valve's SteamOS 3.10 kernel source. It aims to improve gaming performance and frametime stability through a focused set of CPU-frequency, scheduler-extension, and compiler optimizations, while retaining Valve's Steam Deck platform support and boot identity.
 
 This repository contains the source integration, configuration, patch inputs, build recipe, validation tooling, and the published SteamOS 3.10 / Linux 7.3 Charcoal package.
 
@@ -35,30 +35,20 @@ Release ZIP SHA-256:
 
 **Changes from the stock Valve kernel**
 
-- **CPU scheduling and idle**
-  - BORE scheduler.
-  - POC Selector.
-  - NAP CPUIdle governor, with TEO fallback.
+- **CPU scheduling**
+  - Valve's scheduler remains the default.
+  - sched_ext and BPF support are enabled for optional userspace schedulers such as `scx_lavd`; a separate userspace loader is required to activate one.
 
 - **CPU frequency and platform**
   - AMD P-State EPP active mode and boost changes.
-  - Zen Interactive changes (evdev RCU and schedutil dependency).
   - Higher Van Gogh CPU-frequency ceiling, up to 4.2 GHz; the higher limit must be enabled in UEFI.
 
 - **Memory and compression**
-  - LRU CAST.
-  - ZRAM built as a module.
-  - LZ4 primary ZRAM compression.
-  - ZSTD recompression through ZRAM-IR.
-    - ZSTD Crypto API default compression level set to 1.
-
-- **Storage and graphics**
-  - ADIOS I/O scheduler set as the default.
-  - DRM scheduler Round Robin set as the compiled default instead of FIFO.
+  - Valve's base memory-reclaim and ZRAM behavior; no LRU CAST or ZRAM-IR overlays.
 
 - **Compiler and optimization**
   - Clang/LLVM toolchain.
-  - O3 optimization.
+  - O2 optimization.
   - Full Clang LTO.
   - Polly.
   - AMD Zen 2 target via `-march=znver2`.
@@ -72,18 +62,15 @@ Release ZIP SHA-256:
 The kernel configuration embeds this exact command line:
 
 ```text
-amd_pstate.epp_boost=1 mitigations=off cpuidle.governor=nap
+amd_pstate.epp_boost=1 mitigations=off
 ```
 
 | Parameter | Effect |
 |---|---|
 | `amd_pstate.epp_boost=1` | Enables the AMD P-State EPP boost feature added by the patch set. |
 | `mitigations=off` | Disables CPU vulnerability mitigations. |
-| `cpuidle.governor=nap` | Selects NAP as the CPU idle governor at boot. TEO remains compiled in as a fallback. |
 
 These are the kernel's **built-in command-line parameters** from `CONFIG_CMDLINE`; they are not compiler flags. The configuration sets `CONFIG_CMDLINE_BOOL=y` and leaves `CONFIG_CMDLINE_OVERRIDE` unset, so the boot loader can still supply its own command line according to the kernel's normal command-line combination rules.
-
-The ZRAM-IR helper also writes `1` to `/proc/sys/vm/zram_recomp_immediate` when available. That is a runtime sysctl setting, not a boot command-line parameter.
 
 **Kernel base**
 
