@@ -185,9 +185,6 @@ else
 fi
 
 section "Kernel features (build configuration only; not proof of runtime activation)"
-check_config CONFIG_SCHED_BORE "BORE scheduler"
-check_config CONFIG_SCHED_POC_SELECTOR "POC CPU selector"
-check_config CONFIG_LRU_CAST "LRU CAST page reclaim"
 check_config CONFIG_ZRAM "ZRAM support"
 check_config CONFIG_ZRAM_MULTI_COMP "ZRAM multi-compression / recompression"
 check_config CONFIG_X86_AMD_PSTATE "AMD P-State"
@@ -196,43 +193,7 @@ check_config CONFIG_LTO_CLANG_FULL "Full Clang LTO"
 check_config CONFIG_POLLY_CLANG "Clang Polly"
 
 section "Runtime feature activation"
-# The BORE patch exposes a runtime sysctl. A value of 1 means the BORE
-# burst-oriented scheduling logic is enabled; CONFIG_SCHED_BORE alone only
-# proves that the code was compiled into the kernel.
-bore_sysctl=/proc/sys/kernel/sched_bore
-if [[ -r "$bore_sysctl" ]]; then
-  bore_value=$(<"$bore_sysctl")
-  if [[ "$bore_value" == "1" ]]; then
-    pass "BORE scheduler is enabled at runtime (kernel.sched_bore=1)"
-  elif [[ "$bore_value" == "0" ]]; then
-    fail "BORE scheduler is compiled in but disabled at runtime (kernel.sched_bore=0)"
-  else
-    warn "BORE runtime sysctl has unexpected value: $bore_value"
-  fi
-else
-  if config_enabled CONFIG_SCHED_BORE; then
-    fail "BORE is compiled in, but /proc/sys/kernel/sched_bore is unavailable; runtime activation cannot be confirmed"
-  else
-    warn "BORE runtime sysctl is unavailable and CONFIG_SCHED_BORE is not enabled"
-  fi
-fi
-
-# Per-task BORE scores are an additional live indicator when this kernel
-# exposes them through procfs (typically with scheduler debug support).
-if [[ -r /proc/self/sched ]] && grep -qE '(^|[[:space:]])bore[.]score[[:space:]]*:' /proc/self/sched; then
-  bore_score=$(awk '/bore[.]score[[:space:]]*:/ {print $3; exit}' /proc/self/sched)
-  info "Current status process exposes a live BORE task score: ${bore_score:-unknown}"
-else
-  info "Per-task BORE score is not exposed by /proc/self/sched; runtime enablement is verified through kernel.sched_bore"
-fi
-info "POC scheduler selector and LRU CAST have no verified runtime status interface in this kernel; build configuration is reported above"
-info "O3, Clang LTO and Polly are compile/link-time properties; Linux exposes no reliable runtime activation status"
-if [[ -r /etc/udev/rules.d/65-adios.rules ]]; then
-  pass "ADIOS udev rule is installed"
-else
-  warn "ADIOS udev rule is not installed; newly added block devices may not switch to ADIOS automatically"
-fi
-
+info "Full Clang LTO and Polly are compile/link-time properties; Linux exposes no reliable runtime activation status"
 if [[ -n "$CONFIG_FILE" ]]; then
   if config_value CONFIG_X86_AMD_PSTATE_DEFAULT_MODE 3; then
     info "AMD P-State default mode is configured as active (EPP); runtime status is checked below"
@@ -244,91 +205,6 @@ if [[ -n "$CONFIG_FILE" ]]; then
   else
     info "Built-in xpad controller driver is not explicitly disabled in this kernel config; runtime device binding is hardware-dependent"
   fi
-fi
-
-section "NAP cpuidle governor and TEO fallback"
-if [[ -z "$CONFIG_FILE" ]]; then
-  warn "NAP and TEO build options cannot be checked without the kernel .config"
-else
-  for symbol in CONFIG_CPU_IDLE_GOV_NAP CONFIG_CPU_IDLE_GOV_TEO; do
-    if config_enabled "$symbol"; then
-      pass "$symbol is enabled in the kernel config"
-    elif config_disabled "$symbol"; then
-      fail "$symbol is disabled; the NAP build requires both NAP and TEO fallback"
-    else
-      warn "$symbol is absent from the selected kernel config"
-    fi
-  done
-fi
-governor_file=/sys/devices/system/cpu/cpuidle/current_governor
-available_file=/sys/devices/system/cpu/cpuidle/available_governors
-if [[ -r "$available_file" ]] && grep -qw nap "$available_file"; then
-  if [[ -r "$governor_file" && "$(<"$governor_file")" == "nap" ]]; then
-    pass "NAP is the active cpuidle governor"
-  else
-    warn "NAP is available but not selected (active: $(<"$governor_file" 2>/dev/null || echo unknown))"
-  fi
-elif [[ -r "$governor_file" ]]; then
-  warn "NAP is not available in the running kernel (active governor: $(<"$governor_file")); boot the NAP kernel to activate it"
-else
-  warn "cpuidle governor sysfs interface is unavailable; NAP runtime state cannot be verified"
-fi
-
-section "DRM scheduler Round Robin"
-# CONFIG_DRM_SCHED=m in this build, so its module parameter is under
-# /sys/module/drm_sched/, not /sys/module/drm/.
-drm_policy_file=/sys/module/drm_sched/parameters/sched_policy
-if [[ -r "$drm_policy_file" ]]; then
-  drm_policy=$(<"$drm_policy_file")
-  case "$drm_policy" in
-    1|RR|rr) pass "DRM scheduler Round Robin policy is active ($drm_policy)" ;;
-    *) fail "DRM scheduler policy is $drm_policy (expected Round Robin / 1)" ;;
-  esac
-else
-  info "DRM scheduler policy parameter is not exposed by this running kernel; the build sets the scheduler's compiled default to Round Robin, but runtime state cannot be read here"
-fi
-
-section "NAP userspace integration"
-if [[ -x /usr/lib/nap/configure-services ]]; then
-  pass "NAP userspace service configuration helper is installed"
-  systemctl is-enabled nap-state.service >/dev/null 2>&1 && pass "NAP state restore service is enabled" || warn "NAP state restore service is not enabled"
-  systemctl is-enabled nap-state-save.timer >/dev/null 2>&1 && pass "NAP periodic state-save timer is enabled" || warn "NAP periodic state-save timer is not enabled"
-else
-  warn "NAP userspace helper is not installed"
-fi
-
-section "ADIOS I/O scheduler (runtime)"
-adios_selected=0
-adios_missing=0
-scheduler_devices=0
-scheduler_unexposed=0
-for block_dir in /sys/block/*; do
-  [[ -e "$block_dir" ]] || continue
-  block_name=$(basename "$block_dir")
-  [[ "$block_name" == loop* || "$block_name" == zram* ]] && continue
-  scheduler_file="$block_dir/queue/scheduler"
-  if [[ ! -r "$scheduler_file" ]]; then
-    scheduler_unexposed=$((scheduler_unexposed + 1))
-    continue
-  fi
-  scheduler_devices=$((scheduler_devices + 1))
-  schedulers=$(<"$scheduler_file")
-  if grep -qw adios <<< "$schedulers" && grep -q '\[adios\]' <<< "$schedulers"; then
-    adios_selected=$((adios_selected + 1))
-  else
-    adios_missing=$((adios_missing + 1))
-    warn "ADIOS is not active for $block_name (available/active: $schedulers)"
-  fi
-done
-if (( scheduler_devices == 0 )); then
-  warn "No eligible block devices expose a scheduler interface"
-elif (( adios_missing == 0 )); then
-  pass "ADIOS is selected on all $adios_selected eligible block device(s)"
-else
-  fail "ADIOS is not active on every eligible block device ($adios_selected/$scheduler_devices selected)"
-fi
-if (( scheduler_unexposed > 0 )); then
-  info "$scheduler_unexposed eligible block device(s) do not expose a scheduler interface and cannot be checked"
 fi
 
 section "ZRAM / ZSWAP runtime activation"
@@ -345,7 +221,7 @@ elif config_enabled CONFIG_ZSWAP; then
   if [[ -r /sys/module/zswap/parameters/enabled ]]; then
     zswap_enabled=$(</sys/module/zswap/parameters/enabled)
     case "$zswap_enabled" in
-      N|0) pass "ZSWAP is compiled in but disabled at runtime (intended; ZRAM-IR remains available)" ;;
+      N|0) pass "ZSWAP is compiled in but disabled at runtime (intended; ZRAM remains available)" ;;
       Y|1) fail "ZSWAP is enabled at runtime (expected disabled for the CPU-focused profile)" ;;
       *) warn "Unrecognized ZSWAP runtime state: $zswap_enabled" ;;
     esac
@@ -357,53 +233,6 @@ elif [[ -r /sys/module/zswap/parameters/enabled ]]; then
   info "ZSWAP runtime parameter is exposed with value $zswap_enabled, but the selected kernel config is unavailable"
 else
   warn "ZSWAP build configuration and runtime control are both unavailable; cannot determine whether it is active"
-fi
-
-section "ZRAM-IR (runtime)"
-if [[ -r /proc/sys/vm/zram_recomp_immediate ]]; then
-  immediate=$(</proc/sys/vm/zram_recomp_immediate)
-  if [[ "$immediate" == "1" ]]; then
-    pass "zram_recomp_immediate=1"
-  else
-    fail "zram_recomp_immediate is $immediate (expected 1)"
-  fi
-else
-  warn "zram_recomp_immediate sysctl is unavailable"
-fi
-if [[ -f /usr/lib/udev/rules.d/60-charcoal-zram-ir.rules && -x /usr/lib/charcoal/configure-zram-ir ]]; then
-  pass "ZRAM-IR udev rule and configuration helper are installed"
-else
-  fail "ZRAM-IR udev rule or configuration helper is missing"
-fi
-if [[ -f /usr/lib/systemd/system/systemd-zram-setup@.service.d/90-charcoal-zram-ir.conf ]]; then
-  pass "ZRAM-IR systemd setup drop-in is installed"
-else
-  warn "ZRAM-IR systemd setup drop-in is missing"
-fi
-zram_count=0
-zram_ready=0
-zram_bad=0
-for zram_dir in /sys/block/zram[0-9]*; do
-  [[ -d "$zram_dir" ]] || continue
-  zram_count=$((zram_count + 1))
-  comp=""
-  recomp=""
-  [[ -r "$zram_dir/comp_algorithm" ]] && comp=$(<"$zram_dir/comp_algorithm")
-  [[ -r "$zram_dir/recomp_algorithm" ]] && recomp=$(<"$zram_dir/recomp_algorithm")
-  if grep -q '\[lz4\]' <<< "$comp" && grep -Eq '\[algo=zstd([[:space:]]|\])|\[zstd\]|(^|[[:space:]])algo=zstd([[:space:]]|$)' <<< "$recomp"; then
-    zram_ready=$((zram_ready + 1))
-    pass "$(basename "$zram_dir") uses LZ4 primary compression and ZSTD recompression"
-  else
-    zram_bad=$((zram_bad + 1))
-    fail "$(basename "$zram_dir") compressor setup does not show LZ4 + ZSTD (primary: ${comp:-unknown}; recompress: ${recomp:-unavailable})"
-  fi
-done
-if (( zram_count == 0 )); then
-  warn "No active zram device found; ZRAM runtime settings will be checked after zram is created"
-elif (( zram_ready == zram_count )); then
-  pass "ZRAM-IR compressor configuration verified on all $zram_count device(s)"
-else
-  fail "ZRAM-IR compressor configuration is incorrect on $zram_bad/$zram_count active device(s)"
 fi
 
 section "AMD P-State EPP (runtime)"
