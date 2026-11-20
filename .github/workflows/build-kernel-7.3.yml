@@ -1,7 +1,12 @@
 name: Build SteamOS 3.10 Charcoal Linux 7.3
 
-# Kernel builds are manual-only. No push trigger: source and documentation changes never start a kernel build.
+# One-time master build trigger for the Zen 2 / LAVD configuration update.
+# Remove this push trigger after the run is queued; retain manual dispatch.
 on:
+  push:
+    branches: [master]
+    paths:
+      - 'PKGBUILD'
   workflow_dispatch:
     inputs:
       compile_kernel:
@@ -58,7 +63,7 @@ jobs:
           path: |
             src/
             .cache/ccache/
-          key: charcoal-73-${{ hashFiles('PKGBUILD', 'config', '*.patch', 'automation/prepare-sources-73.py', 'automation/port-amd-pstate-epp-boost-73.py', 'Dockerfile') }}-${{ github.run_id }}-${{ github.run_attempt }}
+          key: charcoal-73-${{ hashFiles('PKGBUILD', 'config', 'config-charcoal', 'zen2-compile-check.h', '*.patch', 'automation/prepare-sources-73.py', 'automation/port-amd-pstate-epp-boost-73.py', 'Dockerfile') }}-${{ github.run_id }}-${{ github.run_attempt }}
           restore-keys: |
             charcoal-73-${{ hashFiles('PKGBUILD', 'config', '*.patch', 'automation/prepare-sources-73.py', 'automation/port-amd-pstate-epp-boost-73.py', 'Dockerfile') }}-
 
