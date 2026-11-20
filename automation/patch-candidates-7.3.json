@@ -92,7 +92,7 @@
     {
       "name": "clang_polly_7_2_port",
       "local_path": "7.2-clang-polly-from-cachyos-7.1.patch",
-      "blob": "fd1509bad9285ba15fdc1f973dd30dc31682d37f"
+      "blob": "d3a71028305be1aa89af013394fe35bee78387e2"
     },
     {
       "name": "zstd_crypto_default_level_1",
