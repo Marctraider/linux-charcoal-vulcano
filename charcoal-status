@@ -185,7 +185,6 @@ else
 fi
 
 section "Kernel features (build configuration only; not proof of runtime activation)"
-check_config CONFIG_ZRAM "ZRAM support"
 check_config CONFIG_X86_AMD_PSTATE "AMD P-State"
 if [[ -z "$CONFIG_FILE" ]]; then
   warn "Kernel optimization level: kernel .config unavailable; cannot verify O2/O3 selection"
@@ -207,15 +206,6 @@ if [[ -n "$CONFIG_FILE" ]]; then
   else
     warn "AMD P-State default mode is not configured as active (EPP)"
   fi
-fi
-
-section "ZRAM runtime activation"
-if [[ -d /sys/module/zram ]]; then
-  pass "ZRAM kernel module is loaded"
-elif compgen -G '/sys/block/zram[0-9]*' >/dev/null; then
-  pass "ZRAM devices exist (driver is active)"
-else
-  warn "ZRAM kernel module is not loaded and no zram device exists"
 fi
 
 section "AMD P-State EPP (runtime)"
@@ -260,6 +250,51 @@ if [[ -r /sys/module/amd_pstate/parameters/epp_boost ]]; then
   esac
 else
   info "AMD P-State epp_boost runtime parameter is not exposed; boot argument and per-CPU EPP values are shown above"
+fi
+
+section "Scheduler runtime (scx_lavd)"
+LAVD_SERVICE="charcoal-lavd.service"
+LAVD_ACTIVE=0
+LAVD_PID=""
+if command -v systemctl >/dev/null 2>&1 && systemctl is-active --quiet "$LAVD_SERVICE"; then
+  LAVD_ACTIVE=1
+  LAVD_PID=$(systemctl show --property=MainPID --value "$LAVD_SERVICE" 2>/dev/null || true)
+  if [[ "$LAVD_PID" =~ ^[1-9][0-9]*$ ]] && [[ -r "/proc/$LAVD_PID/cmdline" ]]; then
+    LAVD_CMDLINE=$(tr '\0' ' ' < "/proc/$LAVD_PID/cmdline")
+    if [[ "$LAVD_CMDLINE" == *scx_lavd* ]]; then
+      pass "charcoal-lavd.service is active; scx_lavd process is running (PID $LAVD_PID)"
+      if [[ " $LAVD_CMDLINE " == *" --performance "* ]]; then
+        pass "scx_lavd is running with --performance mode"
+      else
+        fail "scx_lavd is running without --performance; command: $LAVD_CMDLINE"
+      fi
+    else
+      fail "charcoal-lavd.service is active, but its MainPID is not scx_lavd: $LAVD_CMDLINE"
+    fi
+  else
+    warn "charcoal-lavd.service is active, but its scx_lavd MainPID/cmdline could not be verified"
+  fi
+else
+  warn "charcoal-lavd.service is not active; scx_lavd performance scheduling is not confirmed"
+fi
+
+SCHED_EXT_OPS=""
+for ops_file in /sys/kernel/sched_ext/root/ops /sys/kernel/sched_ext/ops; do
+  if [[ -r "$ops_file" ]]; then
+    SCHED_EXT_OPS=$(<"$ops_file")
+    [[ -n "$SCHED_EXT_OPS" ]] && break
+  fi
+done
+if [[ -n "$SCHED_EXT_OPS" ]]; then
+  if [[ "$SCHED_EXT_OPS" == *lavd* ]]; then
+    pass "sched_ext reports active scheduler: $SCHED_EXT_OPS"
+  else
+    fail "sched_ext is attached to $SCHED_EXT_OPS, not scx_lavd"
+  fi
+elif (( LAVD_ACTIVE )); then
+  warn "scx_lavd service is running, but sched_ext does not expose a readable active-ops interface; attachment is unverified"
+else
+  info "sched_ext active scheduler could not be read because scx_lavd is not running"
 fi
 
 section "Summary"
