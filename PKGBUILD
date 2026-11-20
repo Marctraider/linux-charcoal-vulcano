@@ -49,7 +49,7 @@ source=(
   vangogh_allow_higher_cpu_freq.patch
   latest-amd-pstate-epp-02-cache-order.patch
   latest-amd-pstate-epp-03-core.patch
-  latest-clang-polly.patch
+  latest-clang-polly.patch # Linux Kbuild/Kconfig glue; Polly itself comes from LLVM
 )
 sha256sums=(
   'a6316acc22954d0685ac923248995246789a1f3b5ee6890d378ce2c3efa25af8' # exact Valve 7.3.1.valve2-1 source archive
@@ -75,6 +75,7 @@ _validate_kernel_config() {
     'CONFIG_CC_OPTIMIZE_FOR_PERFORMANCE=y' \
     'CONFIG_LTO_CLANG_FULL=y' \
     'CONFIG_POLLY_CLANG=y' \
+
     'CONFIG_SCHED_CLASS_EXT=y' \
     'CONFIG_BPF=y' \
     'CONFIG_BPF_SYSCALL=y' \
@@ -179,6 +180,8 @@ prepare() {
 build() {
   cd "$_srcname"
   _make_llvm all
+  # Polly is provided by the LLVM toolchain; latest-clang-polly.patch only wires its
+  # compiler plugin and optimization flags into Linux Kbuild/Kconfig. Full LTO is separate.
   # Build bpftool and export this kernel's BTF as the CO-RE header used
   # when building sched_ext BPF schedulers such as scx_lavd.
   _make_llvm -C tools/bpf/bpftool
