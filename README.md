@@ -66,7 +66,10 @@ Package SHA-256 values are published in the [release SHA256SUMS asset](https://g
   - Full Clang LTO is enabled as a separate link-time optimization mode.
   - Polly is an LLVM loop-optimization pass supplied by the LLVM `polly` package; it is not a linker or a standalone kernel patch.
   - The small `latest-clang-polly.patch` adds the Linux Kbuild/Kconfig integration needed to load `LLVMPolly.so` and pass Polly's optimization flags during kernel compilation. It does not contain the Polly optimizer itself.
-  - AMD Zen 2 target via `-march=znver2`.
+  - AMD Zen 2 target enforced with `-march=znver2 -mtune=znver2`; a force-included compile-time guard rejects any kernel C translation unit that does not expose Clang's Zen 2 target macros. The build identity is embedded in `/proc/version` for runtime status reporting.
+  - O2 is intentional. Kernel-wide O3 has shown only a small average gain in broad Linux benchmarks, with workload-dependent regressions; O2 avoids unnecessary code growth in branch-heavy hot paths while retaining full Clang LTO and the Zen 2 target.
+
+The Zen 2 check is not inferred from the Deck's CPU model or `CONFIG_CPU_SUP_AMD`. A successful build must pass the Clang target probe and compile every kernel C translation unit with the guard. `charcoal-status` reports the running kernel as verified only when its embedded build identity is present.
 
 - **Steam Deck support**
   - Valve Steam Deck and Van Gogh platform support retained.
@@ -99,7 +102,7 @@ Charcoal is based on Valve's SteamOS kernel package, not a generic upstream Linu
 | Valve source tag | `7.3.1-valve2` |
 | Valve source commit | `0ed55b10a784a0a0b518ecd20551659fde1d59c9` |
 | Source archive SHA-256 | `a6316acc22954d0685ac923248995246789a1f3b5ee6890d378ce2c3efa25af8` |
-| Architecture / target | `x86_64` / AMD Zen 2 (`-march=znver2`) |
+| Architecture / target | `x86_64` / AMD Zen 2 (`-march=znver2 -mtune=znver2`, compile-time guarded) |
 | Output packages | `linux-charcoal-73`, `linux-charcoal-73-headers` |
 | SteamOS boot/module identity | `linux-neptune-73` |
 
