@@ -4,7 +4,7 @@ pkgbase=linux-charcoal-73
 _tag=7.3.1-valve2
 _ver=1
 pkgver=${_tag//-/.}.cc$_ver
-pkgrel=5
+pkgrel=6
 pkgdesc='SteamOS 3.10 Linux 7.3 kernel for Steam Deck'
 url="https://steamdeck-packages.steamos.cloud/archlinux-mirror/sources/jupiter-3.10/"
 arch=(x86_64)
@@ -36,11 +36,28 @@ options=(
   !strip
 )
 
-# Build for the Steam Deck's AMD Zen 2 (Van Gogh) CPU target.
-# CONFIG_CC_OPTIMIZE_FOR_PERFORMANCE selects the kernel's O2 optimization.
+# Every kernel C translation unit must pass the compile-time Zen 2 guard.
+_zen2_cflags="-march=znver2 -mtune=znver2 -include $startdir/zen2-compile-check.h"
 _make_llvm() {
-  make LLVM=1 KCFLAGS="${KCFLAGS:+$KCFLAGS }-march=znver2" \
+  make LLVM=1 KCFLAGS="${KCFLAGS:+$KCFLAGS }$_zen2_cflags" \
     CC=clang HOSTCC=clang HOSTCXX=clang++ "$@"
+}
+
+_verify_zen2_compiler_target() {
+  local output
+  if ! output=$(clang -march=znver2 -mtune=znver2 -### -x c -c /dev/null -o /dev/null 2>&1); then
+    echo "ERROR: Clang cannot compile for AMD Zen 2 (znver2)" >&2
+    return 1
+  fi
+  if [[ "$output" != *'"-target-cpu" "znver2"'* ]]; then
+    echo "ERROR: Clang did not resolve -march=znver2 to target-cpu znver2" >&2
+    return 1
+  fi
+  if ! clang -march=znver2 -mtune=znver2 -include "$startdir/zen2-compile-check.h" -fsyntax-only -x c /dev/null; then
+    echo "ERROR: Zen 2 compile-time guard rejected the selected Clang target" >&2
+    return 1
+  fi
+  echo "Verified Clang target: -march=znver2 -mtune=znver2 (AMD Zen 2)"
 }
 
 _srcname=archlinux-linux-charcoal
@@ -60,7 +77,7 @@ sha256sums=(
 )
 
 export KBUILD_BUILD_HOST=archlinux
-export KBUILD_BUILD_USER=$pkgbase
+export KBUILD_BUILD_USER=${pkgbase}-znver2
 export KBUILD_BUILD_TIMESTAMP="$(date -Ru${SOURCE_DATE_EPOCH:+d @$SOURCE_DATE_EPOCH})"
 
 _validate_kernel_config() {
@@ -73,6 +90,7 @@ _validate_kernel_config() {
     'CONFIG_CMDLINE="amd_pstate.epp_boost=1 mitigations=off"' \
     '# CONFIG_CMDLINE_OVERRIDE is not set' \
     'CONFIG_CC_OPTIMIZE_FOR_PERFORMANCE=y' \
+    '# CONFIG_CC_OPTIMIZE_FOR_PERFORMANCE_O3 is not set' \
     'CONFIG_LTO_CLANG_FULL=y' \
     'CONFIG_POLLY_CLANG=y' \
     'CONFIG_SCHED_CLASS_EXT=y' \
@@ -185,7 +203,7 @@ prepare() {
   scripts/config --disable LOCKDEP
   _validate_kernel_config
   _make_llvm -s kernelrelease > version
-  echo "Prepared $pkgbase version $(<version)"
+  echo "Prepared $pkgbase version $(<version) for AMD Zen 2 (znver2), O2"
 }
 
 build() {
