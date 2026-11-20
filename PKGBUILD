@@ -92,13 +92,13 @@ _validate_kernel_config() {
     'CONFIG_TRACEPOINTS=y' \
     'CONFIG_FTRACE=y' \
     'CONFIG_FTRACE_SYSCALLS=y' \
-    '# CONFIG_DYNAMIC_FTRACE is not set' \
+    'CONFIG_FUNCTION_TRACER=y' \
+    'CONFIG_DYNAMIC_FTRACE=y' \
     '# CONFIG_DEBUG_INFO_BTF_MODULES is not set' \
     '# CONFIG_DEBUG_INFO_REDUCED is not set' \
     '# CONFIG_DEBUG_INFO_SPLIT is not set' \
     '# CONFIG_STACK_TRACER is not set' \
     '# CONFIG_FPROBE is not set' \
-    '# CONFIG_FUNCTION_TRACER is not set' \
     '# CONFIG_FUNCTION_GRAPH_TRACER is not set' \
     '# CONFIG_KPROBES is not set' \
     '# CONFIG_PROFILING is not set' \
@@ -174,12 +174,10 @@ prepare() {
 
   _make_llvm olddefconfig
 
-  # Preserve the requested low-overhead tracing setup after Kconfig resolves
-  # all selects/defaults. In particular, olddefconfig may re-enable dynamic
-  # ftrace through another selected tracing option; LAVD only needs syscall
-  # tracepoints, not function-entry instrumentation.
-  scripts/config --disable DYNAMIC_FTRACE
-  scripts/config --disable FUNCTION_TRACER
+  # Preserve LAVD's required function tracing after Kconfig resolves selects
+  # and defaults. Keep optional higher-level tracing/debug facilities disabled.
+  scripts/config --enable FUNCTION_TRACER
+  scripts/config --enable DYNAMIC_FTRACE
   scripts/config --disable FUNCTION_GRAPH_TRACER
   scripts/config --disable FPROBE
   scripts/config --disable STACK_TRACER
