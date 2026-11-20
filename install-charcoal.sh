@@ -3,10 +3,13 @@
 
 set -Eeuo pipefail
 
-readonly RELEASE_TAG="steamos-3.10-linux-7.3-build-82"
-readonly RELEASE_ARCHIVE="charcoal-steamos-3.10-linux-7.3-build-82.zip"
-readonly RELEASE_URL="https://github.com/Marctraider/linux-charcoal-vulcano/releases/download/${RELEASE_TAG}/${RELEASE_ARCHIVE}"
-readonly RELEASE_SHA256="225e5126487b56d6923b58b7f361eb7f158639e35a90e996ee96bae4d524de69"
+readonly RELEASE_TAG="steamos-3.10-linux-7.3-build-99"
+readonly RELEASE_BASE_URL="https://github.com/Marctraider/linux-charcoal-vulcano/releases/download/${RELEASE_TAG}"
+readonly KERNEL_ASSET="linux-charcoal-73-7.3.1.valve2.cc1-3-x86_64.pkg.tar.zst"
+readonly HEADERS_ASSET="linux-charcoal-73-headers-7.3.1.valve2.cc1-3-x86_64.pkg.tar.zst"
+readonly CHECKSUM_ASSET="SHA256SUMS"
+# SHA-256 digest reported by GitHub for the uploaded SHA256SUMS release asset.
+readonly CHECKSUM_ASSET_SHA256="c89062483306d771676c80df2c91602d37b28ecbfa86c01637a9b55aaa98d6dc"
 
 WORKDIR=""
 MADE_ROOT_WRITABLE=0
@@ -185,37 +188,29 @@ download_file() {
   die "GitHub release download failed after three fresh attempts; check the public release asset and network connection"
 }
 
-extract_and_verify_build_artifact() {
-  python3 - "$1" "$2" <<'PY'
-import hashlib,re,stat,sys,zipfile
-from pathlib import Path,PurePosixPath
-archive,dest=Path(sys.argv[1]),Path(sys.argv[2])
-pkg=re.compile(r"linux-charcoal-73(?:-headers)?-[A-Za-z0-9._+-]+\.pkg\.tar\.zst")
-sum_re=re.compile(r"([0-9a-fA-F]{64}) [ *](linux-charcoal-73(?:-headers)?-[A-Za-z0-9._+-]+\.pkg\.tar\.zst)")
-with zipfile.ZipFile(archive) as z:
- infos=z.infolist(); names=[x.filename for x in infos]
- if len(names)!=len(set(names)): raise SystemExit("Duplicate artifact paths")
- ps=[x for x in infos if "/" not in x.filename and pkg.fullmatch(x.filename)]
- if len(ps)!=2 or sum("-headers-" in x.filename for x in ps)!=1: raise SystemExit("Artifact must contain kernel and headers packages")
- required={"logs/SHA256SUMS-73","logs/makepkg-73.log","logs/prepare-73.log"}
- if not required.issubset(names): raise SystemExit("Artifact missing build provenance")
- sums={}
- for line in z.read("logs/SHA256SUMS-73").decode().splitlines():
-  m=sum_re.fullmatch(line)
-  if not m or m.group(2) in sums: raise SystemExit("Invalid artifact checksum manifest")
-  sums[m.group(2)]=m.group(1).lower()
- if set(sums)!={x.filename for x in ps}: raise SystemExit("Artifact manifest/package mismatch")
- prepare_log=z.read("logs/prepare-73.log").decode("utf-8",errors="replace")
- for patch in ("vangogh_allow_higher_cpu_freq.patch","latest-amd-pstate-epp-02-cache-order.patch","latest-amd-pstate-epp-03-core.patch","latest-clang-polly.patch"):
-  if patch not in prepare_log: raise SystemExit("Build log does not prove current patch input was applied: "+patch)
- dest.mkdir(mode=0o700)
- for x in ps:
-  if PurePosixPath(x.filename).name!=x.filename or stat.S_ISLNK(x.external_attr>>16): raise SystemExit("Unsafe package path")
-  target=dest/x.filename; h=hashlib.sha256()
-  with z.open(x) as src,target.open("xb") as out:
-   for b in iter(lambda:src.read(1048576),b""): h.update(b); out.write(b)
-  if h.hexdigest()!=sums[x.filename]: target.unlink(missing_ok=True); raise SystemExit("Package checksum failed")
+verify_release_checksums() {
+  local package_dir=$1 sums_file=$2
+  python3 - "$sums_file" "$KERNEL_ASSET" "$HEADERS_ASSET" <<'PY'
+import re,sys
+from pathlib import Path
+path=Path(sys.argv[1])
+expected=set(sys.argv[2:])
+entries={}
+for line in path.read_text(encoding="utf-8").splitlines():
+    m=re.fullmatch(r"([0-9a-fA-F]{64}) [ *](.+)", line)
+    if not m:
+        raise SystemExit("Invalid SHA256SUMS line")
+    digest,name=m.groups()
+    if name in entries or name not in expected or "/" in name or "\\" in name:
+        raise SystemExit("Unexpected or duplicate checksum entry: "+name)
+    entries[name]=digest.lower()
+if set(entries)!=expected:
+    raise SystemExit("SHA256SUMS must contain exactly the kernel and headers package entries")
 PY
+  (
+    cd "$package_dir"
+    sha256sum --check --status "$sums_file"
+  ) || die "One or more downloaded package checksums failed; no packages were changed"
 }
 
 verify_kernel_package_identity() {
@@ -410,19 +405,26 @@ main() {
   WORKDIR="$(mktemp -d /dev/shm/charcoal-73-installer.XXXXXX)"
   trap cleanup EXIT
 
-  [[ "$RELEASE_SHA256" =~ ^[0-9a-f]{64}$ ]] || die "No published Linux 7.3 package is configured. Installation is unavailable until a new build is authorized, validated and published."
-  local archive_path="$WORKDIR/charcoal-build.zip" package_dir="$WORKDIR/packages"
-  info "Downloading the published Charcoal Linux 7.3 release bundle..."
-  download_file "$RELEASE_URL" "$archive_path"
-  printf '%s  %s\n' "$RELEASE_SHA256" "$archive_path" | sha256sum --check --status \
-    || die "Published Linux 7.3 release ZIP checksum failed; no packages were changed"
-  info "Release ZIP checksum verified. Verifying package checksums..."
-  extract_and_verify_build_artifact "$archive_path" "$package_dir"
-  rm -f -- "$archive_path"
+  [[ "$CHECKSUM_ASSET_SHA256" =~ ^[0-9a-f]{64}$ ]] || die "The published checksum-file digest is invalid; no packages were changed"
+  local package_dir="$WORKDIR/packages"
+  local sums_path="$WORKDIR/$CHECKSUM_ASSET"
+  mkdir -m 0700 "$package_dir"
+
+  info "Downloading the SHA256SUMS file for release ${RELEASE_TAG}..."
+  download_file "$RELEASE_BASE_URL/$CHECKSUM_ASSET" "$sums_path"
+  printf '%s  %s\\n' "$CHECKSUM_ASSET_SHA256" "$sums_path" | sha256sum --check --status \\
+    || die "Published SHA256SUMS file failed its pinned checksum; no packages were changed"
+
+  info "Downloading the Charcoal kernel and matching headers packages..."
+  download_file "$RELEASE_BASE_URL/$KERNEL_ASSET" "$package_dir/$KERNEL_ASSET"
+  download_file "$RELEASE_BASE_URL/$HEADERS_ASSET" "$package_dir/$HEADERS_ASSET"
+
+  info "Verifying both packages against the published SHA256SUMS..."
+  verify_release_checksums "$package_dir" "$sums_path"
 
   local -a packages
   mapfile -d '' -t packages < <(find "$package_dir" -maxdepth 1 -type f -name 'linux-charcoal-*.pkg.tar.zst' -print0 | sort -z)
-  (( ${#packages[@]} == 2 )) || die "Verified build artifact does not contain exactly kernel and headers"
+  (( ${#packages[@]} == 2 )) || die "Downloaded release does not contain exactly kernel and headers"
 
   info "Checking downloaded build package metadata without starting a transaction..."
   local pkg pkgname pkgbase=""
@@ -457,7 +459,7 @@ main() {
     if (( ${#previous_packages[@]} > 0 )); then capture_rollback_packages previous_packages; fi
   fi
 
-  confirm_transaction "Linux 7.3 release ${RELEASE_TAG} (${RELEASE_ARCHIVE})" "${previous_packages[@]}"
+  confirm_transaction "Linux 7.3 release ${RELEASE_TAG} (${KERNEL_ASSET} + ${HEADERS_ASSET})" "${previous_packages[@]}"
 
   info "Making SteamOS writable for the package transaction..."
   run_privileged steamos-readonly disable
