@@ -1,12 +1,12 @@
 #!/usr/bin/env python3
-"""Regression checks for the Charcoal status script's series and optional-feature handling."""
+"""Regression checks for the current Charcoal status scope and build profile."""
 from pathlib import Path
 import unittest
 
 ROOT = Path(__file__).resolve().parents[1]
 SCRIPT = (ROOT / "charcoal-status").read_text()
 PKGBUILD = (ROOT / "PKGBUILD").read_text()
-KERNEL_CONFIG = (ROOT / "config").read_text()
+KERNEL_CONFIG = (ROOT / "config-charcoal").read_text()
 
 
 class CharcoalStatusTests(unittest.TestCase):
@@ -16,75 +16,65 @@ class CharcoalStatusTests(unittest.TestCase):
         self.assertNotIn("linux-charcoal-72", SCRIPT)
         self.assertNotIn("linux-neptune-72", SCRIPT)
 
-    def test_running_kernel_uses_pkgbase_and_pacman_owner(self):
-        self.assertIn('running_pkgbase=$(<"$RUNNING_MODULE_DIR/pkgbase")', SCRIPT)
+    def test_running_kernel_is_attributed_to_installed_package(self):
         self.assertIn('pacman -Qqo -- "$RUNNING_MODULE_DIR/pkgbase"', SCRIPT)
         self.assertIn('"$running_owner" == "$CHARCOAL_PACKAGE"', SCRIPT)
 
-    def test_installed_config_is_selected_from_charcoal_module_tree(self):
+    def test_installed_charcoal_config_is_preferred(self):
         self.assertIn('"$CHARCOAL_MODULE_DIR/build/.config"', SCRIPT)
         self.assertIn('BUILD_DIR="$CHARCOAL_MODULE_DIR/build"', SCRIPT)
-
-    def test_nap_disabled_is_informational_not_a_failure(self):
-        nap_section = SCRIPT.split('section "NAP cpuidle governor"', 1)[1].split('section "ADIOS I/O scheduler (runtime)"', 1)[0]
-        self.assertIn('info "NAP cpuidle governor is disabled in this build', nap_section)
-        self.assertIn('info "NAP is not exposed by the running kernel', nap_section)
-        self.assertNotIn('fail "NAP', nap_section)
-
-    def test_generic_cpu_absence_is_not_a_warning(self):
-        self.assertIn("not treating CONFIG_GENERIC_CPU absence as a failure", SCRIPT)
-        self.assertNotRegex(SCRIPT, r'warn .*CONFIG_GENERIC_CPU')
 
     def test_compiler_fallback_is_informational(self):
         self.assertIn("Compiler reported by the running kernel", SCRIPT)
         self.assertIn("generated compile.h unavailable", SCRIPT)
 
-    def test_scheduler_patterns_match_bracketed_active_values(self):
-        self.assertIn('grep -qw adios <<< "$schedulers"', SCRIPT)
-        self.assertIn("grep -q '\\[adios\\]'", SCRIPT)
-        self.assertIn("grep -q '\\[lz4\\]'", SCRIPT)
-
-    def test_mitigations_off_passes_when_present_on_running_command_line(self):
+    def test_mitigations_off_is_checked_at_runtime(self):
         self.assertIn("grep -qw -- 'mitigations=off' /proc/cmdline", SCRIPT)
         self.assertIn("supported CPU mitigations disabled at runtime", SCRIPT)
-        self.assertIn('if (( MITIGATIONS_OFF )); then', SCRIPT)
         self.assertIn('info "CONFIG_CPU_MITIGATIONS=y:', SCRIPT)
-        self.assertIn('fail "CPU mitigation framework is compiled in and mitigations=off is not active"', SCRIPT)
 
-    def test_compiled_in_framework_is_not_a_failure_when_runtime_flag_is_active(self):
-        security = SCRIPT.split('section "Kernel security and CPU target"', 1)[1].split('if [[ -n "$CONFIG_FILE" ]]; then', 1)[0]
-        self.assertIn('if (( MITIGATIONS_OFF )); then', security)
-        self.assertNotIn('fail "CPU mitigation framework is compiled in (CONFIG_CPU_MITIGATIONS=y)', security)
+    def test_o2_is_expected_and_o3_is_not_reported_as_a_required_feature(self):
+        self.assertIn("config_enabled CONFIG_CC_OPTIMIZE_FOR_PERFORMANCE", SCRIPT)
+        self.assertIn("config_disabled CONFIG_CC_OPTIMIZE_FOR_PERFORMANCE_O3", SCRIPT)
+        self.assertIn("O2 selected; O3 is disabled as intended", SCRIPT)
+        self.assertNotIn('check_config CONFIG_CC_OPTIMIZE_FOR_PERFORMANCE_O3', SCRIPT)
+        self.assertIn("'CONFIG_CC_OPTIMIZE_FOR_PERFORMANCE=y'", PKGBUILD)
 
-    def test_build_config_is_not_misreported_as_runtime_activation(self):
+    def test_remaining_build_features_are_reported_as_build_configuration(self):
         self.assertIn("build configuration only; not proof of runtime activation", SCRIPT)
-        self.assertIn("compiled in; runtime activation is checked separately", SCRIPT)
-        self.assertIn("bore_sysctl=/proc/sys/kernel/sched_bore", SCRIPT)
-        self.assertIn("POC scheduler selector and LRU CAST have no verified runtime status interface", SCRIPT)
-        self.assertIn("O3, Clang LTO and Polly are compile/link-time properties", SCRIPT)
+        self.assertIn("check_config CONFIG_ZRAM", SCRIPT)
+        self.assertIn("check_config CONFIG_X86_AMD_PSTATE", SCRIPT)
+        self.assertIn("check_config CONFIG_LTO_CLANG_FULL", SCRIPT)
+        self.assertIn("check_config CONFIG_POLLY_CLANG", SCRIPT)
 
-    def test_adios_is_checked_on_every_eligible_block_device(self):
-        section = SCRIPT.split('section "ADIOS I/O scheduler (runtime)"', 1)[1].split('section "ZRAM / ZSWAP runtime activation"', 1)[0]
-        self.assertIn('[[ "$block_name" == loop* || "$block_name" == zram* ]] && continue', section)
-        self.assertIn('grep -q \'\\[adios\\]\'', section)
-        self.assertIn('adios_missing == 0', section)
+    def test_removed_feature_checks_are_absent(self):
+        removed = (
+            "CONFIG_SCHED_BORE",
+            "CONFIG_SCHED_POC_SELECTOR",
+            "CONFIG_LRU_CAST",
+            "CONFIG_CPU_IDLE_GOV_NAP",
+            "bore_sysctl",
+            "sched_policy",
+            "scx_lavd",
+            "adios",
+            "NAP cpuidle",
+            "ADIOS I/O scheduler",
+            "ZRAM-IR",
+        )
+        for token in removed:
+            with self.subTest(token=token):
+                self.assertNotIn(token, SCRIPT)
 
-    def test_zswap_is_disabled_and_zram_ir_is_retained(self):
-        self.assertIn("N|0) pass \"ZSWAP is disabled at runtime", SCRIPT)
-        self.assertIn("Y|1) fail \"ZSWAP is enabled at runtime (expected disabled for the CPU-focused profile)", SCRIPT)
-        self.assertNotIn("/sys/module/zswap/parameters/compressor", SCRIPT)
-        self.assertIn("/sys/module/zram", SCRIPT)
-        self.assertIn("/proc/sys/vm/zram_recomp_immediate", SCRIPT)
-        self.assertIn("'# CONFIG_ZSWAP is not set'", PKGBUILD)
-        self.assertNotIn("'CONFIG_ZSWAP=y'", PKGBUILD)
+    def test_zswap_is_disabled_and_zram_is_retained(self):
+        self.assertIn("config_disabled CONFIG_ZSWAP", SCRIPT)
+        self.assertIn("CONFIG_ZSWAP=n", SCRIPT)
         self.assertIn("# CONFIG_ZSWAP is not set", KERNEL_CONFIG)
         self.assertIn("CONFIG_ZRAM=m", KERNEL_CONFIG)
-        self.assertIn("CONFIG_ZRAM_MULTI_COMP=y", KERNEL_CONFIG)
 
-    def test_amd_pstate_checks_runtime_epp_values_and_boost(self):
-        self.assertIn('/sys/devices/system/cpu/amd_pstate/status', SCRIPT)
-        self.assertIn('energy_performance_preference', SCRIPT)
-        self.assertIn('/sys/module/amd_pstate/parameters/epp_boost', SCRIPT)
+    def test_amd_pstate_runtime_epp_checks_remain(self):
+        self.assertIn("/sys/devices/system/cpu/amd_pstate/status", SCRIPT)
+        self.assertIn("energy_performance_preference", SCRIPT)
+        self.assertIn("/sys/module/amd_pstate/parameters/epp_boost", SCRIPT)
 
 
 if __name__ == "__main__":
