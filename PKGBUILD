@@ -11,14 +11,19 @@ arch=(x86_64)
 license=(GPL-2.0-only)
 makedepends=(
   bc
+  bison
   cpio
+  flex
   gettext
   libelf
+  openssl
   pahole
   perl
   python
+  rsync
   tar
   xz
+  zstd
   git
   openssh
   llvm
