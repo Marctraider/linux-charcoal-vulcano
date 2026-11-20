@@ -1,4 +1,5 @@
 # Maintainer: Charcoal SteamOS kernel project
+# x86_64 uses the generic O2 selector; the O3 selector is ARC-only.
 
 pkgbase=linux-charcoal-73
 _tag=7.3.1-valve2
