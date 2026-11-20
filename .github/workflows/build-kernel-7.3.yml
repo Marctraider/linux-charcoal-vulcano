@@ -1,7 +1,9 @@
 name: Build SteamOS 3.10 Charcoal Linux 7.3
 
-# Kernel builds are manual-only. No push trigger: source and documentation changes never start a kernel build.
+# Temporary one-shot trigger for the corrected configuration validation run.
 on:
+  push:
+    branches: [master]
   workflow_dispatch:
     inputs:
       compile_kernel:
