@@ -126,7 +126,6 @@ _validate_kernel_config() {
     '# CONFIG_KFENCE is not set' \
     '# CONFIG_KMSAN is not set' \
     '# CONFIG_SLUB_DEBUG is not set' \
-    '# CONFIG_LOCKDEP is not set' \
     '# CONFIG_PROVE_LOCKING is not set' \
     '# CONFIG_DEBUG_ATOMIC_SLEEP is not set' \
     '# CONFIG_DEBUG_MUTEXES is not set' \
@@ -146,6 +145,13 @@ _validate_kernel_config() {
       return 1
     fi
   done
+
+  # LOCKDEP is a hidden Kconfig symbol on this target; when its dependency
+  # is unavailable, olddefconfig omits it instead of emitting a not-set line.
+  if grep -qxF 'CONFIG_LOCKDEP=y' .config; then
+    echo "ERROR: Linux 7.3 configuration unexpectedly enables CONFIG_LOCKDEP" >&2
+    return 1
+  fi
 }
 
 prepare() {
