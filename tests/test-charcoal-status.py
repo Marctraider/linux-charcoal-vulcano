@@ -35,7 +35,9 @@ class CharcoalStatusTests(unittest.TestCase):
         self.assertIn("grep -qw -- 'mitigations=off' /proc/cmdline", SCRIPT)
         self.assertIn("supported CPU mitigations disabled at runtime", SCRIPT)
         self.assertIn('info "CONFIG_CPU_MITIGATIONS=y:', SCRIPT)
-        self.assertIn("-march=znver2", SCRIPT)
+        self.assertIn("linux-charcoal-73-znver2@", SCRIPT)
+        self.assertIn("Zen 2 compiler target is UNVERIFIED", SCRIPT)
+        self.assertIn("grep -Fq", SCRIPT)
 
     def test_current_build_profile_is_reported(self):
         for check in (
