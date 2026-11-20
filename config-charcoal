@@ -55,7 +55,7 @@ CONFIG_FTRACE=y
 CONFIG_FTRACE_SYSCALLS=y
 # Dynamic function patching is unnecessary for LAVD syscall tracepoints.
 # Disabling it also removes FPROBE's DYNAMIC_FTRACE_WITH_ARGS prerequisite.
-CONFIG_DYNAMIC_FTRACE=n
+# CONFIG_DYNAMIC_FTRACE is not set
 CONFIG_FUNCTION_TRACER=n
 CONFIG_FUNCTION_GRAPH_TRACER=n
 CONFIG_KPROBES=n
