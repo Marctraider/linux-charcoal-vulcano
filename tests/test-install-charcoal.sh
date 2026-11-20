@@ -29,8 +29,13 @@ cat > "$tmp/bin/pacman" <<'PACMAN'
 case "$1" in
   -Qp)
     case "$2" in
-      *headers*) echo "linux-charcoal-73-headers ${TEST_PKGVER:-7.3.1.valve2.cc1-3}" ;;
-      *) echo "linux-charcoal-73 ${TEST_PKGVER:-7.3.1.valve2.cc1-3}" ;;
+      *headers*)
+        if [[ "${MISMATCH_HEADERS:-0}" == 1 ]]; then
+          echo "linux-charcoal-73-headers 7.3.1.valve2.cc1-4"
+        else
+          echo "linux-charcoal-73-headers 7.3.1.valve2.cc1-3"
+        fi ;;
+      *) echo "linux-charcoal-73 7.3.1.valve2.cc1-3" ;;
     esac ;;
   *) exit 2 ;;
 esac
@@ -58,7 +63,7 @@ PATH="$tmp/bin:$PATH" verify_kernel_package_identity package_files || fail "matc
 if BAD_BOOT_ID=1 PATH="$tmp/bin:$PATH" verify_kernel_package_identity package_files >/dev/null 2>&1; then
   fail "wrong Valve boot identity accepted"
 fi
-if TEST_PKGVER=7.3.1.valve2.cc1-4 PATH="$tmp/bin:$PATH" verify_kernel_package_identity package_files >/dev/null 2>&1; then
+if MISMATCH_HEADERS=1 PATH="$tmp/bin:$PATH" verify_kernel_package_identity package_files >/dev/null 2>&1; then
   fail "mismatched kernel and headers versions accepted"
 fi
 
@@ -71,7 +76,7 @@ printf 'headers package test\n' > "$tmp/packages/$HEADERS_ASSET"
 )
 verify_release_checksums "$tmp/packages" "$tmp/SHA256SUMS" || fail "valid package checksum manifest rejected"
 printf '0%.0s' {1..64} > "$tmp/SHA256SUMS"
-if verify_release_checksums "$tmp/packages" "$tmp/SHA256SUMS" >/dev/null 2>&1; then
+if ( verify_release_checksums "$tmp/packages" "$tmp/SHA256SUMS" ) >/dev/null 2>&1; then
   fail "invalid package checksums accepted"
 fi
 
