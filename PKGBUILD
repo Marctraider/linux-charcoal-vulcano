@@ -184,6 +184,8 @@ prepare() {
   scripts/config --disable FUNCTION_GRAPH_TRACER
   scripts/config --disable FPROBE
   scripts/config --disable STACK_TRACER
+  scripts/config --disable PROVE_LOCKING
+  scripts/config --disable LOCKDEP
   _validate_kernel_config
   _make_llvm -s kernelrelease > version
   echo "Prepared $pkgbase version $(<version)"
