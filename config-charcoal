@@ -14,7 +14,6 @@ CONFIG_CMDLINE="amd_pstate.epp_boost=1 mitigations=off"
 
 # O2 is the kernel's performance optimization level.
 CONFIG_CC_OPTIMIZE_FOR_PERFORMANCE=y
-# CONFIG_CC_OPTIMIZE_FOR_PERFORMANCE_O3 is not set
 
 # Retain the requested Clang toolchain optimizations.
 CONFIG_LTO_CLANG_FULL=y
