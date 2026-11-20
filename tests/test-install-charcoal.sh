@@ -5,10 +5,14 @@ INSTALLER="$ROOT/install-charcoal.sh"
 fail(){ echo "test failure: $*" >&2; exit 1; }
 bash -n "$INSTALLER" || fail "installer syntax"
 grep -Fxq 'pkgbase=linux-charcoal-73' "$ROOT/PKGBUILD" || fail "package identity"
-grep -Fq 'nap-6.12-v0.6.5.patch' "$ROOT/PKGBUILD" || fail "NAP patch"
-grep -Fq 'drm_sched_rr_default.patch' "$ROOT/PKGBUILD" || fail "DRM RR patch"
+source_block="$(sed -n '/^source=(/,/^)/p' "$ROOT/PKGBUILD")"
+for patch in vangogh_allow_higher_cpu_freq.patch latest-amd-pstate-epp-02-cache-order.patch latest-amd-pstate-epp-03-core.patch latest-clang-polly.patch; do
+  grep -Fq "$patch" <<< "$source_block" || fail "current kernel patch input $patch"
+done
+for excluded in nap-6.12-v0.6.5.patch drm_sched_rr_default.patch latest-bore.patch; do
+  if grep -Fq "$excluded" <<< "$source_block"; then fail "excluded patch input $excluded"; fi
+done
 if grep -Eiq 're-swappiness' "$ROOT/PKGBUILD"; then fail "re-swappiness must remain omitted"; fi
-grep -Fq 'nap-tools.tar.gz' "$ROOT/PKGBUILD" || fail "NAP tools package source"
 grep -Fq 'CONFIG_BTRFS_FS=y' "$ROOT/config-charcoal" || fail "Btrfs config"
 source "$INSTALLER"
 tmp="$(mktemp -d)"; trap 'rm -rf "$tmp"' EXIT
