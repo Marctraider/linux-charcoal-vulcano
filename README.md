@@ -38,22 +38,20 @@ Release ZIP SHA-256:
 **Changes from the stock Valve kernel**
 
 - **CPU scheduling**
-  - Valve's scheduler remains the default; the kernel's Valve EEVDF scheduling path is retained.
-  - sched_ext and BPF support are enabled for optional userspace schedulers such as `scx_lavd`; a separate userspace loader/runtime is required to activate one.
-  - LAVD is an optional scheduler candidate, not the active default scheduler.
+  - Valve's scheduler remains the default.
+  - sched_ext and BPF support are enabled for optional userspace schedulers such as `scx_lavd`.
+  - The installer installs the Charcoal kernel and headers; it does **not** install the separate `scx_lavd` userspace loader/runtime. LAVD must be installed and configured separately before it can be used.
 
 - **CPU frequency and platform**
   - AMD P-State EPP active mode and boost changes.
   - Higher Van Gogh CPU-frequency ceiling, up to 4.2 GHz; the higher limit must be enabled in UEFI.
-  - Valve's CPUIdle behavior is retained; the NAP governor is not included.
+  - Valve's CPUIdle behavior is retained.
 
 - **Memory and compression**
   - Valve's base memory-reclaim and ZRAM behavior is retained.
-  - No LRU CAST or ZRAM-IR overlays.
 
 - **Compiler and optimization**
   - Clang/LLVM toolchain.
-  - O2 optimization; the unavailable O3 configuration option is not required or claimed.
   - Full Clang LTO.
   - Polly.
   - AMD Zen 2 target via `-march=znver2`.
@@ -61,22 +59,6 @@ Release ZIP SHA-256:
 - **Steam Deck support**
   - Valve Steam Deck and Van Gogh platform support retained.
   - Valve boot and module identity retained.
-
-**Intentionally not included**
-
-The current patch set deliberately leaves out several experimental or additional components to keep the kernel close to Valve's base and limit unnecessary divergence:
-
-- BORE scheduler.
-- NAP CPUIdle governor.
-- LRU CAST memory-reclaim changes.
-- ZRAM-IR.
-- ADIOS I/O scheduler.
-- POC scheduler selector.
-- DRM RR scheduler changes.
-- Additional Zen patch sets.
-- ZSTD crypto changes.
-
-These components are not part of the active Charcoal kernel profile and are not required by its configuration or status checks.
 
 **Built-in kernel command line**
 
