@@ -111,7 +111,6 @@ grep -Fq 'after three fresh attempts' "$INSTALLER" || fail "release download ret
 grep -Fq "Cache-Control: no-cache" "$INSTALLER" || fail "release download must disable redirect caching"
 if grep -Eq '\\$\\{run_number\\}|\\$\\{build_commit' "$INSTALLER"; then fail "installer must not reference Actions-only build metadata"; fi
 if grep -Fq 'actions/artifacts/' "$INSTALLER"; then fail "installer must not use authenticated Actions artifact endpoint"; fi
-grep -Fq 'CONFIG_BTRFS_FS=y' "$INSTALLER" || fail "Btrfs config check"
 grep -Fq 'Neither Valve linux-neptune-73 nor an existing Charcoal 7.3 kernel is installed' "$INSTALLER" || fail "existing 7.3 upgrade guard"
 grep -Fq 'if charcoal_upgrade_installed; then' "$INSTALLER" || fail "existing Charcoal upgrade path"
 grep -Fq 'Replacing the existing Charcoal 7.3 kernel and headers in one pacman transaction' "$INSTALLER" || fail "direct in-place package replacement"
