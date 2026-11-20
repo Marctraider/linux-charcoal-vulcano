@@ -95,6 +95,7 @@ _validate_kernel_config() {
     '# CONFIG_DEBUG_INFO_BTF_MODULES is not set' \
     '# CONFIG_DEBUG_INFO_REDUCED is not set' \
     '# CONFIG_DEBUG_INFO_SPLIT is not set' \
+    '# CONFIG_STACK_TRACER is not set' \
     '# CONFIG_FUNCTION_TRACER is not set' \
     '# CONFIG_FUNCTION_GRAPH_TRACER is not set' \
     '# CONFIG_KPROBES is not set' \
