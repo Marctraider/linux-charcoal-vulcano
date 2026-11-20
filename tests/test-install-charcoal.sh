@@ -123,7 +123,8 @@ grep -Fq 'mkinitcpio -p linux-neptune-73' "$INSTALLER" || fail "initramfs genera
 grep -Fq 'verify_grub_entry' "$INSTALLER" || fail "GRUB verification"
 grep -Fq 'sudo charcoal-status' "$INSTALLER" || fail "post-reboot runtime status instruction"
 grep -Fq 'pacman -S --needed --noconfirm scx-scheds' "$INSTALLER" || fail "SteamOS LAVD userspace package installation"
-grep -Fq 'ExecStart=/usr/bin/scx_lavd --autopilot' "$INSTALLER" || fail "LAVD default scheduler service"
+grep -Fq 'ExecStart=/usr/bin/scx_lavd --performance' "$INSTALLER" || fail "LAVD must use fixed performance mode"
+if grep -Eq -- '--autopilot|--autopower' "$INSTALLER"; then fail "LAVD automatic mode flags must remain disabled"; fi
 grep -Fq 'systemctl enable charcoal-lavd.service' "$INSTALLER" || fail "persistent LAVD boot activation"
 grep -Fq 'charcoal-lavd.service' "$INSTALLER" || fail "LAVD service unit"
 if grep -Eq 'current_governor|nap-state\.service|nap-state-save\.timer|/sys/module/drm(_sched)?/parameters/sched_policy' "$INSTALLER"; then fail "installer must not report current runtime feature state"; fi
