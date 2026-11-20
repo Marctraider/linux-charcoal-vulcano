@@ -372,8 +372,39 @@ attempt_rollback() {
   verify_grub_entry || return 1
 }
 
+install_lavd_scheduler() {
+  local unit=/etc/systemd/system/charcoal-lavd.service
+
+  info "Installing the SteamOS sched_ext userspace scheduler package..."
+  if ! run_privileged pacman -S --needed --noconfirm scx-scheds; then
+    die "Could not install the SteamOS scx-scheds package; Charcoal is installed, but LAVD is not configured. Do not assume LAVD is active."
+  fi
+  run_privileged test -x /usr/bin/scx_lavd || die "scx-scheds installed without /usr/bin/scx_lavd"
+
+  info "Configuring LAVD as the persistent default scheduler..."
+  run_privileged install -d -m 0755 /etc/systemd/system
+  run_privileged tee "$unit" >/dev/null <<'UNIT'
+[Unit]
+Description=Charcoal default sched_ext LAVD scheduler
+After=systemd-modules-load.service
+ConditionPathExists=/sys/kernel/btf/vmlinux
+
+[Service]
+Type=simple
+ExecStart=/usr/bin/scx_lavd --autopilot
+Restart=on-failure
+RestartSec=2
+
+[Install]
+WantedBy=multi-user.target
+UNIT
+  run_privileged systemctl daemon-reload
+  run_privileged systemctl enable charcoal-lavd.service
+  info "LAVD is enabled for the next boot. Reboot into Charcoal Linux 7.3 to activate it."
+}
+
 main() {
-  for cmd in curl python3 zstd sha256sum mktemp pacman bsdtar awk grep tr find sort ln mv sleep date mkinitcpio steamos-readonly steamos-devmode; do require_command "$cmd"; done
+  for cmd in curl python3 zstd sha256sum mktemp pacman bsdtar awk grep tr find sort ln mv sleep date mkinitcpio steamos-readonly steamos-devmode systemctl tee; do require_command "$cmd"; done
   (( EUID == 0 )) || require_command sudo
   verify_host_platform || die "Unsupported SteamOS version; no packages were changed"
   WORKDIR="$(mktemp -d /dev/shm/charcoal-73-installer.XXXXXX)"
@@ -469,6 +500,8 @@ main() {
     fi
   fi
 
+  install_lavd_scheduler
+
   rm -rf -- "$package_dir"
   info "Generating the SteamOS 7.3 boot image and initramfs..."
   if ! run_privileged mkinitcpio -p linux-neptune-73; then
@@ -483,7 +516,7 @@ main() {
     die "Charcoal GRUB validation failed and automatic rollback was unsuccessful; do not reboot"
   fi
   info "Charcoal SteamOS 3.10 / Linux 7.3 release ${RELEASE_TAG} installed."
-  info "Runtime features have not been checked. Reboot into Charcoal Linux 7.3, then run: sudo charcoal-status"
+  info "LAVD userspace is installed and enabled for boot. Reboot into Charcoal Linux 7.3, then run: sudo charcoal-status"
 }
 
 diagnose_boot_state() {
