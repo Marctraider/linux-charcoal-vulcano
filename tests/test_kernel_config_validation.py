@@ -97,5 +97,28 @@ class KernelConfigValidationTests(unittest.TestCase):
             self.assertNotIn(name, source_block)
 
 
+    def test_current_patch_inputs_and_removed_features(self):
+        source_block = PKGBUILD.split("source=(", 1)[1].split(")", 1)[0]
+        for patch in (
+            "vangogh_allow_higher_cpu_freq.patch",
+            "latest-amd-pstate-epp-02-cache-order.patch",
+            "latest-amd-pstate-epp-03-core.patch",
+            "latest-clang-polly.patch",
+        ):
+            self.assertIn(patch, source_block)
+        for excluded in (
+            "nap-6.12-v0.6.5.patch",
+            "latest-bore.patch",
+            "drm_sched_rr_default.patch",
+            "latest-lru_cast.patch",
+            "latest-zram-ir.patch",
+            "latest-poc-selector.patch",
+            "latest-adios.patch",
+        ):
+            self.assertNotIn(excluded, source_block)
+        prepare_sources = (ROOT / "automation/prepare-sources-73.py").read_text()
+        self.assertNotIn('"bore": "latest-bore.patch"', prepare_sources)
+
+
 if __name__ == "__main__":
     unittest.main()
