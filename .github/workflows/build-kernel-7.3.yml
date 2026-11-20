@@ -93,7 +93,7 @@ jobs:
           restore_owner
           trap - EXIT
       - name: Compile and package Charcoal Linux 7.3
-        if: github.event_name == 'push' || inputs.compile_kernel
+        if: inputs.compile_kernel
         run: |
           set -Eeuo pipefail
           restore_owner() {
@@ -121,6 +121,7 @@ jobs:
             makepkg -ef --noprepare --noconfirm 2>&1 | tee logs/makepkg-73.log
             sha256sum linux-charcoal-73-*.pkg.tar.zst | tee logs/SHA256SUMS-73
           '
+          kill "$MONITOR_PID" 2>/dev/null || true
           restore_owner
           trap - EXIT
       - name: Save incremental Linux 7.3 build tree and compiler cache
