@@ -174,6 +174,16 @@ prepare() {
   scripts/kconfig/merge_config.sh -m ../config.x86_64 ../config-neptune ../config-charcoal
 
   _make_llvm olddefconfig
+
+  # Preserve the requested low-overhead tracing setup after Kconfig resolves
+  # all selects/defaults. In particular, olddefconfig may re-enable dynamic
+  # ftrace through another selected tracing option; LAVD only needs syscall
+  # tracepoints, not function-entry instrumentation.
+  scripts/config --disable DYNAMIC_FTRACE
+  scripts/config --disable FUNCTION_TRACER
+  scripts/config --disable FUNCTION_GRAPH_TRACER
+  scripts/config --disable FPROBE
+  scripts/config --disable STACK_TRACER
   _validate_kernel_config
   _make_llvm -s kernelrelease > version
   echo "Prepared $pkgbase version $(<version)"
