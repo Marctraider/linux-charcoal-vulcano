@@ -162,7 +162,7 @@ else
 fi
 
 printf '  Architecture reported by uname: %s\n' "$(uname -m)"
-if grep -Fq 'linux-charcoal-73-znver2@' /proc/version 2>/dev/null; then
+if [[ -n "$CHARCOAL_PACKAGE" && "${running_owner:-}" == "$CHARCOAL_PACKAGE" ]] && grep -Fq 'linux-charcoal-73-znver2@' /proc/version 2>/dev/null; then
   pass "Running kernel build metadata identifies the Zen 2-targeted Charcoal build"
   info "Build recipe force-includes a compile-time guard requiring Clang __znver2 and __tune_znver2__ in every kernel C translation unit"
 else
