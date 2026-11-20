@@ -38,7 +38,7 @@ Release ZIP SHA-256:
 **Changes from the stock Valve kernel**
 
 - **CPU scheduling**
-  - LAVD (`scx_lavd`) is configured as the default scheduler through a systemd service.
+  - LAVD (`scx_lavd`) is configured in **performance mode** (`--performance`) as the default scheduler through a systemd service. Autopilot and Autopower are not enabled.
   - The installer installs the SteamOS `scx-scheds` userspace package and enables the service to start LAVD automatically on boot.
   - The kernel provides sched_ext/BPF support; the userspace service loads LAVD and keeps it active across reboots.
 
