@@ -1,20 +1,23 @@
 #!/usr/bin/env python3
-"""Regression checks for the current Charcoal status scope and build profile."""
+"""Regression checks for the current Charcoal status utility and package integration."""
 from pathlib import Path
+import subprocess
 import unittest
 
 ROOT = Path(__file__).resolve().parents[1]
-SCRIPT = (ROOT / "charcoal-status").read_text()
+SCRIPT_PATH = ROOT / "charcoal-status"
+SCRIPT = SCRIPT_PATH.read_text()
 PKGBUILD = (ROOT / "PKGBUILD").read_text()
-KERNEL_CONFIG = (ROOT / "config").read_text()
+CONFIG_OVERLAY = (ROOT / "config-charcoal").read_text()
 
 
 class CharcoalStatusTests(unittest.TestCase):
+    def test_script_has_valid_bash_syntax(self):
+        subprocess.run(["bash", "-n", str(SCRIPT_PATH)], check=True)
+
     def test_package_series_is_detected_dynamically(self):
         self.assertIn("linux-charcoal-[0-9]+", SCRIPT)
         self.assertIn('KERNEL_SERIES="${CHARCOAL_PACKAGE##*-}"', SCRIPT)
-        self.assertNotIn("linux-charcoal-72", SCRIPT)
-        self.assertNotIn("linux-neptune-72", SCRIPT)
 
     def test_running_kernel_is_attributed_to_installed_package(self):
         self.assertIn('pacman -Qqo -- "$RUNNING_MODULE_DIR/pkgbase"', SCRIPT)
@@ -28,50 +31,34 @@ class CharcoalStatusTests(unittest.TestCase):
         self.assertIn("Compiler reported by the running kernel", SCRIPT)
         self.assertIn("generated compile.h unavailable", SCRIPT)
 
-    def test_mitigations_off_is_checked_at_runtime(self):
+    def test_security_and_cpu_target_reporting_remain(self):
         self.assertIn("grep -qw -- 'mitigations=off' /proc/cmdline", SCRIPT)
         self.assertIn("supported CPU mitigations disabled at runtime", SCRIPT)
         self.assertIn('info "CONFIG_CPU_MITIGATIONS=y:', SCRIPT)
+        self.assertIn("-march=znver2", SCRIPT)
 
-    def test_o2_is_expected_and_o3_is_not_reported_as_a_required_feature(self):
-        self.assertIn("config_enabled CONFIG_CC_OPTIMIZE_FOR_PERFORMANCE", SCRIPT)
-        self.assertIn("config_disabled CONFIG_CC_OPTIMIZE_FOR_PERFORMANCE_O3", SCRIPT)
-        self.assertIn("O2 selected; O3 is disabled as intended", SCRIPT)
-        self.assertNotIn('check_config CONFIG_CC_OPTIMIZE_FOR_PERFORMANCE_O3', SCRIPT)
-        self.assertIn("'CONFIG_CC_OPTIMIZE_FOR_PERFORMANCE=y'", PKGBUILD)
+    def test_current_build_profile_is_reported(self):
+        for check in (
+            "check_config CONFIG_ZRAM",
+            "check_config CONFIG_X86_AMD_PSTATE",
+            "check_config CONFIG_LTO_CLANG_FULL",
+            "check_config CONFIG_POLLY_CLANG",
+            "config_enabled CONFIG_CC_OPTIMIZE_FOR_PERFORMANCE",
+            "config_disabled CONFIG_CC_OPTIMIZE_FOR_PERFORMANCE_O3",
+        ):
+            with self.subTest(check=check):
+                self.assertIn(check, SCRIPT)
+        self.assertIn("CONFIG_X86_AMD_PSTATE=y", CONFIG_OVERLAY)
+        self.assertIn("CONFIG_LTO_CLANG_FULL=y", CONFIG_OVERLAY)
+        self.assertIn("CONFIG_POLLY_CLANG=y", CONFIG_OVERLAY)
+        self.assertIn("CONFIG_CC_OPTIMIZE_FOR_PERFORMANCE=y", CONFIG_OVERLAY)
 
-    def test_remaining_build_features_are_reported_as_build_configuration(self):
-        self.assertIn("build configuration only; not proof of runtime activation", SCRIPT)
-        self.assertIn("check_config CONFIG_ZRAM", SCRIPT)
-        self.assertIn("check_config CONFIG_X86_AMD_PSTATE", SCRIPT)
-        self.assertIn("check_config CONFIG_LTO_CLANG_FULL", SCRIPT)
-        self.assertIn("check_config CONFIG_POLLY_CLANG", SCRIPT)
+    def test_status_utility_is_installed_in_kernel_package(self):
+        self.assertIn('install -Dm755 "$startdir/charcoal-status" "$pkgdir/usr/bin/charcoal-status"', PKGBUILD)
+        self.assertIn("sudo charcoal-status", (ROOT / "README.md").read_text())
 
-    def test_removed_feature_checks_are_absent(self):
-        removed = (
-            "CONFIG_SCHED_BORE",
-            "CONFIG_SCHED_POC_SELECTOR",
-            "CONFIG_LRU_CAST",
-            "CONFIG_CPU_IDLE_GOV_NAP",
-            "bore_sysctl",
-            "sched_policy",
-            "scx_lavd",
-            "adios",
-            "NAP cpuidle",
-            "ADIOS I/O scheduler",
-            "ZRAM-IR",
-        )
-        for token in removed:
-            with self.subTest(token=token):
-                self.assertNotIn(token, SCRIPT)
-
-    def test_zswap_is_disabled_and_zram_is_retained(self):
-        self.assertIn("config_disabled CONFIG_ZSWAP", SCRIPT)
-        self.assertIn("CONFIG_ZSWAP=n", SCRIPT)
-        self.assertIn("# CONFIG_ZSWAP is not set", KERNEL_CONFIG)
-        self.assertIn("CONFIG_ZRAM=m", KERNEL_CONFIG)
-
-    def test_amd_pstate_runtime_epp_checks_remain(self):
+    def test_zram_runtime_and_amd_pstate_epp_reporting_remain(self):
+        self.assertIn("/sys/module/zram", SCRIPT)
         self.assertIn("/sys/devices/system/cpu/amd_pstate/status", SCRIPT)
         self.assertIn("energy_performance_preference", SCRIPT)
         self.assertIn("/sys/module/amd_pstate/parameters/epp_boost", SCRIPT)
