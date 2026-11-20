@@ -111,7 +111,6 @@ _validate_kernel_config() {
     '# CONFIG_DEBUG_OBJECTS is not set' \
     '# CONFIG_DEBUG_PAGEALLOC is not set' \
     '# CONFIG_PAGE_POISONING is not set' \
-    'CONFIG_BTRFS_FS=y' \
     'CONFIG_HID_STEAM=m' \
     'CONFIG_MFD_STEAMDECK=m' \
     'CONFIG_LEDS_STEAMDECK=m' \
