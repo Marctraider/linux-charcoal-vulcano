@@ -39,7 +39,6 @@ class CharcoalStatusTests(unittest.TestCase):
 
     def test_current_build_profile_is_reported(self):
         for check in (
-            "check_config CONFIG_ZRAM",
             "check_config CONFIG_X86_AMD_PSTATE",
             "check_config CONFIG_LTO_CLANG_FULL",
             "check_config CONFIG_POLLY_CLANG",
@@ -53,12 +52,25 @@ class CharcoalStatusTests(unittest.TestCase):
         self.assertIn("CONFIG_POLLY_CLANG=y", CONFIG_OVERLAY)
         self.assertIn("CONFIG_CC_OPTIMIZE_FOR_PERFORMANCE=y", CONFIG_OVERLAY)
 
+
+    def test_zram_detection_is_removed(self):
+        self.assertNotIn("CONFIG_ZRAM", SCRIPT)
+        self.assertNotIn("/sys/module/zram", SCRIPT)
+        self.assertNotIn("/sys/block/zram", SCRIPT)
+
+    def test_lavd_runtime_and_performance_mode_are_checked(self):
+        self.assertIn('systemctl is-active --quiet "$LAVD_SERVICE"', SCRIPT)
+        self.assertIn('systemctl show --property=MainPID --value "$LAVD_SERVICE"', SCRIPT)
+        self.assertIn('"/proc/$LAVD_PID/cmdline"', SCRIPT)
+        self.assertIn('" --performance "', SCRIPT)
+        self.assertIn('/sys/kernel/sched_ext/root/ops', SCRIPT)
+        self.assertIn('active scheduler: $SCHED_EXT_OPS', SCRIPT)
+
     def test_status_utility_is_installed_in_kernel_package(self):
         self.assertIn('install -Dm755 "$startdir/charcoal-status" "$pkgdir/usr/bin/charcoal-status"', PKGBUILD)
         self.assertIn("sudo charcoal-status", (ROOT / "README.md").read_text())
 
-    def test_zram_runtime_and_amd_pstate_epp_reporting_remain(self):
-        self.assertIn("/sys/module/zram", SCRIPT)
+    def test_amd_pstate_epp_reporting_remains(self):
         self.assertIn("/sys/devices/system/cpu/amd_pstate/status", SCRIPT)
         self.assertIn("energy_performance_preference", SCRIPT)
         self.assertIn("/sys/module/amd_pstate/parameters/epp_boost", SCRIPT)
