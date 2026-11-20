@@ -1,7 +1,9 @@
 name: Build SteamOS 3.10 Charcoal Linux 7.3
 
-# Kernel builds are manual-only. No push trigger: source and documentation changes never start a kernel build.
+# Temporary one-shot trigger for the full Linux 7.3 compile.
 on:
+  push:
+    branches: [master]
   workflow_dispatch:
     inputs:
       compile_kernel:
@@ -77,7 +79,7 @@ jobs:
           restore_owner
           trap - EXIT
       - name: Compile and package Charcoal Linux 7.3
-        if: inputs.compile_kernel
+        if: github.event_name == 'push' || inputs.compile_kernel
         run: |
           set -Eeuo pipefail
           restore_owner() {
