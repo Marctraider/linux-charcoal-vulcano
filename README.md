@@ -47,9 +47,10 @@ Release ZIP SHA-256:
   - Higher Van Gogh CPU-frequency ceiling, up to 4.2 GHz; the higher limit must be enabled in UEFI.
 
 - **Compiler and optimization**
-  - Clang/LLVM toolchain.
-  - Full Clang LTO.
-  - Polly.
+  - Clang/LLVM is the kernel compiler toolchain.
+  - Full Clang LTO is enabled as a separate link-time optimization mode.
+  - Polly is an LLVM loop-optimization pass supplied by the LLVM `polly` package; it is not a linker or a standalone kernel patch.
+  - The small `latest-clang-polly.patch` adds the Linux Kbuild/Kconfig integration needed to load `LLVMPolly.so` and pass Polly's optimization flags during kernel compilation. It does not contain the Polly optimizer itself.
   - AMD Zen 2 target via `-march=znver2`.
 
 - **Steam Deck support**
