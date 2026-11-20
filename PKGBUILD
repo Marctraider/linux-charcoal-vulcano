@@ -4,7 +4,7 @@ pkgbase=linux-charcoal-73
 _tag=7.3.1-valve2
 _ver=1
 pkgver=${_tag//-/.}.cc$_ver
-pkgrel=7
+pkgrel=8
 pkgdesc='SteamOS 3.10 Linux 7.3 kernel for Steam Deck'
 url="https://steamdeck-packages.steamos.cloud/archlinux-mirror/sources/jupiter-3.10/"
 arch=(x86_64)
@@ -90,7 +90,6 @@ _validate_kernel_config() {
     'CONFIG_CMDLINE="amd_pstate.epp_boost=1 mitigations=off"' \
     '# CONFIG_CMDLINE_OVERRIDE is not set' \
     'CONFIG_CC_OPTIMIZE_FOR_PERFORMANCE=y' \
-    '# CONFIG_CC_OPTIMIZE_FOR_PERFORMANCE_O3 is not set' \
     'CONFIG_LTO_CLANG_FULL=y' \
     'CONFIG_POLLY_CLANG=y' \
     'CONFIG_SCHED_CLASS_EXT=y' \
@@ -203,8 +202,8 @@ prepare() {
   scripts/config --disable STACK_TRACER
   scripts/config --disable PROVE_LOCKING
   scripts/config --disable LOCKDEP
+  # On x86_64 the O3 selector is ARC-specific and absent; enforce generic O2.
   scripts/config --enable CC_OPTIMIZE_FOR_PERFORMANCE
-  scripts/config --disable CC_OPTIMIZE_FOR_PERFORMANCE_O3
   _make_llvm olddefconfig
   _validate_kernel_config
   _make_llvm -s kernelrelease > version
