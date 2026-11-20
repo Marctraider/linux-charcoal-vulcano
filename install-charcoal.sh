@@ -412,7 +412,7 @@ main() {
 
   info "Downloading the SHA256SUMS file for release ${RELEASE_TAG}..."
   download_file "$RELEASE_BASE_URL/$CHECKSUM_ASSET" "$sums_path"
-  printf '%s  %s\\n' "$CHECKSUM_ASSET_SHA256" "$sums_path" | sha256sum --check --status \\
+  printf '%s  %s\n' "$CHECKSUM_ASSET_SHA256" "$sums_path" | sha256sum --check --status \
     || die "Published SHA256SUMS file failed its pinned checksum; no packages were changed"
 
   info "Downloading the Charcoal kernel and matching headers packages..."
