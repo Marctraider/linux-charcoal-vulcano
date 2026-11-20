@@ -1,10 +1,7 @@
 name: Build SteamOS 3.10 Charcoal Linux 7.3
 
-# Temporary one-time trigger for the corrected O2 validation build; restore manual-only after queueing.
+# Kernel builds are manual-only. No push trigger: source and documentation changes never start a kernel build.
 on:
-  push:
-    branches: [master]
-    paths: [PKGBUILD]
   workflow_dispatch:
     inputs:
       compile_kernel:
