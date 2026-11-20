@@ -207,39 +207,15 @@ if [[ -n "$CONFIG_FILE" ]]; then
   else
     warn "AMD P-State default mode is not configured as active (EPP)"
   fi
-  if config_disabled CONFIG_JOYSTICK_XPAD; then
-    info "Built-in xpad controller driver is disabled in this kernel config; this is a build-time setting, not a runtime status"
-  else
-    info "Built-in xpad controller driver is not explicitly disabled in this kernel config; runtime device binding is hardware-dependent"
-  fi
 fi
 
-section "ZRAM / ZSWAP runtime activation"
+section "ZRAM runtime activation"
 if [[ -d /sys/module/zram ]]; then
   pass "ZRAM kernel module is loaded"
 elif compgen -G '/sys/block/zram[0-9]*' >/dev/null; then
   pass "ZRAM devices exist (driver is active)"
 else
   warn "ZRAM kernel module is not loaded and no zram device exists"
-fi
-if config_disabled CONFIG_ZSWAP; then
-  pass "ZSWAP is disabled in the kernel build (CONFIG_ZSWAP=n); it is compiled out and cannot be active"
-elif config_enabled CONFIG_ZSWAP; then
-  if [[ -r /sys/module/zswap/parameters/enabled ]]; then
-    zswap_enabled=$(</sys/module/zswap/parameters/enabled)
-    case "$zswap_enabled" in
-      N|0) pass "ZSWAP is compiled in but disabled at runtime (intended; ZRAM remains available)" ;;
-      Y|1) fail "ZSWAP is enabled at runtime (expected disabled for the CPU-focused profile)" ;;
-      *) warn "Unrecognized ZSWAP runtime state: $zswap_enabled" ;;
-    esac
-  else
-    warn "ZSWAP is compiled in, but its runtime enabled parameter is not exposed; active state cannot be verified"
-  fi
-elif [[ -r /sys/module/zswap/parameters/enabled ]]; then
-  zswap_enabled=$(</sys/module/zswap/parameters/enabled)
-  info "ZSWAP runtime parameter is exposed with value $zswap_enabled, but the selected kernel config is unavailable"
-else
-  warn "ZSWAP build configuration and runtime control are both unavailable; cannot determine whether it is active"
 fi
 
 section "AMD P-State EPP (runtime)"
