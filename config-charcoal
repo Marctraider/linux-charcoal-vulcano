@@ -45,10 +45,11 @@ CONFIG_DEBUG_INFO_BTF=y
 # CONFIG_DEBUG_INFO_SPLIT is not set
 # CONFIG_DEBUG_INFO_NONE is not set
 
-# Stack tracing selects FUNCTION_TRACER in Kconfig, which overrides a direct
-# FUNCTION_TRACER=n request during olddefconfig. Disable the selector as well.
-# Retain syscall tracepoints for LAVD futex tracking without function tracing.
+# Stack tracing selects FUNCTION_TRACER. FPROBE also selects
+# FUNCTION_GRAPH_TRACER (and can override its dependency), so disable both
+# selectors. Retain syscall tracepoints for LAVD futex tracking.
 # CONFIG_STACK_TRACER is not set
+# CONFIG_FPROBE is not set
 CONFIG_TRACEPOINTS=y
 CONFIG_FTRACE=y
 CONFIG_FTRACE_SYSCALLS=y
