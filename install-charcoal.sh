@@ -252,45 +252,9 @@ verify_kernel_package_identity() {
     return 1
   }
 
-  local -a config_entries=()
-  mapfile -t config_entries < <(bsdtar -tf "$headers_pkg" | grep -E '^(\./)?usr/lib/modules/[^/]+/build/\.config$' || true)
-
-  [[ ${#config_entries[@]} -eq 1 ]] || { info "error: headers package must contain exactly one resolved kernel .config"; return 1; }
-  local config_data expected
-  config_data="$(bsdtar -xOf "$headers_pkg" "${config_entries[0]}")" || { info "error: cannot read packaged kernel configuration"; return 1; }
-  for expected in \
-    'CONFIG_CPU_MITIGATIONS=y' \
-    'CONFIG_X86_AMD_PSTATE=y' \
-    'CONFIG_X86_AMD_PSTATE_DEFAULT_MODE=3' \
-    'CONFIG_CMDLINE_BOOL=y' \
-    'CONFIG_CMDLINE="amd_pstate.epp_boost=1 mitigations=off"' \
-    '# CONFIG_CMDLINE_OVERRIDE is not set' \
-    'CONFIG_CC_OPTIMIZE_FOR_PERFORMANCE=y' \
-    '# CONFIG_CC_OPTIMIZE_FOR_PERFORMANCE_O3 is not set' \
-    'CONFIG_LTO_CLANG_FULL=y' \
-    'CONFIG_POLLY_CLANG=y' \
-    'CONFIG_SCHED_CLASS_EXT=y' \
-    'CONFIG_BPF=y' \
-    'CONFIG_BPF_SYSCALL=y' \
-    'CONFIG_PERF_EVENTS=y' \
-    'CONFIG_UPROBES=y' \
-    'CONFIG_UPROBE_EVENTS=y' \
-    'CONFIG_BPF_EVENTS=y' \
-    'CONFIG_BPF_JIT=y' \
-    'CONFIG_BPF_JIT_ALWAYS_ON=y' \
-    'CONFIG_BPF_JIT_DEFAULT_ON=y' \
-    'CONFIG_DEBUG_INFO_DWARF5=y' \
-    'CONFIG_DEBUG_INFO_BTF=y' \
-    'CONFIG_TRACEPOINTS=y' \
-    'CONFIG_FTRACE=y' \
-    'CONFIG_FTRACE_SYSCALLS=y' \
-    'CONFIG_NTSYNC=y'; do
-    if ! grep -qxF "$expected" <<< "$config_data"; then
-      info "error: build package configuration is missing $expected"
-      return 1
-    fi
-  done
-  grep -qxF '# CONFIG_ZSWAP is not set' <<< "$config_data" || { info "error: build package has not disabled ZSWAP"; return 1; }
+  # Deliberately do not inspect or enforce any kernel .config options here.
+  # Kernel configuration choices (including O2/O3, sched_ext, BPF, LTO,
+  # Polly, AMD P-State, mitigations, and ZSWAP) must not block installation.
 }
 
 charcoal_upgrade_installed() {
