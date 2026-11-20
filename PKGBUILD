@@ -122,8 +122,7 @@ _validate_kernel_config() {
     'CONFIG_LEDS_STEAMDECK=m' \
     'CONFIG_SENSORS_STEAMDECK=m' \
     'CONFIG_LEDS_VALVE=m' \
-    'CONFIG_JOYSTICK_XBOX_GIP=m' \
-; do
+    'CONFIG_JOYSTICK_XBOX_GIP=m'; do
     if ! grep -qxF "$expected" .config; then
       echo "ERROR: Linux 7.3 configuration requires $expected after olddefconfig" >&2
       return 1
