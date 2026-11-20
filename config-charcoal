@@ -3,7 +3,8 @@
 
 CONFIG_EXPERT=y
 
-# AMD Zen 2 / Van Gogh target is passed to Clang by PKGBUILD as -march=znver2.
+# AMD Zen 2 / Van Gogh is enforced with -march=znver2 -mtune=znver2.
+# PKGBUILD force-includes zen2-compile-check.h in every kernel C translation unit.
 # Keep AMD P-State active mode and the requested EPP boost / mitigation defaults.
 CONFIG_X86_AMD_PSTATE=y
 CONFIG_X86_AMD_PSTATE_DEFAULT_MODE=3
@@ -12,8 +13,9 @@ CONFIG_CMDLINE_BOOL=y
 CONFIG_CMDLINE="amd_pstate.epp_boost=1 mitigations=off"
 # CONFIG_CMDLINE_OVERRIDE is not set
 
-# O2 is the kernel's performance optimization level.
+# O2 is intentional: compact hot-path code is the safer default for a branch-heavy kernel.
 CONFIG_CC_OPTIMIZE_FOR_PERFORMANCE=y
+# CONFIG_CC_OPTIMIZE_FOR_PERFORMANCE_O3 is not set
 
 # Full Clang LTO is a linker/build setting. Polly is an LLVM loop-optimization
 # pass; CONFIG_POLLY_CLANG enables the Kbuild integration supplied by
