@@ -1,33 +1,7 @@
 name: Recover stuck Actions runs
 
 on:
-  push:
-    branches:
-      - master
-      - automation/recover-actions-queue-20260806
-    paths:
-      - '.github/workflows/recover-actions-runs.yml'
-      - 'automation/recover-actions-runs.py'
-      - 'tests/test-recover-actions-runs.py'
-      - 'automation/actions-recovery-trigger.txt'
-  pull_request:
-    branches:
-      - master
-  issue_comment:
-    types:
-      - created
   workflow_dispatch:
-    inputs:
-      run_ids:
-        description: Optional comma-separated workflow run IDs
-        required: false
-        default: ''
-        type: string
-      stale_minutes:
-        description: Minimum age before attempting deletion
-        required: true
-        default: '60'
-        type: string
 
 permissions:
   actions: write
