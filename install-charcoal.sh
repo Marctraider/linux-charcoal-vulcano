@@ -391,7 +391,7 @@ ConditionPathExists=/sys/kernel/btf/vmlinux
 
 [Service]
 Type=simple
-ExecStart=/usr/bin/scx_lavd --autopilot
+ExecStart=/usr/bin/scx_lavd --performance
 Restart=on-failure
 RestartSec=2
 
