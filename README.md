@@ -1,5 +1,7 @@
 # Charcoal — tuned SteamOS 3.10 / Linux 7.3 kernel
 
+**Status: In development.** Charcoal is still being refined to find the best balance between staying as close as practical to Valve's kernel and including only changes with a credible likelihood of delivering measurable improvements. The goal is a deliberately small, focused patch set rather than adding every available kernel tweak. Performance claims remain subject to testing on Steam Deck hardware.
+
 Charcoal is a tuned Linux kernel for the **Steam Deck**, based on Valve's SteamOS 3.10 kernel source. It aims to improve gaming performance and frametime stability through a focused set of CPU-frequency, scheduler-extension, and compiler optimizations, while retaining Valve's Steam Deck platform support and boot identity.
 
 This repository contains the source integration, configuration, patch inputs, build recipe, validation tooling, and the published SteamOS 3.10 / Linux 7.3 Charcoal package.
@@ -36,19 +38,22 @@ Release ZIP SHA-256:
 **Changes from the stock Valve kernel**
 
 - **CPU scheduling**
-  - Valve's scheduler remains the default.
-  - sched_ext and BPF support are enabled for optional userspace schedulers such as `scx_lavd`; a separate userspace loader is required to activate one.
+  - Valve's scheduler remains the default; the kernel's Valve EEVDF scheduling path is retained.
+  - sched_ext and BPF support are enabled for optional userspace schedulers such as `scx_lavd`; a separate userspace loader/runtime is required to activate one.
+  - LAVD is an optional scheduler candidate, not the active default scheduler.
 
 - **CPU frequency and platform**
   - AMD P-State EPP active mode and boost changes.
   - Higher Van Gogh CPU-frequency ceiling, up to 4.2 GHz; the higher limit must be enabled in UEFI.
+  - Valve's CPUIdle behavior is retained; the NAP governor is not included.
 
 - **Memory and compression**
-  - Valve's base memory-reclaim and ZRAM behavior; no LRU CAST or ZRAM-IR overlays.
+  - Valve's base memory-reclaim and ZRAM behavior is retained.
+  - No LRU CAST or ZRAM-IR overlays.
 
 - **Compiler and optimization**
   - Clang/LLVM toolchain.
-  - O2 optimization.
+  - O2 optimization; the unavailable O3 configuration option is not required or claimed.
   - Full Clang LTO.
   - Polly.
   - AMD Zen 2 target via `-march=znver2`.
@@ -56,6 +61,22 @@ Release ZIP SHA-256:
 - **Steam Deck support**
   - Valve Steam Deck and Van Gogh platform support retained.
   - Valve boot and module identity retained.
+
+**Intentionally not included**
+
+The current patch set deliberately leaves out several experimental or additional components to keep the kernel close to Valve's base and limit unnecessary divergence:
+
+- BORE scheduler.
+- NAP CPUIdle governor.
+- LRU CAST memory-reclaim changes.
+- ZRAM-IR.
+- ADIOS I/O scheduler.
+- POC scheduler selector.
+- DRM RR scheduler changes.
+- Additional Zen patch sets.
+- ZSTD crypto changes.
+
+These components are not part of the active Charcoal kernel profile and are not required by its configuration or status checks.
 
 **Built-in kernel command line**
 
