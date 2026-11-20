@@ -45,8 +45,10 @@ CONFIG_DEBUG_INFO_BTF=y
 # CONFIG_DEBUG_INFO_SPLIT is not set
 # CONFIG_DEBUG_INFO_NONE is not set
 
-# Retain syscall tracepoints for LAVD futex tracking. The tracing framework
-# has no per-function instrumentation because function tracers remain disabled.
+# Stack tracing selects FUNCTION_TRACER in Kconfig, which overrides a direct
+# FUNCTION_TRACER=n request during olddefconfig. Disable the selector as well.
+# Retain syscall tracepoints for LAVD futex tracking without function tracing.
+# CONFIG_STACK_TRACER is not set
 CONFIG_TRACEPOINTS=y
 CONFIG_FTRACE=y
 CONFIG_FTRACE_SYSCALLS=y
