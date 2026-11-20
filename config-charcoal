@@ -15,7 +15,9 @@ CONFIG_CMDLINE="amd_pstate.epp_boost=1 mitigations=off"
 # O2 is the kernel's performance optimization level.
 CONFIG_CC_OPTIMIZE_FOR_PERFORMANCE=y
 
-# Retain the requested Clang toolchain optimizations.
+# Full Clang LTO is a linker/build setting. Polly is an LLVM loop-optimization
+# pass; CONFIG_POLLY_CLANG enables the Kbuild integration supplied by
+# latest-clang-polly.patch. The Polly implementation is provided by LLVM's polly package.
 CONFIG_LTO_CLANG_FULL=y
 CONFIG_POLLY_CLANG=y
 
