@@ -45,18 +45,15 @@ CONFIG_DEBUG_INFO_BTF=y
 # CONFIG_DEBUG_INFO_SPLIT is not set
 # CONFIG_DEBUG_INFO_NONE is not set
 
-# Stack tracing selects FUNCTION_TRACER. FPROBE also selects
-# FUNCTION_GRAPH_TRACER (and can override its dependency), so disable both
-# selectors. Retain syscall tracepoints for LAVD futex tracking.
-# CONFIG_STACK_TRACER is not set
-# CONFIG_FPROBE is not set
+# LAVD needs function tracing in addition to syscall tracepoints for futex tracking.
+# Keep dynamic ftrace available, but leave higher-level tracing/debug tools disabled.
 CONFIG_TRACEPOINTS=y
 CONFIG_FTRACE=y
 CONFIG_FTRACE_SYSCALLS=y
-# Dynamic function patching is unnecessary for LAVD syscall tracepoints.
-# Disabling it also removes FPROBE's DYNAMIC_FTRACE_WITH_ARGS prerequisite.
-# CONFIG_DYNAMIC_FTRACE is not set
-# CONFIG_FUNCTION_TRACER is not set
+CONFIG_FUNCTION_TRACER=y
+CONFIG_DYNAMIC_FTRACE=y
+# CONFIG_STACK_TRACER is not set
+# CONFIG_FPROBE is not set
 # CONFIG_FUNCTION_GRAPH_TRACER is not set
 # CONFIG_KPROBES is not set
 # CONFIG_PROFILING is not set
