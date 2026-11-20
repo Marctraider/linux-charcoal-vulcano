@@ -124,11 +124,11 @@ grep -Fq 'verify_grub_entry' "$INSTALLER" || fail "GRUB verification"
 grep -Fq 'sudo charcoal-status' "$INSTALLER" || fail "post-reboot runtime status instruction"
 if grep -Eq 'current_governor|nap-state\.service|nap-state-save\.timer|/sys/module/drm(_sched)?/parameters/sched_policy' "$INSTALLER"; then fail "installer must not report current runtime feature state"; fi
 STATUS="$ROOT/charcoal-status"
-grep -Fq 'CONFIG_CPU_IDLE_GOV_NAP CONFIG_CPU_IDLE_GOV_TEO' "$STATUS" || fail "status checks NAP and TEO fallback"
-grep -Fq '/sys/module/drm_sched/parameters/sched_policy' "$STATUS" || fail "status checks DRM RR runtime policy under the drm_sched module"
 grep -Fq -- '-march=znver2' "$STATUS" || fail "status reports the Steam Deck Zen 2 build target"
+for excluded in CONFIG_SCHED_BORE CONFIG_SCHED_POC_SELECTOR CONFIG_LRU_CAST CONFIG_CPU_IDLE_GOV_NAP ZRAM-IR ADIOS sched_policy; do
+  if grep -Fq "$excluded" "$STATUS"; then fail "status must not check excluded feature $excluded"; fi
+done
 grep -Fq 'config_disabled CONFIG_ZSWAP' "$STATUS" || fail "status recognizes ZSWAP compiled out"
-grep -Fq 'NAP userspace service configuration helper' "$STATUS" || fail "status checks NAP userspace integration"
 grep -Fq 'steamos-3.10-linux-7.3-build-82' "$ROOT/README.md" || fail "README documents published build-82 release"
 grep -Fq 'this installer requires SteamOS 3.10' "$INSTALLER" || fail "installer documents SteamOS 3.10 platform requirement"
 if grep -Eq 'is_pacman_disk_space_error|confirm_stock_removal|pacman -Rdd.*linux-neptune-73' "$INSTALLER"; then fail "installer must not auto-remove the stock kernel to recover disk space"; fi
