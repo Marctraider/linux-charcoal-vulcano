@@ -13,7 +13,9 @@ class KernelConfigValidationTests(unittest.TestCase):
     def test_o2_zen2_and_clang_optimizations(self):
         self.assertIn("polly", PKGBUILD.split("makedepends=(", 1)[1].split(")", 1)[0])
         self.assertIn("CONFIG_POLLY_CLANG", PKGBUILD)
-        self.assertIn("LLVMPolly.so", PKGBUILD)
+        polly_patch = (ROOT / "7.2-clang-polly-from-cachyos-7.1.patch").read_text()
+        self.assertIn("LLVMPolly.so", polly_patch)
+        self.assertIn("-mllvm -polly", polly_patch)
         self.assertIn("-march=znver2", PKGBUILD)
         self.assertIn("CONFIG_CC_OPTIMIZE_FOR_PERFORMANCE=y", CONFIG)
         self.assertIn("CONFIG_LTO_CLANG_FULL=y", CONFIG)
