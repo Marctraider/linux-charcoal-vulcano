@@ -1,15 +1,7 @@
 name: Validate SteamOS 3.10 Linux 7.3 patches (NAP experiment)
 
 on:
-  push:
-    branches:
-      - experiment/steamos-3.10-linux-7.3-nap
-    paths:
-      - PKGBUILD
-      - config-charcoal
-      - "*.patch"
-      - automation/**
-      - .github/workflows/validate-patches-7.3.yml
+  workflow_dispatch:
 
 permissions:
   contents: read
