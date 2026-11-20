@@ -197,7 +197,7 @@ with zipfile.ZipFile(archive) as z:
  if len(names)!=len(set(names)): raise SystemExit("Duplicate artifact paths")
  ps=[x for x in infos if "/" not in x.filename and pkg.fullmatch(x.filename)]
  if len(ps)!=2 or sum("-headers-" in x.filename for x in ps)!=1: raise SystemExit("Artifact must contain kernel and headers packages")
- required={"logs/SHA256SUMS-73","logs/makepkg-73.log","logs/prepare-73.log","logs/nap-tools-upstream.json"}
+ required={"logs/SHA256SUMS-73","logs/makepkg-73.log","logs/prepare-73.log"}
  if not required.issubset(names): raise SystemExit("Artifact missing build provenance")
  sums={}
  for line in z.read("logs/SHA256SUMS-73").decode().splitlines():
@@ -206,8 +206,8 @@ with zipfile.ZipFile(archive) as z:
   sums[m.group(2)]=m.group(1).lower()
  if set(sums)!={x.filename for x in ps}: raise SystemExit("Artifact manifest/package mismatch")
  prepare_log=z.read("logs/prepare-73.log").decode("utf-8",errors="replace")
- if "int drm_sched_policy = DRM_SCHED_POLICY_RR;" not in prepare_log: raise SystemExit("Build log does not prove the DRM Round Robin source default was applied")
- if "nap-6.12-v0.6.5.patch" not in prepare_log: raise SystemExit("Build log does not prove the pinned NAP patch was applied")
+ for patch in ("vangogh_allow_higher_cpu_freq.patch","latest-amd-pstate-epp-02-cache-order.patch","latest-amd-pstate-epp-03-core.patch","latest-clang-polly.patch"):
+  if patch not in prepare_log: raise SystemExit("Build log does not prove current patch input was applied: "+patch)
  dest.mkdir(mode=0o700)
  for x in ps:
   if PurePosixPath(x.filename).name!=x.filename or stat.S_ISLNK(x.external_attr>>16): raise SystemExit("Unsafe package path")
@@ -264,18 +264,31 @@ verify_kernel_package_identity() {
   local config_data expected
   config_data="$(bsdtar -xOf "$headers_pkg" "${config_entries[0]}")" || { info "error: cannot read packaged kernel configuration"; return 1; }
   for expected in \
-    'CONFIG_CPU_IDLE_GOV_NAP=y' \
-    'CONFIG_CPU_IDLE_GOV_TEO=y' \
-    'CONFIG_CMDLINE="amd_pstate.epp_boost=1 mitigations=off cpuidle.governor=nap"' \
-    'CONFIG_BTRFS_FS=y' \
-    'CONFIG_ZRAM=m' \
-    'CONFIG_ZSMALLOC=m' \
-    'CONFIG_ZRAM_DEF_COMP_LZ4=y' \
-    'CONFIG_ZRAM_MULTI_COMP=y' \
-    'CONFIG_ZRAM_DEF_COMP="lz4"' \
-    'CONFIG_SCHED_BORE=y' \
-    'CONFIG_SCHED_POC_SELECTOR=y' \
-    'CONFIG_LRU_CAST=y' \
+    'CONFIG_CPU_MITIGATIONS=y' \
+    'CONFIG_X86_AMD_PSTATE=y' \
+    'CONFIG_X86_AMD_PSTATE_DEFAULT_MODE=3' \
+    'CONFIG_CMDLINE_BOOL=y' \
+    'CONFIG_CMDLINE="amd_pstate.epp_boost=1 mitigations=off"' \
+    '# CONFIG_CMDLINE_OVERRIDE is not set' \
+    'CONFIG_CC_OPTIMIZE_FOR_PERFORMANCE=y' \
+    '# CONFIG_CC_OPTIMIZE_FOR_PERFORMANCE_O3 is not set' \
+    'CONFIG_LTO_CLANG_FULL=y' \
+    'CONFIG_POLLY_CLANG=y' \
+    'CONFIG_SCHED_CLASS_EXT=y' \
+    'CONFIG_BPF=y' \
+    'CONFIG_BPF_SYSCALL=y' \
+    'CONFIG_PERF_EVENTS=y' \
+    'CONFIG_UPROBES=y' \
+    'CONFIG_UPROBE_EVENTS=y' \
+    'CONFIG_BPF_EVENTS=y' \
+    'CONFIG_BPF_JIT=y' \
+    'CONFIG_BPF_JIT_ALWAYS_ON=y' \
+    'CONFIG_BPF_JIT_DEFAULT_ON=y' \
+    'CONFIG_DEBUG_INFO_DWARF5=y' \
+    'CONFIG_DEBUG_INFO_BTF=y' \
+    'CONFIG_TRACEPOINTS=y' \
+    'CONFIG_FTRACE=y' \
+    'CONFIG_FTRACE_SYSCALLS=y' \
     'CONFIG_NTSYNC=y'; do
     if ! grep -qxF "$expected" <<< "$config_data"; then
       info "error: build package configuration is missing $expected"
