@@ -6,7 +6,7 @@ import unittest
 ROOT = Path(__file__).resolve().parents[1]
 SCRIPT = (ROOT / "charcoal-status").read_text()
 PKGBUILD = (ROOT / "PKGBUILD").read_text()
-KERNEL_CONFIG = (ROOT / "config-charcoal").read_text()
+KERNEL_CONFIG = (ROOT / "config").read_text()
 
 
 class CharcoalStatusTests(unittest.TestCase):
