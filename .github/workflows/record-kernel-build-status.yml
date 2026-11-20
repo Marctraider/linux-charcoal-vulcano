@@ -1,13 +1,7 @@
 name: Record Charcoal kernel build status
 
 on:
-  workflow_run:
-    workflows:
-      - Build latest SteamOS Charcoal kernel
-    types:
-      - requested
-      - in_progress
-      - completed
+  workflow_dispatch:
 
 permissions:
   contents: write
