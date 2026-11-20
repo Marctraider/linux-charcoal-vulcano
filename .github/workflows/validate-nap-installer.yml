@@ -1,16 +1,6 @@
 name: Validate SteamOS 3.10 Charcoal Linux 7.3 installer
 
 on:
-  push:
-    branches:
-      - master
-    paths:
-      - 'install-charcoal.sh'
-      - 'PKGBUILD'
-      - 'tests/test-install-charcoal.sh'
-      - 'charcoal-status'
-      - 'README.md'
-      - '.github/workflows/validate-nap-installer.yml'
   workflow_dispatch:
 
 permissions:
