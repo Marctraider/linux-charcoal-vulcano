@@ -1,21 +1,7 @@
 name: Validate CPUIdle governor tools integration
 
 on:
-  push:
-    branches:
-      - master
-    paths:
-      - 'nap-tools/**'
-      - 'PKGBUILD'
-      - 'linux-charcoal-73.install'
-      - 'NAP-TOOLS.md'
-      - 'nap-tools.tar.gz'
-      - 'tests/test_nap_tools.py'
-      - 'tests/test_nap_tools_refresh.py'
-      - 'install-charcoal.sh'
-      - 'README.md'
-      - 'tests/test-install-charcoal.sh'
-      - '.github/workflows/validate-nap-tools-7.3.yml'
+  workflow_dispatch:
 
 permissions:
   contents: read
