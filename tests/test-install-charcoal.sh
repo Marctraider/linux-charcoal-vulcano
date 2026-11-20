@@ -51,15 +51,87 @@ case "$1" in
       printf '%s\n' "$module_dir/pkgbase" "$module_dir/vmlinuz"
     fi ;;
   -xOf)
-    if [[ "${BAD_BOOT_ID:-0}" == 1 ]]; then echo "wrong-pkgbase"; else echo "linux-neptune-73"; fi ;;
+    if [[ "$3" == */build/.config ]]; then
+      if [[ "${BAD_CONFIG:-0}" == 1 ]]; then
+        grep -vFx 'CONFIG_SCHED_CLASS_EXT=y' "$TEST_CONFIG"
+      else
+        cat "$TEST_CONFIG"
+      fi
+    elif [[ "${BAD_BOOT_ID:-0}" == 1 ]]; then echo "wrong-pkgbase"
+    else echo "linux-neptune-73"
+    fi ;;
   *) exit 2 ;;
 esac
 BSDTAR
 chmod +x "$tmp/bin/pacman" "$tmp/bin/bsdtar"
+cat > "$tmp/actions-build.config" <<'CONFIG'
+CONFIG_CPU_MITIGATIONS=y
+CONFIG_X86_AMD_PSTATE=y
+CONFIG_X86_AMD_PSTATE_DEFAULT_MODE=3
+CONFIG_CMDLINE_BOOL=y
+CONFIG_CMDLINE="amd_pstate.epp_boost=1 mitigations=off"
+# CONFIG_CMDLINE_OVERRIDE is not set
+CONFIG_CC_OPTIMIZE_FOR_PERFORMANCE=y
+CONFIG_LTO_CLANG_FULL=y
+CONFIG_POLLY_CLANG=y
+CONFIG_SCHED_CLASS_EXT=y
+CONFIG_BPF=y
+CONFIG_BPF_SYSCALL=y
+CONFIG_PERF_EVENTS=y
+CONFIG_UPROBES=y
+CONFIG_UPROBE_EVENTS=y
+CONFIG_BPF_EVENTS=y
+CONFIG_BPF_JIT=y
+CONFIG_BPF_JIT_ALWAYS_ON=y
+CONFIG_BPF_JIT_DEFAULT_ON=y
+CONFIG_DEBUG_KERNEL=y
+CONFIG_DEBUG_INFO=y
+CONFIG_DEBUG_INFO_DWARF5=y
+CONFIG_DEBUG_INFO_BTF=y
+CONFIG_TRACEPOINTS=y
+CONFIG_FTRACE=y
+CONFIG_FTRACE_SYSCALLS=y
+# CONFIG_DYNAMIC_FTRACE is not set
+# CONFIG_DEBUG_INFO_BTF_MODULES is not set
+# CONFIG_DEBUG_INFO_REDUCED is not set
+# CONFIG_DEBUG_INFO_SPLIT is not set
+# CONFIG_STACK_TRACER is not set
+# CONFIG_FPROBE is not set
+# CONFIG_FUNCTION_TRACER is not set
+# CONFIG_FUNCTION_GRAPH_TRACER is not set
+# CONFIG_KPROBES is not set
+# CONFIG_PROFILING is not set
+# CONFIG_KASAN is not set
+# CONFIG_KCSAN is not set
+# CONFIG_UBSAN is not set
+# CONFIG_KFENCE is not set
+# CONFIG_KMSAN is not set
+# CONFIG_SLUB_DEBUG is not set
+# CONFIG_LOCKDEP is not set
+# CONFIG_PROVE_LOCKING is not set
+# CONFIG_DEBUG_ATOMIC_SLEEP is not set
+# CONFIG_DEBUG_MUTEXES is not set
+# CONFIG_DEBUG_SPINLOCK is not set
+# CONFIG_DEBUG_LIST is not set
+# CONFIG_DEBUG_OBJECTS is not set
+# CONFIG_DEBUG_PAGEALLOC is not set
+# CONFIG_PAGE_POISONING is not set
+CONFIG_HID_STEAM=m
+CONFIG_MFD_STEAMDECK=m
+CONFIG_LEDS_STEAMDECK=m
+CONFIG_SENSORS_STEAMDECK=m
+CONFIG_LEDS_VALVE=m
+CONFIG_JOYSTICK_XBOX_GIP=m
+CONFIG
 touch "$tmp/linux-charcoal-73.pkg.tar.zst" "$tmp/linux-charcoal-73-headers.pkg.tar.zst"
 package_files=("$tmp/linux-charcoal-73.pkg.tar.zst" "$tmp/linux-charcoal-73-headers.pkg.tar.zst")
 
-PATH="$tmp/bin:$PATH" verify_kernel_package_identity package_files || fail "matching package boot/header identity rejected"
+TEST_CONFIG="$tmp/actions-build.config" PATH="$tmp/bin:$PATH" verify_kernel_package_identity package_files || fail "matching Actions-built package config and boot/header identity rejected"
+if BAD_CONFIG=1 TEST_CONFIG="$tmp/actions-build.config" PATH="$tmp/bin:$PATH" verify_kernel_package_identity package_files >/dev/null 2>&1; then
+  fail "package missing required sched_ext config accepted"
+fi
+grep -Fxq 'CONFIG_CC_OPTIMIZE_FOR_PERFORMANCE=y' "$tmp/actions-build.config" || fail "O2 Actions config fixture"
+if grep -Fxq 'CONFIG_CC_OPTIMIZE_FOR_PERFORMANCE_O3=y' "$tmp/actions-build.config"; then fail "O3 unexpectedly enabled in O2 Actions build"; fi
 if BAD_BOOT_ID=1 PATH="$tmp/bin:$PATH" verify_kernel_package_identity package_files >/dev/null 2>&1; then
   fail "wrong Valve boot identity accepted"
 fi
