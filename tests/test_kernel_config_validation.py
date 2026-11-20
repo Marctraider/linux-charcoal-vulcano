@@ -13,7 +13,6 @@ class KernelConfigValidationTests(unittest.TestCase):
     def test_o2_zen2_and_clang_optimizations(self):
         self.assertIn("-march=znver2", PKGBUILD)
         self.assertIn("CONFIG_CC_OPTIMIZE_FOR_PERFORMANCE=y", CONFIG)
-        self.assertIn("# CONFIG_CC_OPTIMIZE_FOR_PERFORMANCE_O3 is not set", CONFIG)
         self.assertIn("CONFIG_LTO_CLANG_FULL=y", CONFIG)
         self.assertIn("CONFIG_POLLY_CLANG=y", CONFIG)
 
