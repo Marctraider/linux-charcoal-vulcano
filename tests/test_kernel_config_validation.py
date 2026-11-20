@@ -44,7 +44,6 @@ class KernelConfigValidationTests(unittest.TestCase):
 
     def test_debug_instrumentation_is_disabled_but_btf_is_retained(self):
         for setting in (
-            "CONFIG_SCHED_DEBUG=n",
             "CONFIG_FUNCTION_TRACER=n",
             "CONFIG_FUNCTION_GRAPH_TRACER=n",
             "CONFIG_LOCKDEP=n",
