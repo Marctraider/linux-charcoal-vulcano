@@ -1,9 +1,9 @@
 From: Charcoal SteamOS 7.2 port
-Subject: [PATCH] kbuild: port Clang Polly support from CachyOS 7.1 to Valve 7.2
+Subject: [PATCH] kbuild: add Clang Polly integration for Valve Linux 7.3
 
 Upstream: CachyOS/kernel-patches 7.1/misc/0001-clang-polly.patch
 Upstream-Git-Blob: 1bbdcf9d668ed14bcb5a22235b645469b0d45cf4
-Port-Target: evlaV/linux-integration 7.2.0-rc3-valve-beta1
+Port-History: adapted from the CachyOS 7.1 Polly integration for Valve's 7.2 tree; applied by the Charcoal Linux 7.3 build
 
 The 7.1 patch no longer applies verbatim because the top-level Makefile Rust
 flag block moved in Linux 7.2. Preserve the same Polly Kbuild/Kconfig behavior
