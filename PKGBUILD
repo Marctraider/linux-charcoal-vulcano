@@ -75,7 +75,6 @@ _validate_kernel_config() {
     'CONFIG_CC_OPTIMIZE_FOR_PERFORMANCE=y' \
     'CONFIG_LTO_CLANG_FULL=y' \
     'CONFIG_POLLY_CLANG=y' \
-
     'CONFIG_SCHED_CLASS_EXT=y' \
     'CONFIG_BPF=y' \
     'CONFIG_BPF_SYSCALL=y' \
