@@ -44,6 +44,7 @@ jobs:
           bash -n install-charcoal.sh
           bash -n linux-charcoal-73.install
           bash tests/test-install-charcoal.sh
+          python3 tests/test-charcoal-status.py
           python3 tests/test_kernel_config_validation.py
           python3 -m py_compile automation/prepare-sources-73.py automation/port-amd-pstate-epp-boost-73.py
       - name: Prepare exact Valve source and pinned patch inputs
