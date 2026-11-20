@@ -73,7 +73,6 @@ _validate_kernel_config() {
     'CONFIG_CMDLINE="amd_pstate.epp_boost=1 mitigations=off"' \
     '# CONFIG_CMDLINE_OVERRIDE is not set' \
     'CONFIG_CC_OPTIMIZE_FOR_PERFORMANCE=y' \
-    '# CONFIG_CC_OPTIMIZE_FOR_PERFORMANCE_O3 is not set' \
     'CONFIG_LTO_CLANG_FULL=y' \
     'CONFIG_POLLY_CLANG=y' \
     'CONFIG_SCHED_CLASS_EXT=y' \
