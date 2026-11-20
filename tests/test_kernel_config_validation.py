@@ -43,7 +43,7 @@ class KernelConfigValidationTests(unittest.TestCase):
             "CONFIG_TRACEPOINTS=y",
             "CONFIG_FTRACE=y",
             "CONFIG_FTRACE_SYSCALLS=y",
-            "CONFIG_DYNAMIC_FTRACE=n",
+            "# CONFIG_DYNAMIC_FTRACE is not set",
         ):
             self.assertIn(setting, CONFIG)
             self.assertIn(f"'{setting}'", PKGBUILD)
