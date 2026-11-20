@@ -90,7 +90,7 @@
       "blob": "8fa50bc034b9772bf06f11f747442dd2e2c531f9"
     },
     {
-      "name": "clang_polly_7_2_port",
+      "name": "clang_polly_7_3_kbuild_integration",
       "local_path": "7.2-clang-polly-from-cachyos-7.1.patch",
       "blob": "d3a71028305be1aa89af013394fe35bee78387e2"
     },
