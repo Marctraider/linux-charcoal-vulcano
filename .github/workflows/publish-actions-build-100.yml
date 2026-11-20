@@ -57,7 +57,7 @@ jobs:
           test -s dist/logs/SHA256SUMS-73
           mv dist/logs/SHA256SUMS-73 dist/SHA256SUMS
 
-          mapfile -t packages < <(find dist -maxdepth 1 -type f -name 'linux-charcoal-*.pkg.tar.zst' -printf '%f\\n' | sort)
+          mapfile -t packages < <(find dist -maxdepth 1 -type f -name 'linux-charcoal-*.pkg.tar.zst' -printf '%f\n' | sort)
           [[ ${#packages[@]} -eq 2 ]]
           [[ "${packages[0]}" == "$kernel" ]]
           [[ "${packages[1]}" == "$headers" ]]
@@ -81,13 +81,13 @@ jobs:
           grep -Fxq "$module_dir/vmlinuz" <<< "$kernel_listing"
           grep -Fxq "$module_dir/build/Makefile" <<< "$headers_listing"
           grep -Fxq "$module_dir/build/version" <<< "$headers_listing"
-          boot_identity="$(bsdtar -xOf "dist/$kernel" "$marker" | tr -d '\\r\\n')"
+          boot_identity="$(bsdtar -xOf "dist/$kernel" "$marker" | tr -d '\r\n')"
           [[ "$boot_identity" == "linux-neptune-73" ]]
 
-          printf 'Verified kernel package: %s\\n' "$kernel"
-          printf 'Verified headers package: %s\\n' "$headers"
-          printf 'Verified module release: %s\\n' "${module_dir##*/}"
-          printf 'Verified SteamOS boot identity: %s\\n' "$boot_identity"
+          printf 'Verified kernel package: %s\n' "$kernel"
+          printf 'Verified headers package: %s\n' "$headers"
+          printf 'Verified module release: %s\n' "${module_dir##*/}"
+          printf 'Verified SteamOS boot identity: %s\n' "$boot_identity"
           cat dist/SHA256SUMS
 
       - name: Publish Build 100 release assets
