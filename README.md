@@ -25,7 +25,18 @@ sudo bash install-charcoal.sh
 
 The installer downloads the public GitHub Release asset directly. It does not use the GitHub Actions artifact API or require a GitHub token. Release redirects are fetched with cache-busting URLs and retried on transient authorization responses to avoid stale signed-URL HTTP 401 errors.
 
-After installation, reboot into Charcoal Linux 7.3 and run:
+After installation, reboot into Charcoal Linux 7.3 and run the status utility.
+
+Build 100 predates the utility being bundled in the kernel package. Until a package built from the updated PKGBUILD is published, fetch and run the script directly:
+
+```bash
+curl -fL --retry 3 \
+  https://raw.githubusercontent.com/Marctraider/linux-charcoal-vulcano/master/charcoal-status \
+  -o /tmp/charcoal-status
+sudo bash /tmp/charcoal-status
+```
+
+The next kernel package build installs it as `/usr/bin/charcoal-status`, after which it can be run with:
 
 ```bash
 sudo charcoal-status
