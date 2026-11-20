@@ -407,7 +407,7 @@ main() {
   local charcoal_installed=0
   if charcoal_upgrade_installed; then
     charcoal_installed=1
-    info "Existing Charcoal 7.3 detected; replacing it directly with the NAP packages."
+    info "Existing Charcoal 7.3 detected; replacing it directly with the current Charcoal 7.3 packages."
   else
     if ! pacman -Qq linux-neptune-73 >/dev/null 2>&1; then
       die "Neither Valve linux-neptune-73 nor an existing Charcoal 7.3 kernel is installed; refusing an unknown boot setup"
@@ -488,7 +488,7 @@ main() {
 
 diagnose_boot_state() {
   local failures=0 grub="" marker_found=0
-  info "Read-only SteamOS 3.10 / Charcoal Linux 7.3 NAP diagnostic"
+  info "Read-only SteamOS 3.10 / Charcoal Linux 7.3 diagnostic"
   if verify_host_platform; then info "PASS: SteamOS 3.10"; else info "FAIL: unsupported host"; failures=$((failures+1)); fi
   if pacman -Q linux-charcoal-73 2>/dev/null; then info "PASS: Charcoal 7.3 installed"
   elif pacman -Q linux-neptune-73 2>/dev/null; then info "INFO: Valve 7.3 installed; Charcoal not installed"
