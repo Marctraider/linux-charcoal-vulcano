@@ -1,12 +1,7 @@
 name: Build SteamOS 3.10 Charcoal Linux 7.3
 
-# One-time master build trigger for the Zen 2 / LAVD configuration update.
-# Remove this push trigger after the run is queued; retain manual dispatch.
+# Kernel builds are manual-only. No push trigger: source and documentation changes never start a kernel build.
 on:
-  push:
-    branches: [master]
-    paths:
-      - 'PKGBUILD'
   workflow_dispatch:
     inputs:
       compile_kernel:
