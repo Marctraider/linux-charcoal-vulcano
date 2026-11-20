@@ -1,0 +1,114 @@
+name: Publish verified Actions-built Charcoal Linux 7.3 Build 100
+
+on:
+  push:
+    branches:
+      - master
+    paths:
+      - .github/workflows/publish-actions-build-100.yml
+
+permissions:
+  actions: read
+  contents: write
+
+concurrency:
+  group: charcoal-linux-7.3-build-100-release
+  cancel-in-progress: false
+
+jobs:
+  publish:
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Verify the successful source build run
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -Eeuo pipefail
+          run_json="$(curl --fail --silent --show-error \
+            -H "Authorization: Bearer $GH_TOKEN" \
+            -H "Accept: application/vnd.github+json" \
+            https://api.github.com/repos/Marctraider/linux-charcoal-vulcano/actions/runs/44712932152)"
+          jq -e '
+            .conclusion == "success" and
+            .head_branch == "master" and
+            .head_sha == "f4fd0112f7268bcd6de1ab198caf0d67b97a6dff" and
+            .path == ".github/workflows/build-kernel-7.3.yml"
+          ' <<< "$run_json" >/dev/null
+
+      - name: Download the exact successful Actions artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: charcoal-steamos-3.10-linux-7.3-build-99
+          run-id: 44712932152
+          github-token: ${{ github.token }}
+          repository: ${{ github.repository }}
+          path: dist
+
+      - name: Verify packages, checksum manifest, and SteamOS boot identity
+        run: |
+          set -Eeuo pipefail
+          sudo apt-get update
+          sudo apt-get install -y zstd libarchive-tools
+
+          kernel="linux-charcoal-73-7.3.1.valve2.cc1-3-x86_64.pkg.tar.zst"
+          headers="linux-charcoal-73-headers-7.3.1.valve2.cc1-3-x86_64.pkg.tar.zst"
+          test -s "dist/$kernel"
+          test -s "dist/$headers"
+          test -s dist/logs/SHA256SUMS-73
+          mv dist/logs/SHA256SUMS-73 dist/SHA256SUMS
+
+          mapfile -t packages < <(find dist -maxdepth 1 -type f -name 'linux-charcoal-*.pkg.tar.zst' -printf '%f\\n' | sort)
+          [[ ${#packages[@]} -eq 2 ]]
+          [[ "${packages[0]}" == "$kernel" ]]
+          [[ "${packages[1]}" == "$headers" ]]
+          (cd dist && sha256sum --check --strict SHA256SUMS)
+
+          kernel_info="$(bsdtar -xOf "dist/$kernel" .PKGINFO)"
+          headers_info="$(bsdtar -xOf "dist/$headers" .PKGINFO)"
+          grep -Fxq 'pkgname = linux-charcoal-73' <<< "$kernel_info"
+          grep -Fxq 'pkgname = linux-charcoal-73-headers' <<< "$headers_info"
+          grep -Fxq 'pkgver = 7.3.1.valve2.cc1-3' <<< "$kernel_info"
+          grep -Fxq 'pkgver = 7.3.1.valve2.cc1-3' <<< "$headers_info"
+          grep -Fxq 'arch = x86_64' <<< "$kernel_info"
+          grep -Fxq 'arch = x86_64' <<< "$headers_info"
+
+          mapfile -t markers < <(bsdtar -tf "dist/$kernel" | grep -E '^usr/lib/modules/[^/]+/pkgbase$')
+          [[ ${#markers[@]} -eq 1 ]]
+          marker="${markers[0]}"
+          module_dir="${marker%/pkgbase}"
+          kernel_listing="$(bsdtar -tf "dist/$kernel")"
+          headers_listing="$(bsdtar -tf "dist/$headers")"
+          grep -Fxq "$module_dir/vmlinuz" <<< "$kernel_listing"
+          grep -Fxq "$module_dir/build/Makefile" <<< "$headers_listing"
+          grep -Fxq "$module_dir/build/version" <<< "$headers_listing"
+          boot_identity="$(bsdtar -xOf "dist/$kernel" "$marker" | tr -d '\\r\\n')"
+          [[ "$boot_identity" == "linux-neptune-73" ]]
+
+          printf 'Verified kernel package: %s\\n' "$kernel"
+          printf 'Verified headers package: %s\\n' "$headers"
+          printf 'Verified module release: %s\\n' "${module_dir##*/}"
+          printf 'Verified SteamOS boot identity: %s\\n' "$boot_identity"
+          cat dist/SHA256SUMS
+
+      - name: Publish Build 100 release assets
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: steamos-3.10-linux-7.3-build-100
+          name: SteamOS 3.10 Charcoal Linux 7.3 — Build 100 (GitHub Actions)
+          target_commitish: master
+          draft: false
+          prerelease: false
+          make_latest: true
+          fail_on_unmatched_files: true
+          body: |
+            Kernel and matching headers built successfully by GitHub Actions run [#99](https://github.com/Marctraider/linux-charcoal-vulcano/actions/runs/44712932152).
+
+            Source commit: `f4fd0112f7268bcd6de1ab198caf0d67b97a6dff`
+
+            Both package hashes and package metadata were verified before publication. The kernel package retains the SteamOS boot/module identity `linux-neptune-73`; the headers package matches the kernel's exact module release directory.
+
+            The installer verifies package checksums and boot identity. It does not gate installation on kernel `.config` options.
+          files: |
+            dist/linux-charcoal-73-7.3.1.valve2.cc1-3-x86_64.pkg.tar.zst
+            dist/linux-charcoal-73-headers-7.3.1.valve2.cc1-3-x86_64.pkg.tar.zst
+            dist/SHA256SUMS
