@@ -83,6 +83,7 @@ class KernelConfigValidationTests(unittest.TestCase):
         self.assertIn("scripts/config --disable STACK_TRACER", PKGBUILD)
         self.assertIn("scripts/config --disable PROVE_LOCKING", PKGBUILD)
         self.assertIn("scripts/config --disable LOCKDEP", PKGBUILD)
+        self.assertNotIn("'CONFIG_NTSYNC=y'", PKGBUILD)
         self.assertIn("# CONFIG_DEBUG_INFO_BTF_MODULES is not set", CONFIG)
         self.assertNotIn("CONFIG_DEBUG_INFO_NONE=y", CONFIG)
         self.assertNotIn("CONFIG_DEBUG_INFO_REDUCED=y", CONFIG)
