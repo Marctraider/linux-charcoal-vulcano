@@ -3,12 +3,6 @@ name: Build latest SteamOS Charcoal kernel
 # Manual-only SteamOS stable kernel build. Repository pushes and pull requests must not start kernel builds.
 on:
   workflow_dispatch:
-    inputs:
-      publish_release:
-        description: Publish packages as the latest stable release (master only)
-        required: true
-        default: true
-        type: boolean
 
 permissions:
   contents: write
