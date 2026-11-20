@@ -20,10 +20,10 @@ OUTPUTS = {
     "vangogh_freq_4_2ghz": "vangogh_allow_higher_cpu_freq.patch",
     "amd_pstate_epp_02_cache_order": "latest-amd-pstate-epp-02-cache-order.patch",
     "amd_pstate_epp_03_core": "latest-amd-pstate-epp-03-core.patch",
-    "clang_polly_7_2_port": "latest-clang-polly.patch",
+    "clang_polly_7_3_kbuild_integration": "latest-clang-polly.patch",
 }
 LOCAL_OVERRIDES = {
-    "clang_polly_7_2_port": "7.2-clang-polly-from-cachyos-7.1.patch",
+    "clang_polly_7_3_kbuild_integration": "7.2-clang-polly-from-cachyos-7.1.patch",
 }
 
 
