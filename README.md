@@ -8,9 +8,11 @@ This repository contains the source integration, configuration, patch inputs, bu
 
 ## Install the published SteamOS 3.10 build
 
-The current published package is **Build 82**: [download the Build 82 ZIP](https://github.com/Marctraider/linux-charcoal-vulcano/releases/download/steamos-3.10-linux-7.3-build-82/charcoal-steamos-3.10-linux-7.3-build-82.zip) or [view the release details](https://github.com/Marctraider/linux-charcoal-vulcano/releases/tag/steamos-3.10-linux-7.3-build-82).
+The current published package is **Build 100**, built by GitHub Actions from source commit `f4fd0112f7268bcd6de1ab198caf0d67b97a6dff`: [view the Build 100 release and packages](https://github.com/Marctraider/linux-charcoal-vulcano/releases/tag/steamos-3.10-linux-7.3-build-100).
 
-The installer script is maintained on `master` and is configured to install the published Build 82 release. It supports a clean SteamOS 3.10 installation when the stock Valve `linux-neptune-73` kernel and its existing boot files are present, as well as an upgrade from an existing Charcoal 7.3 installation. It verifies the release archive and both package checksums before changing packages. On a clean install, it removes the matching Valve `linux-neptune-73` kernel packages before installing Charcoal to free space on the root partition. If the exact Valve package archives are present in pacman's cache, it stages them for rollback; otherwise automatic package rollback may not be available. A successful clean install therefore replaces the stock kernel rather than keeping it as a fallback.
+The release contains the kernel package, its matching headers package, and a `SHA256SUMS` manifest. The installer on `master` downloads these exact assets and verifies the manifest and both package hashes before changing packages. It also checks that the kernel package retains Valve's `linux-neptune-73` boot identity and that the headers match the kernel's module release directory. No kernel `.config` options are used as installation gates.
+
+The installer supports a clean SteamOS 3.10 installation when the stock Valve `linux-neptune-73` kernel and its existing boot files are present, as well as an upgrade from an existing Charcoal 7.3 installation. On a clean install, it replaces the stock kernel rather than keeping it as a fallback. If the exact previous package archives are present in pacman's cache, it stages them for rollback; otherwise automatic package rollback may not be available.
 
 Download and run the installer from Desktop Mode:
 
@@ -29,11 +31,13 @@ After installation, reboot into Charcoal Linux 7.3 and run:
 sudo charcoal-status
 ```
 
-Release ZIP SHA-256:
+Release SHA256SUMS file SHA-256:
 
 ```text
-225e5126487b56d6923b58b7f361eb7f158639e35a90e996ee96bae4d524de69
+d08ca13f1afa536db076c9a8db48b6af4acf4d26b8cb1c3b5bbe1b37e6fdb72c
 ```
+
+Package SHA-256 values are published in the [release SHA256SUMS asset](https://github.com/Marctraider/linux-charcoal-vulcano/releases/download/steamos-3.10-linux-7.3-build-100/SHA256SUMS).
 
 **Changes from the stock Valve kernel**
 
