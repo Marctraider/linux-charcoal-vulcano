@@ -1,6 +1,9 @@
 # Charcoal — tuned SteamOS 3.10 / Linux 7.3 kernel
 
-**Status: In development.** Charcoal is still being refined to find the best balance between staying as close as practical to Valve's kernel and including only changes with a credible likelihood of delivering measurable improvements. The goal is a deliberately small, focused patch set rather than adding every available kernel tweak. Performance claims remain subject to testing on Steam Deck hardware.
+> **NOTICE: This repository is no longer actively developed.**
+> Active development has moved to [linux-charcoal-conservative](https://github.com/Marctraider/linux-charcoal-conservative), the successor project. That repository is currently private, so the link may not be accessible until it is made public.
+
+**Status: Archived; no longer actively developed.** This repository remains available for its historical source, documentation, and published releases. It is not the active development target.
 
 Charcoal is a tuned Linux kernel for the **Steam Deck**, based on Valve's SteamOS 3.10 kernel source. It aims to improve gaming performance and frametime stability through a focused set of CPU-frequency, scheduler-extension, and compiler optimizations, while retaining Valve's Steam Deck platform support and boot identity.
 
