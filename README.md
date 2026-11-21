@@ -5,6 +5,7 @@
 >
 > **This repository is no longer maintained. Do not expect new updates or fixes here.**
 >
+> This project started as an experimental kernel-tuning effort. Development later moved to a cleaner, more deliberate build in the Conservative successor repository.
 > Active development has moved to **[linux-charcoal-conservative](https://github.com/Marctraider/linux-charcoal-conservative)**, the successor project. **That repository is currently private** and may not be accessible until it is made public.
 
 This repository is retained for historical source, documentation, and published releases. It is not the active development target.
